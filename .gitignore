@@ -60,3 +60,5 @@ docs/docs.go
 
 # Air (live reload)
 tmp/
+
+.claude/
