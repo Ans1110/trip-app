@@ -1,0 +1,62 @@
+# Binaries
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+dist/
+build/
+
+# Go test artifacts
+*.test
+*.out
+coverage.html
+coverage.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Vendor
+vendor/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+config.yml
+
+# Keys and credentials
+keys/*.pem
+keys/*.json
+keys/*.p8
+keys/*.p12
+
+# Config overrides (keep config.yml.example if any)
+config/config.local.yml
+config/config.prod.yml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Swagger generated docs (if generated at build time)
+docs/swagger.json
+docs/swagger.yaml
+docs/docs.go
+
+# Air (live reload)
+tmp/
