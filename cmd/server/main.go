@@ -170,7 +170,7 @@ func setupRouter(
 	public := api.Group("/")
 	public.Use(bodyLimitMW, timeoutMW, rateLimitMW)
 
-	// Private routes (JWT required)
+	// Protected routes (JWT required)
 	jwtMW := middleware.JWTAuth(publicKey, rdb)
 	protected := api.Group("/")
 	protected.Use(jwtMW, bodyLimitMW, timeoutMW, rateLimitMW, csrfMW)
