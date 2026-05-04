@@ -27,7 +27,10 @@ import (
 	"github.com/Ans1110/trip-app/pkg/logger"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	pkgredis "github.com/Ans1110/trip-app/pkg/redis"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -131,10 +134,46 @@ func setupRouter(
 
 	// Global middleware
 	r.Use(
+		middleware.RequestID(),
 		middleware.Logger(logger),
 		middleware.Recovery(logger),
 		middleware.TraceID(),
+		middleware.SecurityHeaders(),
+		middleware.CORS(cfg.Server.AllowedOrigins),
 	)
+
+	// Infra routes
+	r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+	r.GET("/ready", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	bodyLimitMB := cfg.Server.BodyLimitMB
+	if bodyLimitMB <= 0 {
+		bodyLimitMB = 10
+	}
+	reqTimeout := cfg.Server.RequestTimeout
+	if reqTimeout <= 0 {
+		reqTimeout = 30 * time.Second
+	}
+	bodyLimitMW := middleware.BodyLimit(int64(bodyLimitMB) * 1024 * 1024)
+	timeoutMW := middleware.Timeout(reqTimeout)
+	rateLimitMW := middleware.RateLimit(rdb, 120, time.Minute, logger)
+	csrfMW := middleware.CSRFProtect(rdb)
+	secureCookie := cfg.Server.Mode == gin.ReleaseMode
+
+	r.GET("/api/v1/csrf", middleware.CSRFTokenHandler(rdb, secureCookie))
+
+	api := r.Group("/api/v1")
+	// Public routes (no JWT required)
+	public := api.Group("/")
+	public.Use(bodyLimitMW, timeoutMW, rateLimitMW)
+
+	// Private routes (JWT required)
+	jwtMW := middleware.JWTAuth(publicKey, rdb)
+	protected := api.Group("/")
+	protected.Use(jwtMW, bodyLimitMW, timeoutMW, rateLimitMW, csrfMW)
+
 	return r
 }
 
