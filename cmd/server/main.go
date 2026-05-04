@@ -23,7 +23,8 @@ import (
 
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/database"
-	"github.com/Ans1110/trip-app/pkg/event"
+
+	// "github.com/Ans1110/trip-app/pkg/event"
 	"github.com/Ans1110/trip-app/pkg/logger"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	pkgredis "github.com/Ans1110/trip-app/pkg/redis"
@@ -39,12 +40,12 @@ import (
 func main() {
 	cfgPath := os.Getenv("CONFIG_PATH")
 	if cfgPath == "" {
-		cfgPath = "./config/config.yaml"
+		cfgPath = "./config/config.yml"
 	}
 
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
-		fmt.Fprint(os.Stderr, "load config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "load config: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -65,7 +66,7 @@ func main() {
 		logger.Fatal("run migrations", zap.Error(err))
 	}
 
-	bus := event.New(logger)
+	// bus := event.New(logger)
 
 	privateKey, err := loadPrivateKey(cfg.JWT.PrivateKeyPath)
 	if err != nil {
@@ -76,7 +77,7 @@ func main() {
 	// start background services
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go hub.Run(ctx)
+	// go hub.Run(ctx)
 	go func() {
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()

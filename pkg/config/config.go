@@ -32,7 +32,7 @@ type DatabaseConfig struct {
 	Port            int
 	User            string
 	Password        string
-	DBName          string        `mapstructure:"dbname"`
+	DBName          string        `mapstructure:"name"`
 	SSLMode         string        `mapstructure:"sslmode"`
 	MaxOpenConns    int           `mapstructure:"max_open_conns"`
 	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
@@ -51,10 +51,10 @@ type RedisConfig struct {
 }
 
 type JWTConfig struct {
-	PrivateKeyPath  string `mapstructure:"private_key_path"`
-	PublicKeyPath   string `mapstructure:"public_key_path"`
-	AccessTokenTTL  int    `mapstructure:"access_token_ttl"`
-	RefreshTokenTTL int    `mapstructure:"refresh_token_ttl"`
+	PrivateKeyPath  string        `mapstructure:"private_key_path"`
+	PublicKeyPath   string        `mapstructure:"public_key_path"`
+	AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
+	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
 }
 
 type OAuthConfig struct {
