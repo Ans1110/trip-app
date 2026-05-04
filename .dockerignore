@@ -11,9 +11,6 @@ node_modules
 .next
 
 # build output
-dist/
-build/
-tmp/
 coverage.out
 
 # IDE
