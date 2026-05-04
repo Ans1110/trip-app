@@ -1,0 +1,37 @@
+# git
+.git
+.gitignore
+
+# env & logs
+*.env
+*.log
+
+# node / frontend
+node_modules
+.next
+
+# build output
+dist/
+build/
+tmp/
+coverage.out
+
+# IDE
+.vscode/
+.claude/
+
+# monitoring 
+deploy/grafana
+deploy/prometheus
+
+# docs (optional)
+docs/swagger.json
+docs/swagger.yaml
+docs/docs.go
+
+# secrets
+keys/
+
+# config
+config/*.local.yaml
+config/*.dev.yaml
