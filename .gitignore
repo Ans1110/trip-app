@@ -35,7 +35,7 @@ keys/*.json
 keys/*.p8
 keys/*.p12
 
-# Config overrides (keep config.yml.example if any)
+# Config overrides
 config/config.local.yml
 config/config.prod.yml
 
@@ -53,7 +53,7 @@ Thumbs.db
 *.log
 logs/
 
-# Swagger generated docs (if generated at build time)
+# Swagger generated docs
 docs/swagger.json
 docs/swagger.yaml
 docs/docs.go
