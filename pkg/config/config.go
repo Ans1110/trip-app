@@ -21,10 +21,10 @@ type Config struct {
 type ServerConfig struct {
 	Port           int
 	Mode           string
-	AllowedOrigins []string `mapstructure:"allowed_origins"`
-	RequestTimeout int      `mapstructure:"request_timeout"`
-	BodyLimitMB    int      `mapstructure:"body_limit_mb"`
-	TrustedProxies []string `mapstructure:"trusted_proxies"`
+	AllowedOrigins []string      `mapstructure:"allowed_origins"`
+	RequestTimeout time.Duration `mapstructure:"request_timeout"`
+	BodyLimitMB    int           `mapstructure:"body_limit_mb"`
+	TrustedProxies []string      `mapstructure:"trusted_proxies"`
 }
 
 type DatabaseConfig struct {
