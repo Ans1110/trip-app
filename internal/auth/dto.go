@@ -92,5 +92,5 @@ type SessionResponse struct {
 	ExpiresIn    int64        `json:"expires_in"`
 	TokenType    string       `json:"token_type,omitempty"`
 	User         UserResponse `json:"user"`
-	RequiresTOTP bool         `json:"requires_otp,omitempty"`
+	RequiresTOTP bool         `json:"requires_totp,omitempty"`
 }
