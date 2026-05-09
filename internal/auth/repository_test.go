@@ -92,18 +92,42 @@ func runMigrations(t *testing.T, db *gorm.DB) {
 			updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`,
 		`CREATE TABLE IF NOT EXISTS auth.user_sessions (
-			id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			user_id            UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-			device_name        TEXT,
-			device_type        VARCHAR(20),
-			ip_address         TEXT,
-			user_agent         TEXT,
-			refresh_token_hash TEXT NOT NULL UNIQUE,
-			last_active_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-			expires_at         TIMESTAMPTZ NOT NULL,
-			revoked_at         TIMESTAMPTZ,
-			created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+			id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id             UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+			device_name         TEXT,
+			device_type         VARCHAR(20),
+			device_fingerprint  VARCHAR(64),
+			ip_address          TEXT,
+			user_agent          TEXT,
+			refresh_token_hash  TEXT NOT NULL UNIQUE,
+			last_active_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+			expires_at          TIMESTAMPTZ NOT NULL,
+			revoked_at          TIMESTAMPTZ,
+			created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`,
+		`CREATE TABLE IF NOT EXISTS auth.roles (
+			id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			name       VARCHAR(64) NOT NULL UNIQUE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
+		`CREATE TABLE IF NOT EXISTS auth.user_roles (
+			user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+			role_id    UUID NOT NULL REFERENCES auth.roles(id) ON DELETE CASCADE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			PRIMARY KEY (user_id, role_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS auth.audit_logs (
+			id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id    UUID,
+			action     VARCHAR(64) NOT NULL,
+			status     VARCHAR(16) NOT NULL,
+			ip_address TEXT,
+			user_agent TEXT,
+			detail     TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_user ON auth.audit_logs(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_action ON auth.audit_logs(action)`,
 	}
 	for _, sql := range sqls {
 		require.NoError(t, db.Exec(sql).Error)
@@ -538,6 +562,147 @@ func TestUserSessionRepository(t *testing.T) {
 			Where("user_id = ? AND revoked_at IS NOT NULL", u3.ID).Count(&count).Error)
 		assert.EqualValues(t, 3, count)
 	})
+}
+
+func TestWithTx(t *testing.T) {
+	repo := auth.NewRepository(setupDB(t))
+	ctx := context.Background()
+
+	t.Run("commits_when_fn_succeeds", func(t *testing.T) {
+		u := newUser(t)
+		err := repo.WithTx(ctx, func(tx auth.IRepository) error {
+			return tx.CreateUser(ctx, u)
+		})
+		require.NoError(t, err)
+
+		got, err := repo.FindUserByID(ctx, u.ID)
+		require.NoError(t, err)
+		require.NotNil(t, got)
+	})
+
+	t.Run("rolls_back_on_error", func(t *testing.T) {
+		u := newUser(t)
+		sentinel := fmt.Errorf("rollback please")
+		err := repo.WithTx(ctx, func(tx auth.IRepository) error {
+			if err := tx.CreateUser(ctx, u); err != nil {
+				return err
+			}
+			return sentinel
+		})
+		require.ErrorIs(t, err, sentinel)
+
+		got, err := repo.FindUserByID(ctx, u.ID)
+		require.NoError(t, err)
+		assert.Nil(t, got, "user should not exist after rollback")
+	})
+}
+
+func TestRevokeUserSessionIfActive(t *testing.T) {
+	repo := auth.NewRepository(setupDB(t))
+	ctx := context.Background()
+
+	u := newUser(t)
+	require.NoError(t, repo.CreateUser(ctx, u))
+
+	makeSession := func(t *testing.T) *auth.UserSession {
+		t.Helper()
+		s := &auth.UserSession{
+			ID:               uuid.New(),
+			UserID:           u.ID,
+			RefreshTokenHash: uuid.NewString(),
+			LastActiveAt:     time.Now(),
+			ExpiresAt:        time.Now().Add(time.Hour),
+		}
+		require.NoError(t, repo.CreateUserSession(ctx, s))
+		return s
+	}
+
+	t.Run("first_caller_wins", func(t *testing.T) {
+		s := makeSession(t)
+		won, err := repo.RevokeUserSessionIfActive(ctx, s.ID)
+		require.NoError(t, err)
+		assert.True(t, won)
+	})
+
+	t.Run("second_caller_loses", func(t *testing.T) {
+		s := makeSession(t)
+		won1, err := repo.RevokeUserSessionIfActive(ctx, s.ID)
+		require.NoError(t, err)
+		assert.True(t, won1)
+
+		won2, err := repo.RevokeUserSessionIfActive(ctx, s.ID)
+		require.NoError(t, err)
+		assert.False(t, won2, "concurrent revoker must lose")
+	})
+}
+
+func TestInvalidatePendingPasswordResets(t *testing.T) {
+	repo := auth.NewRepository(setupDB(t))
+	ctx := context.Background()
+
+	u := newUser(t)
+	require.NoError(t, repo.CreateUser(ctx, u))
+
+	// Create two pending tokens for same user.
+	for range 2 {
+		require.NoError(t, repo.CreatePasswordReset(ctx, &auth.PasswordReset{
+			ID:        uuid.New(),
+			UserID:    u.ID,
+			TokenHash: uuid.NewString(),
+			ExpiresAt: time.Now().Add(time.Hour),
+		}))
+	}
+
+	require.NoError(t, repo.InvalidatePendingPasswordResets(ctx, u.ID))
+
+	var pending int64
+	require.NoError(t, repo.(*auth.RepositoryForTest).DB().Model(&auth.PasswordReset{}).
+		Where("user_id = ? AND used_at IS NULL", u.ID).Count(&pending).Error)
+	assert.EqualValues(t, 0, pending)
+}
+
+func TestListUserRoles(t *testing.T) {
+	db := setupDB(t)
+	repo := auth.NewRepository(db)
+	ctx := context.Background()
+
+	u := newUser(t)
+	require.NoError(t, repo.CreateUser(ctx, u))
+
+	roleAdmin := uuid.New()
+	roleEditor := uuid.New()
+	require.NoError(t, db.Exec(`INSERT INTO auth.roles (id, name) VALUES (?, ?), (?, ?)`,
+		roleAdmin, "admin", roleEditor, "editor").Error)
+	require.NoError(t, db.Exec(`INSERT INTO auth.user_roles (user_id, role_id) VALUES (?, ?), (?, ?)`,
+		u.ID, roleAdmin, u.ID, roleEditor).Error)
+
+	roles, err := repo.ListUserRoles(ctx, u.ID)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"admin", "editor"}, roles)
+}
+
+func TestCreateAuditLog(t *testing.T) {
+	repo := auth.NewRepository(setupDB(t))
+	ctx := context.Background()
+
+	u := newUser(t)
+	require.NoError(t, repo.CreateUser(ctx, u))
+
+	uid := u.ID
+	log := &auth.AuditLog{
+		ID:        uuid.New(),
+		UserID:    &uid,
+		Action:    auth.AuditLogin,
+		Status:    auth.AuditSuccess,
+		IPAddress: "127.0.0.1",
+		Detail:    "test entry",
+	}
+	require.NoError(t, repo.CreateAuditLog(ctx, log))
+
+	var stored auth.AuditLog
+	require.NoError(t, repo.(*auth.RepositoryForTest).DB().First(&stored, "id = ?", log.ID).Error)
+	assert.Equal(t, auth.AuditLogin, stored.Action)
+	assert.Equal(t, auth.AuditSuccess, stored.Status)
 }
 
 func TestUserLifecycle(t *testing.T) {

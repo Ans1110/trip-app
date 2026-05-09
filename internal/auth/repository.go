@@ -12,6 +12,8 @@ import (
 )
 
 type IRepository interface {
+	WithTx(ctx context.Context, fn func(IRepository) error) error
+
 	CreateUser(ctx context.Context, user *User) error
 	FindUserByEmail(ctx context.Context, email string) (*User, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (*User, error)
@@ -30,6 +32,7 @@ type IRepository interface {
 	CreatePasswordReset(ctx context.Context, pr *PasswordReset) error
 	FindPasswordResetByTokenHash(ctx context.Context, tokenHash string) (*PasswordReset, error)
 	MarkPasswordResetUsed(ctx context.Context, id uuid.UUID) error
+	InvalidatePendingPasswordResets(ctx context.Context, userID uuid.UUID) error
 
 	UpsertMFAConfig(ctx context.Context, config *MFAConfig) error
 	FindMFAConfig(ctx context.Context, userID uuid.UUID) (*MFAConfig, error)
@@ -37,9 +40,14 @@ type IRepository interface {
 	CreateUserSession(ctx context.Context, session *UserSession) error
 	FindUserSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (*UserSession, error)
 	RevokeUserSession(ctx context.Context, id uuid.UUID) error
+	RevokeUserSessionIfActive(ctx context.Context, id uuid.UUID) (bool, error)
 	ListSessionByUserID(ctx context.Context, userID uuid.UUID) ([]UserSession, error)
 	DeleteUserSession(ctx context.Context, id uuid.UUID) error
 	DeleteAllSessions(ctx context.Context, userID uuid.UUID) error
+
+	ListUserRoles(ctx context.Context, userID uuid.UUID) ([]string, error)
+
+	CreateAuditLog(ctx context.Context, log *AuditLog) error
 }
 
 type repository struct {
@@ -48,6 +56,12 @@ type repository struct {
 
 func NewRepository(db *gorm.DB) IRepository {
 	return &repository{db: db}
+}
+
+func (r *repository) WithTx(ctx context.Context, fn func(IRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(&repository{db: tx})
+	})
 }
 
 func (r *repository) CreateUser(ctx context.Context, user *User) error {
@@ -156,6 +170,13 @@ func (r *repository) MarkPasswordResetUsed(ctx context.Context, id uuid.UUID) er
 	return r.db.WithContext(ctx).Model(&PasswordReset{}).Where("id = ?", id).Update("used_at", now).Error
 }
 
+func (r *repository) InvalidatePendingPasswordResets(ctx context.Context, userID uuid.UUID) error {
+	now := time.Now()
+	return r.db.WithContext(ctx).Model(&PasswordReset{}).
+		Where("user_id = ? AND used_at IS NULL", userID).
+		Update("used_at", now).Error
+}
+
 func (r *repository) UpsertMFAConfig(ctx context.Context, config *MFAConfig) error {
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "user_id"}},
@@ -192,6 +213,20 @@ func (r *repository) RevokeUserSession(ctx context.Context, id uuid.UUID) error 
 	return r.db.WithContext(ctx).Model(&UserSession{}).Where("id = ?", id).Update("revoked_at", now).Error
 }
 
+// RevokeUserSessionIfActive atomically marks a session revoked only when it is
+// not already revoked, returning whether the caller's update won the race.
+// Used to detect concurrent refresh attempts that would otherwise duplicate sessions.
+func (r *repository) RevokeUserSessionIfActive(ctx context.Context, id uuid.UUID) (bool, error) {
+	now := time.Now()
+	res := r.db.WithContext(ctx).Model(&UserSession{}).
+		Where("id = ? AND revoked_at IS NULL", id).
+		Update("revoked_at", now)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
+}
+
 func (r *repository) ListSessionByUserID(ctx context.Context, userID uuid.UUID) ([]UserSession, error) {
 	var sessions []UserSession
 	err := r.db.WithContext(ctx).Where("user_id = ? AND revoked_at IS NULL AND expires_at > ?", userID, time.Now()).
@@ -209,4 +244,18 @@ func (r *repository) DeleteAllSessions(ctx context.Context, userID uuid.UUID) er
 	now := time.Now()
 	return r.db.WithContext(ctx).Model(&UserSession{}).
 		Where("user_id = ? AND revoked_at IS NULL", userID).Update("revoked_at", now).Error
+}
+
+func (r *repository) ListUserRoles(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	var names []string
+	err := r.db.WithContext(ctx).
+		Table("auth.roles AS r").
+		Joins("JOIN auth.user_roles AS ur ON ur.role_id = r.id").
+		Where("ur.user_id = ?", userID).
+		Pluck("r.name", &names).Error
+	return names, err
+}
+
+func (r *repository) CreateAuditLog(ctx context.Context, log *AuditLog) error {
+	return r.db.WithContext(ctx).Create(log).Error
 }
