@@ -14,16 +14,18 @@ import (
 )
 
 const (
-	ContextUserID = "user_id"
-	ContextRoles  = "roles"
-	ContextJTI    = "jti"
+	ContextUserID    = "user_id"
+	ContextRoles     = "roles"
+	ContextJTI       = "jti"
+	ContextSessionID = "sid"
 )
 
 type Claims struct {
 	jwt.RegisteredClaims
-	Email    string   `json:"email"`
-	Roles    []string `json:"roles"`
-	Provider string   `json:"provider"`
+	Email     string   `json:"email"`
+	Roles     []string `json:"roles"`
+	Provider  string   `json:"provider"`
+	SessionID string   `json:"sid,omitempty"`
 }
 
 func JWTAuth(publicKey *rsa.PublicKey, rdb *redis.Client) gin.HandlerFunc {
@@ -63,6 +65,9 @@ func JWTAuth(publicKey *rsa.PublicKey, rdb *redis.Client) gin.HandlerFunc {
 		c.Set(ContextUserID, userID)
 		c.Set(ContextRoles, claims.Roles)
 		c.Set(ContextJTI, claims.ID)
+		if claims.SessionID != "" {
+			c.Set(ContextSessionID, claims.SessionID)
+		}
 		c.Next()
 	}
 }
