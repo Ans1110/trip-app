@@ -117,16 +117,22 @@ func runMigrations(t *testing.T, db *gorm.DB) {
 			PRIMARY KEY (user_id, role_id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS auth.audit_logs (
-			id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			user_id    UUID,
-			action     VARCHAR(64) NOT NULL,
-			status     VARCHAR(16) NOT NULL,
-			ip_address TEXT,
-			user_agent TEXT,
-			detail     TEXT,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+			id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			actor_user_id   UUID,
+			target_user_id  UUID,
+			action          VARCHAR(64) NOT NULL,
+			status          VARCHAR(32) NOT NULL,
+			resource_type   VARCHAR(64),
+			resource_id     TEXT,
+			ip_address      INET,
+			user_agent      TEXT,
+			request_id      UUID,
+			trace_id        TEXT,
+			detail          JSONB,
+			created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_audit_user ON auth.audit_logs(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_actor  ON auth.audit_logs(actor_user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_audit_target ON auth.audit_logs(target_user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_audit_action ON auth.audit_logs(action)`,
 	}
 	for _, sql := range sqls {
@@ -689,13 +695,21 @@ func TestCreateAuditLog(t *testing.T) {
 	require.NoError(t, repo.CreateUser(ctx, u))
 
 	uid := u.ID
+	ip := "127.0.0.1"
+	reqID := uuid.New()
 	log := &auth.AuditLog{
-		ID:        uuid.New(),
-		UserID:    &uid,
-		Action:    auth.AuditLogin,
-		Status:    auth.AuditSuccess,
-		IPAddress: "127.0.0.1",
-		Detail:    "test entry",
+		ID:           uuid.New(),
+		ActorUserID:  &uid,
+		TargetUserID: &uid,
+		Action:       auth.AuditLogin,
+		Status:       auth.AuditSuccess,
+		ResourceType: "user_session",
+		ResourceID:   uuid.NewString(),
+		IPAddress:    &ip,
+		UserAgent:    "test-agent/1.0",
+		RequestID:    &reqID,
+		TraceID:      "trace-abc",
+		Detail:       map[string]any{"message": "test entry", "extra": float64(7)},
 	}
 	require.NoError(t, repo.CreateAuditLog(ctx, log))
 
@@ -703,6 +717,17 @@ func TestCreateAuditLog(t *testing.T) {
 	require.NoError(t, repo.(*auth.RepositoryForTest).DB().First(&stored, "id = ?", log.ID).Error)
 	assert.Equal(t, auth.AuditLogin, stored.Action)
 	assert.Equal(t, auth.AuditSuccess, stored.Status)
+	require.NotNil(t, stored.ActorUserID)
+	assert.Equal(t, uid, *stored.ActorUserID)
+	require.NotNil(t, stored.TargetUserID)
+	assert.Equal(t, uid, *stored.TargetUserID)
+	require.NotNil(t, stored.IPAddress)
+	assert.Equal(t, "127.0.0.1", *stored.IPAddress)
+	require.NotNil(t, stored.RequestID)
+	assert.Equal(t, reqID, *stored.RequestID)
+	assert.Equal(t, "trace-abc", stored.TraceID)
+	assert.Equal(t, "test entry", stored.Detail["message"])
+	assert.Equal(t, float64(7), stored.Detail["extra"])
 }
 
 func TestUserLifecycle(t *testing.T) {
