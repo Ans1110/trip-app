@@ -23,16 +23,30 @@ CREATE INDEX IF NOT EXISTS idx_user_roles_user ON auth.user_roles(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_roles_role ON auth.user_roles(role_id);
 
 CREATE TABLE IF NOT EXISTS auth.audit_logs (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     UUID,
-    action      VARCHAR(64) NOT NULL,
-    status      VARCHAR(16) NOT NULL,
-    ip_address  TEXT,
-    user_agent  TEXT,
-    detail      TEXT,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    actor_user_id   UUID,
+    target_user_id  UUID,
+
+    action          VARCHAR(64) NOT NULL,
+    status          VARCHAR(32) NOT NULL,
+
+    resource_type   VARCHAR(64),
+    resource_id     TEXT,
+
+    ip_address      INET,
+    user_agent      TEXT,
+
+    request_id      UUID,
+    trace_id        TEXT,
+
+    detail          JSONB,
+
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_user   ON auth.audit_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_action ON auth.audit_logs(action);
-CREATE INDEX IF NOT EXISTS idx_audit_created ON auth.audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_actor    ON auth.audit_logs(actor_user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_target   ON auth.audit_logs(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_action   ON auth.audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_resource ON auth.audit_logs(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created  ON auth.audit_logs(created_at DESC);
