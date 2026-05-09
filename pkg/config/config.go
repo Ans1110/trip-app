@@ -16,6 +16,7 @@ type Config struct {
 	Cloudinary   CloudinaryConfig
 	External     ExternalConfig
 	Notification NotificationConfig
+	Security     SecurityConfig
 }
 
 type ServerConfig struct {
@@ -55,6 +56,25 @@ type JWTConfig struct {
 	PublicKeyPath   string        `mapstructure:"public_key_path"`
 	AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
 	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
+	Audience        []string      `mapstructure:"audience"`
+}
+
+type SecurityConfig struct {
+	TOTPEncryptionKey string          `mapstructure:"totp_encryption_key"` // 32-byte hex (64 chars)
+	OperationTimeout  time.Duration   `mapstructure:"operation_timeout"`
+	RateLimit         RateLimitConfig `mapstructure:"rate_limit"`
+}
+
+type RateLimitConfig struct {
+	Login          RateLimitRule `mapstructure:"login"`
+	Register       RateLimitRule `mapstructure:"register"`
+	ForgotPassword RateLimitRule `mapstructure:"forgot_password"`
+	TOTP           RateLimitRule `mapstructure:"totp"`
+}
+
+type RateLimitRule struct {
+	Limit  int           `mapstructure:"limit"`
+	Window time.Duration `mapstructure:"window"`
 }
 
 type OAuthConfig struct {
