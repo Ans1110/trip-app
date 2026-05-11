@@ -245,6 +245,14 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 			zap.String("ip", device.IPAddress),
 		)
 		s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "wrong password")
+		return nil, ErrInvalidCredentials
+	}
+	if user.IsBlocked {
+		s.logger.Warn("login rejected: user is blocked",
+			zap.String("user_id", user.ID.String()),
+			zap.String("ip", device.IPAddress),
+		)
+		s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "blocked")
 		return nil, ErrUserBlocked
 	}
 	if user.Status == UserStatusDeleted {
@@ -367,7 +375,7 @@ func (s *Service) OAuthGithub(ctx context.Context, code string, device DeviceInf
 
 func (s *Service) OAuthGoogle(ctx context.Context, idToken string, device DeviceInfo) (*SessionResponse, error) {
 	if s.oauth == nil {
-		return nil, ErrTOTPNotConfigured
+		return nil, ErrOAuthNotConfigured
 	}
 	id, err := s.oauth.VerifyGoogle(ctx, idToken)
 	if err != nil {
@@ -1107,7 +1115,7 @@ func (s *Service) signAccessToken(ctx context.Context, user *User, sessionID uui
 			Subject:   user.ID.String(),
 			ID:        uuid.NewString(),
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(exp),
 			NotBefore: jwt.NewNumericDate(now),
 			Issuer:    s.issuer,
 			Audience:  jwt.ClaimStrings(s.audience),
@@ -1117,7 +1125,7 @@ func (s *Service) signAccessToken(ctx context.Context, user *User, sessionID uui
 		Provider:  provider,
 		SessionID: sessionID.String(),
 	}
-	tok := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	tok.Header["kid"] = jwkKeyID
 	signed, err := tok.SignedString(s.privateKey)
 	return signed, exp, err
