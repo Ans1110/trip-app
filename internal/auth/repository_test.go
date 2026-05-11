@@ -540,7 +540,7 @@ func TestUserSessionRepository(t *testing.T) {
 		assert.Nil(t, got)
 	})
 
-	t.Run("DeleteAllSessions_SoftRevokesAll", func(t *testing.T) {
+	t.Run("RevokeAllSessions_SoftRevokesAll", func(t *testing.T) {
 		u3 := newUser(t)
 		require.NoError(t, repo.CreateUser(ctx, u3))
 
@@ -555,7 +555,7 @@ func TestUserSessionRepository(t *testing.T) {
 			require.NoError(t, repo.CreateUserSession(ctx, s))
 		}
 
-		require.NoError(t, repo.DeleteAllSessions(ctx, u3.ID))
+		require.NoError(t, repo.RevokeAllSessions(ctx, u3.ID))
 
 		// ListSession filters out revoked; should be empty
 		sessions, err := repo.ListSessionByUserID(ctx, u3.ID)
@@ -567,6 +567,33 @@ func TestUserSessionRepository(t *testing.T) {
 		require.NoError(t, repo.(*auth.RepositoryForTest).DB().Model(&auth.UserSession{}).
 			Where("user_id = ? AND revoked_at IS NOT NULL", u3.ID).Count(&count).Error)
 		assert.EqualValues(t, 3, count)
+	})
+
+	t.Run("RevokeOtherSessions_KeepsExcept", func(t *testing.T) {
+		u4 := newUser(t)
+		require.NoError(t, repo.CreateUser(ctx, u4))
+
+		var keep uuid.UUID
+		for i := range 3 {
+			s := &auth.UserSession{
+				ID:               uuid.New(),
+				UserID:           u4.ID,
+				RefreshTokenHash: uuid.NewString(),
+				LastActiveAt:     time.Now(),
+				ExpiresAt:        time.Now().Add(time.Hour),
+			}
+			require.NoError(t, repo.CreateUserSession(ctx, s))
+			if i == 0 {
+				keep = s.ID
+			}
+		}
+
+		require.NoError(t, repo.RevokeOtherSessions(ctx, u4.ID, keep))
+
+		sessions, err := repo.ListSessionByUserID(ctx, u4.ID)
+		require.NoError(t, err)
+		require.Len(t, sessions, 1, "kept session should still be active")
+		assert.Equal(t, keep, sessions[0].ID)
 	})
 }
 

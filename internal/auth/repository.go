@@ -43,7 +43,8 @@ type IRepository interface {
 	RevokeUserSessionIfActive(ctx context.Context, id uuid.UUID) (bool, error)
 	ListSessionByUserID(ctx context.Context, userID uuid.UUID) ([]UserSession, error)
 	DeleteUserSession(ctx context.Context, id uuid.UUID) error
-	DeleteAllSessions(ctx context.Context, userID uuid.UUID) error
+	RevokeAllSessions(ctx context.Context, userID uuid.UUID) error
+	RevokeOtherSessions(ctx context.Context, userID, exceptID uuid.UUID) error
 
 	ListUserRoles(ctx context.Context, userID uuid.UUID) ([]string, error)
 
@@ -240,10 +241,17 @@ func (r *repository) DeleteUserSession(ctx context.Context, id uuid.UUID) error 
 		Where("id = ? AND revoked_at IS NULL", id).Update("revoked_at", now).Error
 }
 
-func (r *repository) DeleteAllSessions(ctx context.Context, userID uuid.UUID) error {
+func (r *repository) RevokeAllSessions(ctx context.Context, userID uuid.UUID) error {
 	now := time.Now()
 	return r.db.WithContext(ctx).Model(&UserSession{}).
 		Where("user_id = ? AND revoked_at IS NULL", userID).Update("revoked_at", now).Error
+}
+
+func (r *repository) RevokeOtherSessions(ctx context.Context, userID, exceptID uuid.UUID) error {
+	now := time.Now()
+	return r.db.WithContext(ctx).Model(&UserSession{}).
+		Where("user_id = ? AND id <> ? AND revoked_at IS NULL", userID, exceptID).
+		Update("revoked_at", now).Error
 }
 
 func (r *repository) ListUserRoles(ctx context.Context, userID uuid.UUID) ([]string, error) {
