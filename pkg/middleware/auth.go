@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rsa"
 	"fmt"
 	"strings"
@@ -19,6 +20,8 @@ const (
 	ContextJTI       = "jti"
 	ContextSessionID = "sid"
 )
+
+const sessionIDKey ctxKey = "sid"
 
 type Claims struct {
 	jwt.RegisteredClaims
@@ -67,6 +70,9 @@ func JWTAuth(publicKey *rsa.PublicKey, rdb *redis.Client) gin.HandlerFunc {
 		c.Set(ContextJTI, claims.ID)
 		if claims.SessionID != "" {
 			c.Set(ContextSessionID, claims.SessionID)
+			if sid, err := uuid.Parse(claims.SessionID); err == nil {
+				c.Request = c.Request.WithContext(WithSessionID(c.Request.Context(), sid))
+			}
 		}
 		c.Next()
 	}
@@ -93,6 +99,21 @@ func GetUserID(c *gin.Context) uuid.UUID {
 		if userID, ok := id.(uuid.UUID); ok {
 			return userID
 		}
+	}
+	return uuid.Nil
+}
+
+// WithSessionID stashes the JWT session id onto the request context so
+// service-layer code can read it without depending on gin.
+func WithSessionID(ctx context.Context, id uuid.UUID) context.Context {
+	return context.WithValue(ctx, sessionIDKey, id)
+}
+
+// SessionIDFromContext returns the session id stashed by JWTAuth, or
+// uuid.Nil when the request did not carry one (programmatic/internal callers).
+func SessionIDFromContext(ctx context.Context) uuid.UUID {
+	if v, ok := ctx.Value(sessionIDKey).(uuid.UUID); ok {
+		return v
 	}
 	return uuid.Nil
 }
