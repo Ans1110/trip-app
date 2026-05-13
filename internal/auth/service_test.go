@@ -11,8 +11,10 @@ import (
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/middleware"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -61,6 +63,7 @@ type repoMock struct {
 	invalidatePendingPasswordResets   func(context.Context, uuid.UUID) error
 	upsertMFAConfig                   func(context.Context, *auth.MFAConfig) error
 	findMFAConfig                     func(context.Context, uuid.UUID) (*auth.MFAConfig, error)
+	deleteMFAConfig                   func(context.Context, uuid.UUID) error
 	createUserSession                 func(context.Context, *auth.UserSession) error
 	findUserSessionByRefreshTokenHash func(context.Context, string) (*auth.UserSession, error)
 	revokeUserSession                 func(context.Context, uuid.UUID) error
@@ -194,6 +197,12 @@ func (m *repoMock) FindMFAConfig(c context.Context, id uuid.UUID) (*auth.MFAConf
 	}
 	return nil, nil
 }
+func (m *repoMock) DeleteMFAConfig(c context.Context, id uuid.UUID) error {
+	if m.deleteMFAConfig != nil {
+		return m.deleteMFAConfig(c, id)
+	}
+	return nil
+}
 func (m *repoMock) CreateUserSession(c context.Context, s *auth.UserSession) error {
 	if m.createUserSession != nil {
 		return m.createUserSession(c, s)
@@ -303,6 +312,16 @@ func newSvc(repo auth.IRepository, opts ...func(*auth.ServiceConfig)) auth.IServ
 	}
 	return auth.NewService(cfg)
 }
+
+func newRedis(t *testing.T) (*miniredis.Miniredis, *redis.Client) {
+	t.Helper()
+	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = client.Close() })
+	return mr, client
+}
+
+const totpPendingKeyPrefix = "auth:totp:pending:"
 
 func mustHashPwd(p string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.MinCost)
@@ -1100,29 +1119,40 @@ func TestSetupTOTP(t *testing.T) {
 		repo := &repoMock{
 			findUserByID: func(_ context.Context, _ uuid.UUID) (*auth.User, error) { return user, nil },
 		}
-		resp, err := newSvc(repo).SetupTOTP(ctx, user.ID)
+		mr, rdb := newRedis(t)
+		svc := newSvc(repo, func(c *auth.ServiceConfig) { c.Redis = rdb })
+		resp, err := svc.SetupTOTP(ctx, user.ID)
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Secret)
 		assert.Contains(t, resp.ProvisioningURL, "otpauth://totp/")
 		assert.Contains(t, resp.ProvisioningURL, resp.Secret)
+		assert.True(t, mr.Exists(totpPendingKeyPrefix+user.ID.String()), "pending key should be stored in redis")
+	})
+
+	t.Run("redis_unavailable_returns_error", func(t *testing.T) {
+		user := newActiveUser()
+		repo := &repoMock{
+			findUserByID: func(_ context.Context, _ uuid.UUID) (*auth.User, error) { return user, nil },
+		}
+		_, err := newSvc(repo).SetupTOTP(ctx, user.ID)
+		require.ErrorIs(t, err, auth.ErrTOTPStoreUnavailable)
 	})
 }
 
 func TestEnableTOTP(t *testing.T) {
 	t.Run("not_configured", func(t *testing.T) {
-		repo := &repoMock{}
-		err := newSvc(repo).EnableTOTP(ctx, uuid.New(), "123456")
+		_, rdb := newRedis(t)
+		svc := newSvc(&repoMock{}, func(c *auth.ServiceConfig) { c.Redis = rdb })
+		err := svc.EnableTOTP(ctx, uuid.New(), "123456")
 		require.ErrorIs(t, err, auth.ErrTOTPNotConfigured)
 	})
 
 	t.Run("wrong_code", func(t *testing.T) {
 		userID := uuid.New()
-		repo := &repoMock{
-			findMFAConfig: func(_ context.Context, _ uuid.UUID) (*auth.MFAConfig, error) {
-				return &auth.MFAConfig{UserID: userID, TOTPSecret: "JBSWY3DPEHPK3PXP", IsEnabled: false}, nil
-			},
-		}
-		err := newSvc(repo).EnableTOTP(ctx, userID, "000000")
+		mr, rdb := newRedis(t)
+		svc := newSvc(&repoMock{}, func(c *auth.ServiceConfig) { c.Redis = rdb })
+		require.NoError(t, mr.Set(totpPendingKeyPrefix+userID.String(), "JBSWY3DPEHPK3PXP"))
+		err := svc.EnableTOTP(ctx, userID, "000000")
 		require.ErrorIs(t, err, auth.ErrInvalidTOTP)
 	})
 
@@ -1134,18 +1164,24 @@ func TestEnableTOTP(t *testing.T) {
 
 		var upserted *auth.MFAConfig
 		repo := &repoMock{
-			findMFAConfig: func(_ context.Context, _ uuid.UUID) (*auth.MFAConfig, error) {
-				return &auth.MFAConfig{UserID: userID, TOTPSecret: secret, IsEnabled: false}, nil
-			},
 			upsertMFAConfig: func(_ context.Context, cfg *auth.MFAConfig) error {
 				upserted = cfg
 				return nil
 			},
 		}
-		err = newSvc(repo).EnableTOTP(ctx, userID, code)
+		mr, rdb := newRedis(t)
+		svc := newSvc(repo, func(c *auth.ServiceConfig) { c.Redis = rdb })
+		require.NoError(t, mr.Set(totpPendingKeyPrefix+userID.String(), secret))
+		err = svc.EnableTOTP(ctx, userID, code)
 		require.NoError(t, err)
 		require.NotNil(t, upserted)
 		assert.True(t, upserted.IsEnabled)
+		assert.False(t, mr.Exists(totpPendingKeyPrefix+userID.String()), "pending key should be cleared on success")
+	})
+
+	t.Run("redis_unavailable_returns_error", func(t *testing.T) {
+		err := newSvc(&repoMock{}).EnableTOTP(ctx, uuid.New(), "123456")
+		require.ErrorIs(t, err, auth.ErrTOTPStoreUnavailable)
 	})
 }
 
@@ -1178,26 +1214,31 @@ func TestDisableTOTP(t *testing.T) {
 		require.ErrorIs(t, err, auth.ErrInvalidTOTP)
 	})
 
-	t.Run("success_disables_mfa", func(t *testing.T) {
+	t.Run("success_destroys_mfa_row", func(t *testing.T) {
 		userID := uuid.New()
 		secret := "JBSWY3DPEHPK3PXP"
 		code, err := auth.TotpNow(secret)
 		require.NoError(t, err)
 
-		var upserted *auth.MFAConfig
+		var deletedFor uuid.UUID
+		upsertCalled := false
 		repo := &repoMock{
 			findMFAConfig: func(_ context.Context, _ uuid.UUID) (*auth.MFAConfig, error) {
 				return &auth.MFAConfig{UserID: userID, TOTPSecret: secret, IsEnabled: true}, nil
 			},
-			upsertMFAConfig: func(_ context.Context, cfg *auth.MFAConfig) error {
-				upserted = cfg
+			upsertMFAConfig: func(_ context.Context, _ *auth.MFAConfig) error {
+				upsertCalled = true
+				return nil
+			},
+			deleteMFAConfig: func(_ context.Context, id uuid.UUID) error {
+				deletedFor = id
 				return nil
 			},
 		}
 		err = newSvc(repo).DisableTOTP(ctx, userID, code)
 		require.NoError(t, err)
-		require.NotNil(t, upserted)
-		assert.False(t, upserted.IsEnabled)
+		assert.Equal(t, userID, deletedFor)
+		assert.False(t, upsertCalled, "disable should delete the row, not upsert")
 	})
 }
 
@@ -1452,32 +1493,31 @@ func TestForgotPasswordSingleActive(t *testing.T) {
 }
 
 func TestEncryptedTOTPRoundTrip(t *testing.T) {
+	const key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
 	t.Run("setup_stores_ciphertext", func(t *testing.T) {
 		user := newActiveUser()
-		var stored *auth.MFAConfig
 		repo := &repoMock{
 			findUserByID: func(_ context.Context, _ uuid.UUID) (*auth.User, error) { return user, nil },
-			upsertMFAConfig: func(_ context.Context, cfg *auth.MFAConfig) error {
-				stored = cfg
-				return nil
-			},
 		}
-		key := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-		svc := newSvc(repo, func(c *auth.ServiceConfig) { c.Security.TOTPEncryptionKey = key })
+		mr, rdb := newRedis(t)
+		svc := newSvc(repo, func(c *auth.ServiceConfig) {
+			c.Security.TOTPEncryptionKey = key
+			c.Redis = rdb
+		})
 		resp, err := svc.SetupTOTP(ctx, user.ID)
 		require.NoError(t, err)
-		require.NotNil(t, stored)
-		assert.NotEqual(t, resp.Secret, stored.TOTPSecret, "stored secret must differ from plaintext")
+		stored, err := mr.Get(totpPendingKeyPrefix + user.ID.String())
+		require.NoError(t, err)
+		assert.NotEqual(t, resp.Secret, stored, "pending value must be ciphertext, not plaintext")
 
-		// Round-trip: decrypted ciphertext should equal original plaintext.
-		plain, err := auth.DecryptSecret(stored.TOTPSecret, key)
+		plain, err := auth.DecryptSecret(stored, key)
 		require.NoError(t, err)
 		assert.Equal(t, resp.Secret, plain)
 	})
 
 	t.Run("enable_decrypts_and_verifies", func(t *testing.T) {
 		userID := uuid.New()
-		key := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 		secret := "JBSWY3DPEHPK3PXP"
 		ct, err := auth.EncryptSecret(secret, key)
 		require.NoError(t, err)
@@ -1486,15 +1526,17 @@ func TestEncryptedTOTPRoundTrip(t *testing.T) {
 
 		var enabled *auth.MFAConfig
 		repo := &repoMock{
-			findMFAConfig: func(_ context.Context, _ uuid.UUID) (*auth.MFAConfig, error) {
-				return &auth.MFAConfig{UserID: userID, TOTPSecret: ct, IsEnabled: false}, nil
-			},
 			upsertMFAConfig: func(_ context.Context, cfg *auth.MFAConfig) error {
 				enabled = cfg
 				return nil
 			},
 		}
-		svc := newSvc(repo, func(c *auth.ServiceConfig) { c.Security.TOTPEncryptionKey = key })
+		mr, rdb := newRedis(t)
+		svc := newSvc(repo, func(c *auth.ServiceConfig) {
+			c.Security.TOTPEncryptionKey = key
+			c.Redis = rdb
+		})
+		require.NoError(t, mr.Set(totpPendingKeyPrefix+userID.String(), ct))
 		err = svc.EnableTOTP(ctx, userID, code)
 		require.NoError(t, err)
 		require.NotNil(t, enabled)

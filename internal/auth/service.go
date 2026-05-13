@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,18 +21,19 @@ import (
 )
 
 var (
-	ErrEmailExists        = errors.New("email already registered")
-	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrUserBlocked        = errors.New("user is blocked")
-	ErrInvalidToken       = errors.New("invalid or expired token")
-	ErrInvalidTOTP        = errors.New("invalid totp code")
-	ErrTOTPNotConfigured  = errors.New("totp not configured")
-	ErrTOTPAlreadyEnabled = errors.New("totp already enabled")
-	ErrPasswordNotSet     = errors.New("password not set")
-	ErrSessionNotFound    = errors.New("session not found")
-	ErrOAuthNotConfigured = errors.New("oauth verifier not configured")
-	ErrInvalidOAuth       = errors.New("invalid oauth identity")
+	ErrEmailExists          = errors.New("email already registered")
+	ErrInvalidCredentials   = errors.New("invalid email or password")
+	ErrUserNotFound         = errors.New("user not found")
+	ErrUserBlocked          = errors.New("user is blocked")
+	ErrInvalidToken         = errors.New("invalid or expired token")
+	ErrInvalidTOTP          = errors.New("invalid totp code")
+	ErrTOTPNotConfigured    = errors.New("totp not configured")
+	ErrTOTPAlreadyEnabled   = errors.New("totp already enabled")
+	ErrPasswordNotSet       = errors.New("password not set")
+	ErrSessionNotFound      = errors.New("session not found")
+	ErrOAuthNotConfigured   = errors.New("oauth verifier not configured")
+	ErrInvalidOAuth         = errors.New("invalid oauth identity")
+	ErrTOTPStoreUnavailable = errors.New("totp pending store unavailable")
 )
 
 const (
@@ -40,6 +42,10 @@ const (
 	passwordResetTTL = time.Hour
 
 	jwtBlacklistKeyPrefix = "jwt_blacklist:"
+	totpPendingKeyPrefix  = "auth:totp:pending:"
+	totpUsedKeyPrefix     = "auth:totp:used:"
+	totpPendingTTL        = 10 * time.Minute
+	totpUsedTTL           = 2 * totpStep * time.Second
 )
 
 type DeviceInfo struct {
@@ -691,11 +697,7 @@ func (s *Service) SetupTOTP(ctx context.Context, userID uuid.UUID) (*TOTPSetupRe
 	if err != nil {
 		return nil, err
 	}
-	if err := s.repo.UpsertMFAConfig(ctx, &MFAConfig{
-		UserID:     userID,
-		TOTPSecret: stored,
-		IsEnabled:  false,
-	}); err != nil {
+	if err := s.storePendingTOTP(ctx, userID, stored); err != nil {
 		return nil, err
 	}
 	return &TOTPSetupResponse{
@@ -712,26 +714,35 @@ func (s *Service) EnableTOTP(ctx context.Context, userID uuid.UUID, code string)
 		return err
 	}
 
-	mfa, err := s.repo.FindMFAConfig(ctx, userID)
+	stored, err := s.loadPendingTOTP(ctx, userID)
 	if err != nil {
 		return err
 	}
-	if mfa == nil {
+	if stored == "" {
 		return ErrTOTPNotConfigured
 	}
-	secret, err := s.unprotectTOTPSecret(mfa.TOTPSecret)
+	secret, err := s.unprotectTOTPSecret(stored)
 	if err != nil {
 		return err
 	}
-	if !verifyTOTP(secret, code) {
+	counter, ok := verifyTOTP(secret, code)
+	if !ok {
 		s.logger.Warn("totp enable failed: invalid code", zap.String("user_id", userID.String()))
 		s.audit(ctx, AuditTOTPEnabled, AuditFailure, &userID, DeviceInfo{}, "invalid_code")
 		return ErrInvalidTOTP
 	}
-	mfa.IsEnabled = true
-	if err := s.repo.UpsertMFAConfig(ctx, mfa); err != nil {
+	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
+		s.audit(ctx, AuditTOTPEnabled, AuditFailure, &userID, DeviceInfo{}, "replay")
 		return err
 	}
+	if err := s.repo.UpsertMFAConfig(ctx, &MFAConfig{
+		UserID:     userID,
+		TOTPSecret: stored,
+		IsEnabled:  true,
+	}); err != nil {
+		return err
+	}
+	s.clearPendingTOTP(ctx, userID)
 	s.logger.Info("totp enabled", zap.String("user_id", userID.String()))
 	s.audit(ctx, AuditTOTPEnabled, AuditSuccess, &userID, DeviceInfo{}, "")
 	return nil
@@ -756,15 +767,20 @@ func (s *Service) DisableTOTP(ctx context.Context, userID uuid.UUID, code string
 	if err != nil {
 		return err
 	}
-	if !verifyTOTP(secret, code) {
+	counter, ok := verifyTOTP(secret, code)
+	if !ok {
 		s.logger.Warn("totp disable failed: invalid code", zap.String("user_id", userID.String()))
 		s.audit(ctx, AuditTOTPDisabled, AuditFailure, &userID, DeviceInfo{}, "invalid_code")
 		return ErrInvalidTOTP
 	}
-	mfa.IsEnabled = false
-	if err := s.repo.UpsertMFAConfig(ctx, mfa); err != nil {
+	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
+		s.audit(ctx, AuditTOTPDisabled, AuditFailure, &userID, DeviceInfo{}, "replay")
 		return err
 	}
+	if err := s.repo.DeleteMFAConfig(ctx, userID); err != nil {
+		return err
+	}
+	s.clearPendingTOTP(ctx, userID)
 	s.logger.Info("totp disabled", zap.String("user_id", userID.String()))
 	s.audit(ctx, AuditTOTPDisabled, AuditSuccess, &userID, DeviceInfo{}, "")
 	return nil
@@ -1025,10 +1041,61 @@ func (s *Service) verifyMFAIfEnable(ctx context.Context, userID uuid.UUID, code 
 	if err != nil {
 		return false, nil
 	}
-	if !verifyTOTP(secret, code) {
+	counter, ok := verifyTOTP(secret, code)
+	if !ok {
 		return false, ErrInvalidTOTP
 	}
+	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
+		return false, err
+	}
 	return false, nil
+}
+
+func (s *Service) storePendingTOTP(ctx context.Context, userID uuid.UUID, ciphertext string) error {
+	if s.rdb == nil {
+		return ErrTOTPStoreUnavailable
+	}
+	return s.rdb.Set(ctx, totpPendingKeyPrefix+userID.String(), ciphertext, totpPendingTTL).Err()
+}
+
+func (s *Service) loadPendingTOTP(ctx context.Context, userID uuid.UUID) (string, error) {
+	if s.rdb == nil {
+		return "", ErrTOTPStoreUnavailable
+	}
+	v, err := s.rdb.Get(ctx, totpPendingKeyPrefix+userID.String()).Result()
+	if errors.Is(err, redis.Nil) {
+		return "", nil
+	}
+	return v, err
+}
+
+func (s *Service) clearPendingTOTP(ctx context.Context, userID uuid.UUID) {
+	if s.rdb == nil {
+		return
+	}
+	if err := s.rdb.Del(ctx, totpPendingKeyPrefix+userID.String()).Err(); err != nil {
+		s.logger.Warn("totp clear pending failed", zap.Error(err), zap.String("user_id", userID.String()))
+	}
+}
+
+func (s *Service) consumeTOTPStep(ctx context.Context, userID uuid.UUID, counter int64) error {
+	if s.rdb == nil {
+		return nil
+	}
+	key := totpUsedKeyPrefix + userID.String() + ":" + strconv.FormatInt(counter, 10)
+	ok, err := s.rdb.SetNX(ctx, key, "1", totpUsedTTL).Result()
+	if err != nil {
+		s.logger.Warn("totp replay check failed; allowing", zap.Error(err))
+		return nil
+	}
+	if !ok {
+		s.logger.Warn("totp replay detected",
+			zap.String("user_id", userID.String()),
+			zap.Int64("counter", counter),
+		)
+		return ErrInvalidTOTP
+	}
+	return nil
 }
 
 func (s *Service) resolveOAuthUser(ctx context.Context, identity OAuthIdentity) (*User, error) {

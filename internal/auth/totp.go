@@ -4,10 +4,13 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/subtle"
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
 	"math"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -52,20 +55,30 @@ func totpAt(secret string, t time.Time) (string, error) {
 	return fmt.Sprintf("%0*d", totpDigits, code), nil
 }
 
-func verifyTOTP(secret, code string) bool {
+func verifyTOTP(secret, code string) (int64, bool) {
 	now := time.Now()
+	codeBytes := []byte(code)
+	var matched int64 = -1
 	for _, delta := range []time.Duration{-totpStep * time.Second, 0, totpStep * time.Second} {
-		c, err := totpAt(secret, now.Add(delta))
-		if err == nil && c == code {
-			return true
+		t := now.Add(delta)
+		c, err := totpAt(secret, t)
+		if err != nil {
+			continue
+		}
+		if subtle.ConstantTimeCompare([]byte(c), codeBytes) == 1 {
+			matched = int64(t.Unix()) / totpStep
 		}
 	}
-	return false
+	return matched, matched >= 0
 }
 
-func totpProvisioningURL(secret, email, issuer string) string {
-	return fmt.Sprintf(
-		"otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=%d&period=%d",
-		issuer, email, secret, issuer, totpDigits, totpStep,
-	)
+func totpProvisioningURL(secret, account, issuer string) string {
+	label := url.PathEscape(issuer + ":" + account)
+	q := url.Values{}
+	q.Set("secret", secret)
+	q.Set("issuer", issuer)
+	q.Set("algorithm", "SHA1")
+	q.Set("digits", strconv.Itoa(totpDigits))
+	q.Set("period", strconv.Itoa(totpStep))
+	return "otpauth://totp/" + label + "?" + q.Encode()
 }

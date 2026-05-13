@@ -36,6 +36,7 @@ type IRepository interface {
 
 	UpsertMFAConfig(ctx context.Context, config *MFAConfig) error
 	FindMFAConfig(ctx context.Context, userID uuid.UUID) (*MFAConfig, error)
+	DeleteMFAConfig(ctx context.Context, userID uuid.UUID) error
 
 	CreateUserSession(ctx context.Context, session *UserSession) error
 	FindUserSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (*UserSession, error)
@@ -192,6 +193,10 @@ func (r *repository) FindMFAConfig(ctx context.Context, userID uuid.UUID) (*MFAC
 		return nil, nil
 	}
 	return &config, err
+}
+
+func (r *repository) DeleteMFAConfig(ctx context.Context, userID uuid.UUID) error {
+	return r.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&MFAConfig{}).Error
 }
 
 func (r *repository) CreateUserSession(ctx context.Context, session *UserSession) error {
