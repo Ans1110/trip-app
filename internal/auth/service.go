@@ -90,7 +90,7 @@ type IService interface {
 	VerifyEmail(ctx context.Context, token string) error
 	ResendVerification(ctx context.Context, email string) error
 
-	ForgetPassword(ctx context.Context, email string) error
+	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 
@@ -526,7 +526,7 @@ func (s *Service) ResendVerification(ctx context.Context, email string) error {
 	return nil
 }
 
-func (s *Service) ForgetPassword(ctx context.Context, email string) error {
+func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 
