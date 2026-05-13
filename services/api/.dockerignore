@@ -1,34 +1,26 @@
-# git
+# Build context is services/api/ — paths are relative to that.
+
+# Git
 .git
 .gitignore
 
-# env & logs
+# Env & logs
 *.env
 *.log
+logs/
 
-# node / frontend
-node_modules
-.next
-
-# build output
+# Build output
 coverage.out
+*.test
+tmp/
 
 # IDE
 .vscode/
 .claude/
 
-# monitoring 
-deploy/grafana
-deploy/prometheus
-
-# docs (optional)
-docs/swagger.json
-docs/swagger.yaml
-docs/docs.go
-
-# secrets
+# Secrets baked at runtime via volume mount — never copy into image
 keys/
 
-# config
-config/*.local.yaml
-config/*.dev.yaml
+# Local config overrides
+config/*.local.yml
+config/*.dev.yml

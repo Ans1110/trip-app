@@ -30,14 +30,14 @@ vendor/
 config.yml
 
 # Keys and credentials
-keys/*.pem
-keys/*.json
-keys/*.p8
-keys/*.p12
+services/api/keys/*.pem
+services/api/keys/*.json
+services/api/keys/*.p8
+services/api/keys/*.p12
 
 # Config overrides
-config/config.local.yml
-config/config.prod.yml
+services/api/config/config.local.yml
+services/api/config/config.prod.yml
 
 # IDE
 .idea/
