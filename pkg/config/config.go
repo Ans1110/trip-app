@@ -20,6 +20,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
+	Url            string
 	Port           int
 	Mode           string
 	AllowedOrigins []string      `mapstructure:"allowed_origins"`

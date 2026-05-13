@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/Ans1110/trip-app/docs"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/database"
@@ -117,7 +118,11 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("starting server", zap.Int("port", cfg.Server.Port))
+		logger.Info("starting server",
+			zap.Int("port", cfg.Server.Port),
+			zap.String("url", cfg.Server.Url),
+			zap.String("swagger doc", cfg.Server.Url+"/swagger/index.html"),
+		)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("server error", zap.Error(err))
 		}
