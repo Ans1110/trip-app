@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -42,7 +43,7 @@ import (
 func main() {
 	cfgPath := os.Getenv("CONFIG_PATH")
 	if cfgPath == "" {
-		cfgPath = "./config/config.yml"
+		cfgPath = resolveConfigPath()
 	}
 
 	cfg, err := config.Load(cfgPath)
@@ -64,7 +65,7 @@ func main() {
 		logger.Fatal("initialize redis", zap.Error(err))
 	}
 
-	if err := database.RunMigrations(db, "./migrations"); err != nil {
+	if err := database.RunMigrations(db, resolveMigrationsPath()); err != nil {
 		logger.Fatal("run migrations", zap.Error(err))
 	}
 
@@ -228,4 +229,34 @@ func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
 	default:
 		return nil, fmt.Errorf("unsupported key type: %s", block.Type)
 	}
+}
+
+func resolveConfigPath() string {
+	candidates := []string{
+		"./config/config.yml",              // cwd = services/api/
+		"./api/config/config.yml",          // cwd = services/
+		"./services/api/config/config.yml", // cwd = repo root
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			abs, _ := filepath.Abs(c)
+			return abs
+		}
+	}
+	return "./config/config.yml"
+}
+
+func resolveMigrationsPath() string {
+	candidates := []string{
+		"./migrations",
+		"./api/migrations",
+		"./services/api/migrations",
+	}
+	for _, c := range candidates {
+		if info, err := os.Stat(c); err == nil && info.IsDir() {
+			abs, _ := filepath.Abs(c)
+			return abs
+		}
+	}
+	return "./migrations"
 }

@@ -16,8 +16,7 @@ build/
 coverage.html
 coverage.out
 
-# Go workspace
-go.work
+# Go workspace — go.work is committed for the monorepo; only the sum is local
 go.work.sum
 
 # Vendor
@@ -54,9 +53,9 @@ Thumbs.db
 logs/
 
 # Swagger generated docs
-docs/swagger.json
-docs/swagger.yaml
-docs/docs.go
+services/api/docs/swagger.json
+services/api/docs/swagger.yaml
+services/api/docs/docs.go
 
 # Air (live reload)
 tmp/

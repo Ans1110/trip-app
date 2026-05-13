@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -141,5 +142,18 @@ func Load(cfgPath string) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
+
+	serviceRoot := filepath.Dir(filepath.Dir(cfgPath))
+	cfg.JWT.PrivateKeyPath = resolveRelative(serviceRoot, cfg.JWT.PrivateKeyPath)
+	cfg.JWT.PublicKeyPath = resolveRelative(serviceRoot, cfg.JWT.PublicKeyPath)
+	cfg.Notification.FCMCredentialPath = resolveRelative(serviceRoot, cfg.Notification.FCMCredentialPath)
+
 	return &cfg, nil
+}
+
+func resolveRelative(baseDir, p string) string {
+	if p == "" || filepath.IsAbs(p) {
+		return p
+	}
+	return filepath.Join(baseDir, p)
 }
