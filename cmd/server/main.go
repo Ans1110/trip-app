@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/database"
 
@@ -90,9 +91,25 @@ func main() {
 		}
 	}()
 
+	// Auth wiring
+	authRepo := auth.NewRepository(db)
+	authSvc := auth.NewService(auth.ServiceConfig{
+		Repo:       authRepo,
+		Logger:     logger,
+		PrivateKey: privateKey,
+		JWT:        cfg.JWT,
+		Security:   cfg.Security,
+		Redis:      rdb,
+	})
+	authHandler := auth.NewHandler(authSvc, logger, auth.CookieConfig{
+		MaxAge:   cfg.JWT.RefreshTokenTTL,
+		Secure:   cfg.Server.Mode == gin.ReleaseMode,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb)
+	r := setupRouter(cfg, logger, publicKey, rdb, authHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -124,6 +141,7 @@ func setupRouter(
 	logger *zap.Logger,
 	publicKey *rsa.PublicKey,
 	rdb *redis.Client,
+	authHandler auth.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -174,6 +192,8 @@ func setupRouter(
 	jwtMW := middleware.JWTAuth(publicKey, rdb)
 	protected := api.Group("/")
 	protected.Use(jwtMW, bodyLimitMW, timeoutMW, rateLimitMW, csrfMW)
+
+	authHandler.RegisterRoutes(public, protected)
 
 	return r
 }
