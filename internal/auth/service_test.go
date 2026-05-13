@@ -940,7 +940,7 @@ func TestForgotPassword(t *testing.T) {
 				return nil
 			},
 		}
-		err := newSvc(repo).ForgetPassword(ctx, "nobody@example.com")
+		err := newSvc(repo).ForgotPassword(ctx, "nobody@example.com")
 		require.NoError(t, err)
 		assert.False(t, prCreated)
 	})
@@ -952,7 +952,7 @@ func TestForgotPassword(t *testing.T) {
 			findUserByEmail:     func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
 			createPasswordReset: func(_ context.Context, _ *auth.PasswordReset) error { prCreated = true; return nil },
 		}
-		err := newSvc(repo).ForgetPassword(ctx, user.Email)
+		err := newSvc(repo).ForgotPassword(ctx, user.Email)
 		require.NoError(t, err)
 		assert.True(t, prCreated)
 	})
@@ -964,7 +964,7 @@ func TestForgotPassword(t *testing.T) {
 			findUserByEmail: func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
 		}
 		svc := newSvc(repo, func(c *auth.ServiceConfig) { c.Mailer = mailer })
-		err := svc.ForgetPassword(ctx, user.Email)
+		err := svc.ForgotPassword(ctx, user.Email)
 		require.NoError(t, err)
 		assert.True(t, mailer.resetCalled)
 	})
@@ -1485,7 +1485,7 @@ func TestForgotPasswordSingleActive(t *testing.T) {
 			return nil
 		},
 	}
-	err := newSvc(repo).ForgetPassword(ctx, user.Email)
+	err := newSvc(repo).ForgotPassword(ctx, user.Email)
 	require.NoError(t, err)
 	assert.Equal(t, user.ID, invalidatedFor, "should invalidate prior tokens for user")
 	assert.Equal(t, user.ID, createdFor, "should create new token for user")
