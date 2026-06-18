@@ -43,6 +43,8 @@ services/api/config/config.prod.yml
 .vscode/
 *.swp
 *.swo
+.github/skills/
+.playwright-mcp/
 
 # OS
 .DS_Store
