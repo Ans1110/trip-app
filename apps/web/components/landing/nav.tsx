@@ -51,7 +51,10 @@ export function Nav() {
       style={{ backgroundColor: "rgba(11,16,13,0.55)" }}
     >
       <Link href="/" className="flex items-center gap-2 select-none">
-        <Compass className="size-5" style={{ color: "#7FB68A" }} />
+        <Compass
+          className="season-transition size-5"
+          style={{ color: "var(--season-button)" }}
+        />
         <span
           className="text-xl tracking-tight"
           style={{
@@ -109,8 +112,11 @@ export function Nav() {
             </Link>
             <Link
               href="/sign-up"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all hover:opacity-90 active:scale-95"
-              style={{ backgroundColor: "#7FB68A", color: "#0B100D" }}
+              className="season-transition inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium hover:opacity-90 active:scale-95"
+              style={{
+                backgroundColor: "var(--season-button)",
+                color: "#0B100D",
+              }}
             >
               Get started <ArrowRight className="size-3.5" />
             </Link>

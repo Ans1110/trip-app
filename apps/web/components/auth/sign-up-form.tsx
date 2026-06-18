@@ -86,11 +86,11 @@ export function SignUpForm() {
       <button
         type="submit"
         disabled={mutation.isPending}
-        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
+        className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
         style={{
-          backgroundColor: "#7FB68A",
+          backgroundColor: "var(--season-button)",
           color: "#0B100D",
-          boxShadow: "0 8px 24px rgba(127,182,138,0.18)",
+          boxShadow: "0 8px 24px var(--season-button-shadow)",
         }}
       >
         {mutation.isPending ? (
@@ -128,7 +128,7 @@ function Field({ id, label, hint, error, ...input }: FieldProps) {
       <input
         id={id}
         {...input}
-        className="px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-[#7FB68A]"
+        className="season-transition px-4 py-3 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]"
         style={{
           backgroundColor: "#161E19",
           border: `1px solid ${error ? "rgba(220,38,38,0.4)" : "#1F2A24"}`,
@@ -155,18 +155,23 @@ function CheckYourEmail({ email }: { email: string }) {
 
   return (
     <div
-      className="flex flex-col gap-5 rounded-2xl px-5 py-6"
+      className="season-transition flex flex-col gap-5 rounded-2xl px-5 py-6"
       style={{
-        backgroundColor: "rgba(127,182,138,0.06)",
-        border: "1px solid rgba(127,182,138,0.25)",
+        backgroundColor:
+          "color-mix(in srgb, var(--season-accent) 8%, transparent)",
+        border:
+          "1px solid color-mix(in srgb, var(--season-accent) 28%, transparent)",
       }}
       role="status"
     >
       <div className="flex items-center gap-2">
-        <MailCheck className="size-4" style={{ color: "#A8E0B4" }} />
+        <MailCheck
+          className="season-transition size-4"
+          style={{ color: "var(--season-accent)" }}
+        />
         <p
-          className="text-[11px] tracking-[0.2em] uppercase font-medium"
-          style={{ color: "#A8E0B4" }}
+          className="season-transition text-[11px] tracking-[0.2em] uppercase font-medium"
+          style={{ color: "var(--season-accent)" }}
         >
           Check your email
         </p>
@@ -174,8 +179,14 @@ function CheckYourEmail({ email }: { email: string }) {
 
       <p className="text-sm leading-relaxed" style={{ color: "#ECEFEA" }}>
         We sent a verification link to{" "}
-        <span style={{ color: "#A8E0B4" }}>{email}</span>. Click it to finish
-        signing up — you&apos;ll be signed in automatically.
+        <span
+          className="season-transition"
+          style={{ color: "var(--season-accent)" }}
+        >
+          {email}
+        </span>
+        . Click it to finish signing up — you&apos;ll be signed in
+        automatically.
       </p>
 
       <p className="text-xs" style={{ color: "#8B9A8E" }}>
@@ -186,11 +197,12 @@ function CheckYourEmail({ email }: { email: string }) {
         type="button"
         onClick={() => resend.mutate(email)}
         disabled={resend.isPending || resend.isSuccess}
-        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide transition-all disabled:opacity-60"
+        className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide disabled:opacity-60"
         style={{
           backgroundColor: "transparent",
-          color: "#A8E0B4",
-          border: "1px solid rgba(168,224,180,0.35)",
+          color: "var(--season-accent)",
+          border:
+            "1px solid color-mix(in srgb, var(--season-accent) 38%, transparent)",
         }}
       >
         {resend.isPending && (

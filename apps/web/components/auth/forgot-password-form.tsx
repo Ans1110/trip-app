@@ -28,18 +28,23 @@ export function ForgotPasswordForm() {
     const email = getValues("email");
     return (
       <div
-        className="flex flex-col gap-3 rounded-2xl px-5 py-6"
+        className="season-transition flex flex-col gap-3 rounded-2xl px-5 py-6"
         style={{
-          backgroundColor: "rgba(127,182,138,0.06)",
-          border: "1px solid rgba(127,182,138,0.25)",
+          backgroundColor:
+            "color-mix(in srgb, var(--season-accent) 8%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--season-accent) 28%, transparent)",
         }}
         role="status"
       >
         <div className="flex items-center gap-2">
-          <Check className="size-4" style={{ color: "#A8E0B4" }} />
+          <Check
+            className="season-transition size-4"
+            style={{ color: "var(--season-accent)" }}
+          />
           <p
-            className="text-[11px] tracking-[0.2em] uppercase font-medium"
-            style={{ color: "#A8E0B4" }}
+            className="season-transition text-[11px] tracking-[0.2em] uppercase font-medium"
+            style={{ color: "var(--season-accent)" }}
           >
             Check your inbox
           </p>
@@ -56,8 +61,8 @@ export function ForgotPasswordForm() {
               mutation.reset();
               reset({ email: "" });
             }}
-            className="underline-offset-4 hover:underline"
-            style={{ color: "#A8E0B4" }}
+            className="season-transition underline-offset-4 hover:underline"
+            style={{ color: "var(--season-accent)" }}
           >
             try again
           </button>
@@ -101,11 +106,11 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={mutation.isPending}
-        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
+        className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
         style={{
-          backgroundColor: "#7FB68A",
+          backgroundColor: "var(--season-button)",
           color: "#0B100D",
-          boxShadow: "0 8px 24px rgba(127,182,138,0.18)",
+          boxShadow: "0 8px 24px var(--season-button-shadow)",
         }}
       >
         {mutation.isPending ? (
@@ -142,7 +147,7 @@ function Field({ id, label, error, ...input }: FieldProps) {
       <input
         id={id}
         {...input}
-        className="px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-[#7FB68A]"
+        className="season-transition px-4 py-3 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]"
         style={{
           backgroundColor: "#161E19",
           border: `1px solid ${error ? "rgba(220,38,38,0.4)" : "#1F2A24"}`,

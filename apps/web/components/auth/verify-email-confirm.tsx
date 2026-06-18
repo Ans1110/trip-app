@@ -36,8 +36,8 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 mt-2 text-sm"
-          style={{ color: "#A8E0B4" }}
+          className="season-transition inline-flex items-center gap-2 mt-2 text-sm"
+          style={{ color: "var(--season-accent)" }}
         >
           Back to home <ArrowRight className="size-3.5" />
         </Link>
@@ -69,8 +69,8 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
           Not redirecting?{" "}
           <Link
             href="/"
-            className="underline-offset-4 hover:underline"
-            style={{ color: "#A8E0B4" }}
+            className="season-transition underline-offset-4 hover:underline"
+            style={{ color: "var(--season-accent)" }}
           >
             Go home now
           </Link>
@@ -90,8 +90,8 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
       </p>
       <Link
         href="/"
-        className="inline-flex items-center gap-2 mt-2 text-sm"
-        style={{ color: "#A8E0B4" }}
+        className="season-transition inline-flex items-center gap-2 mt-2 text-sm"
+        style={{ color: "var(--season-accent)" }}
       >
         Back to home <ArrowRight className="size-3.5" />
       </Link>
@@ -111,28 +111,30 @@ function Card({
   children: React.ReactNode;
 }) {
   const palette =
-    tone === "success"
+    tone === "error"
       ? {
-          bg: "rgba(127,182,138,0.06)",
-          border: "rgba(127,182,138,0.25)",
-          accent: "#A8E0B4",
+          bg: "rgba(220,38,38,0.06)",
+          border: "rgba(220,38,38,0.25)",
+          accent: "#FCA5A5",
         }
-      : tone === "error"
+      : tone === "success"
         ? {
-            bg: "rgba(220,38,38,0.06)",
-            border: "rgba(220,38,38,0.25)",
-            accent: "#FCA5A5",
+            bg: "color-mix(in srgb, var(--season-accent) 8%, transparent)",
+            border:
+              "color-mix(in srgb, var(--season-accent) 28%, transparent)",
+            accent: "var(--season-accent)",
           }
         : {
-            bg: "rgba(168,224,180,0.04)",
-            border: "rgba(168,224,180,0.18)",
-            accent: "#A8E0B4",
+            bg: "color-mix(in srgb, var(--season-accent) 6%, transparent)",
+            border:
+              "color-mix(in srgb, var(--season-accent) 20%, transparent)",
+            accent: "var(--season-accent)",
           };
   const Icon = tone === "success" ? Check : tone === "error" ? X : Loader2;
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-2xl px-5 py-6"
+      className="season-transition flex flex-col gap-3 rounded-2xl px-5 py-6"
       style={{
         backgroundColor: palette.bg,
         border: `1px solid ${palette.border}`,
@@ -141,11 +143,11 @@ function Card({
     >
       <div className="flex items-center gap-2">
         <Icon
-          className={`size-4 ${tone === "info" ? "animate-spin" : ""}`}
+          className={`season-transition size-4 ${tone === "info" ? "animate-spin" : ""}`}
           style={{ color: palette.accent }}
         />
         <p
-          className="text-[11px] tracking-[0.2em] uppercase font-medium"
+          className="season-transition text-[11px] tracking-[0.2em] uppercase font-medium"
           style={{ color: palette.accent }}
         >
           {eyebrow}

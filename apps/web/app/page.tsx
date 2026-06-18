@@ -62,21 +62,27 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-16 max-w-2xl">
             <p
-              className="text-[11px] font-medium tracking-[0.25em] uppercase mb-4"
-              style={{ color: "#7FB68A" }}
+              className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-4"
+              style={{ color: "var(--season-button)" }}
             >
               How it feels
             </p>
             <h2
-              className="leading-[1.05] tracking-tight"
+              className="season-transition leading-[1.05] tracking-tight"
               style={{
                 fontFamily: "var(--font-display, Georgia, serif)",
                 fontSize: "clamp(2rem, 4vw, 3.5rem)",
-                color: "#ECEFEA",
+                color: "var(--season-heading)",
               }}
             >
               Built for the part of travel{" "}
-              <em style={{ color: "#E8D7B8" }}>before</em> the travel.
+              <em
+                className="season-transition"
+                style={{ color: "var(--season-accent)" }}
+              >
+                before
+              </em>{" "}
+              the travel.
             </h2>
           </div>
 
@@ -112,8 +118,8 @@ export default function Home() {
 
                 <div className="p-6 md:p-7">
                   <p
-                    className="text-[11px] font-medium tracking-[0.25em] uppercase mb-3"
-                    style={{ color: "#7FB68A" }}
+                    className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-3"
+                    style={{ color: "var(--season-button)" }}
                   >
                     {c.eyebrow}
                   </p>
@@ -134,8 +140,8 @@ export default function Home() {
                     {c.body}
                   </p>
                   <span
-                    className="inline-flex items-center gap-1.5 text-xs tracking-[0.15em] uppercase font-medium"
-                    style={{ color: "#A8E0B4" }}
+                    className="season-transition inline-flex items-center gap-1.5 text-xs tracking-[0.15em] uppercase font-medium"
+                    style={{ color: "var(--season-accent)" }}
                   >
                     Learn more <ArrowRight className="size-3.5" />
                   </span>
@@ -155,21 +161,27 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           <div>
             <p
-              className="text-[11px] font-medium tracking-[0.25em] uppercase mb-4"
-              style={{ color: "#7FB68A" }}
+              className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-4"
+              style={{ color: "var(--season-button)" }}
             >
               The workspace
             </p>
             <h2
-              className="leading-[1.05] tracking-tight mb-6"
+              className="season-transition leading-[1.05] tracking-tight mb-6"
               style={{
                 fontFamily: "var(--font-display, Georgia, serif)",
                 fontSize: "clamp(2rem, 3.5vw, 3rem)",
-                color: "#ECEFEA",
+                color: "var(--season-heading)",
               }}
             >
               A workspace that thinks in{" "}
-              <em style={{ color: "#E8D7B8" }}>days</em>, not tabs.
+              <em
+                className="season-transition"
+                style={{ color: "var(--season-accent)" }}
+              >
+                days
+              </em>
+              , not tabs.
             </h2>
             <p
               className="text-base leading-relaxed mb-8 max-w-md"
@@ -181,8 +193,11 @@ export default function Home() {
             </p>
             <Link
               href="#"
-              className="inline-flex items-center gap-2 text-sm tracking-[0.15em] uppercase font-medium border-b pb-0.5"
-              style={{ color: "#A8E0B4", borderColor: "#A8E0B4" }}
+              className="season-transition inline-flex items-center gap-2 text-sm tracking-[0.15em] uppercase font-medium border-b pb-0.5"
+              style={{
+                color: "var(--season-accent)",
+                borderColor: "var(--season-accent)",
+              }}
             >
               Try the demo trip <ArrowRight className="size-3.5" />
             </Link>
@@ -212,8 +227,12 @@ export default function Home() {
                     </span>
                   </div>
                   <span
-                    className="text-[11px] tracking-wide px-2.5 py-1 rounded-full font-semibold"
-                    style={{ backgroundColor: "#1A2A21", color: "#A8E0B4" }}
+                    className="season-transition text-[11px] tracking-wide px-2.5 py-1 rounded-full font-semibold"
+                    style={{
+                      backgroundColor:
+                        "color-mix(in srgb, var(--season-accent) 14%, transparent)",
+                      color: "var(--season-accent)",
+                    }}
                   >
                     14 days
                   </span>
@@ -228,17 +247,21 @@ export default function Home() {
                   <div key={i} className="flex gap-3">
                     <div className="flex flex-col items-center pt-1 flex-shrink-0">
                       <div
-                        className="size-2.5 rounded-full"
+                        className="season-transition size-2.5 rounded-full"
                         style={{
-                          backgroundColor: stop.done ? "#7FB68A" : "#2A3A2E",
+                          backgroundColor: stop.done
+                            ? "var(--season-button)"
+                            : "#2A3A2E",
                         }}
                       />
                       {i < itinerary.length - 1 && (
                         <div
-                          className="w-px mt-1"
+                          className="season-transition w-px mt-1"
                           style={{
                             height: 24,
-                            backgroundColor: stop.done ? "#2F4A38" : "#1F2A24",
+                            backgroundColor: stop.done
+                              ? "color-mix(in srgb, var(--season-button) 50%, #0B100D)"
+                              : "#1F2A24",
                           }}
                         />
                       )}
@@ -259,8 +282,8 @@ export default function Home() {
                         </span>
                         {stop.done && (
                           <Check
-                            className="size-3.5"
-                            style={{ color: "#7FB68A" }}
+                            className="season-transition size-3.5"
+                            style={{ color: "var(--season-button)" }}
                           />
                         )}
                       </div>
@@ -297,8 +320,11 @@ export default function Home() {
                     style={{ backgroundColor: "#1F2A24" }}
                   >
                     <div
-                      className="h-full rounded-full"
-                      style={{ width: "52%", backgroundColor: "#A8E0B4" }}
+                      className="season-transition h-full rounded-full"
+                      style={{
+                        width: "52%",
+                        backgroundColor: "var(--season-accent)",
+                      }}
                     />
                   </div>
                   <span className="text-xs" style={{ color: "#6B7A6F" }}>
@@ -318,23 +344,32 @@ export default function Home() {
       >
         <div className="max-w-2xl mx-auto text-center">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-[0.2em] uppercase mb-8"
-            style={{ backgroundColor: "#1A2A21", color: "#A8E0B4" }}
+            className="season-transition inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-[0.2em] uppercase mb-8"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--season-accent) 14%, transparent)",
+              color: "var(--season-accent)",
+            }}
           >
             Free to start
           </div>
 
           <h2
-            className="leading-[1.05] tracking-tight mb-6"
+            className="season-transition leading-[1.05] tracking-tight mb-6"
             style={{
               fontFamily: "var(--font-display, Georgia, serif)",
               fontSize: "clamp(2.5rem, 5vw, 4rem)",
-              color: "#ECEFEA",
+              color: "var(--season-heading)",
             }}
           >
             Your next adventure
             <br />
-            <em style={{ color: "#E8D7B8" }}>starts here.</em>
+            <em
+              className="season-transition"
+              style={{ color: "var(--season-accent)" }}
+            >
+              starts here.
+            </em>
           </h2>
 
           <p className="text-lg mb-10" style={{ color: "#8B9A8E" }}>
@@ -344,11 +379,11 @@ export default function Home() {
 
           <Link
             href="/sign-up"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-base font-medium transition-all hover:-translate-y-0.5 active:translate-y-0"
+            className="season-transition inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-base font-medium hover:-translate-y-0.5 active:translate-y-0"
             style={{
-              backgroundColor: "#7FB68A",
+              backgroundColor: "var(--season-button)",
               color: "#0B100D",
-              boxShadow: "0 12px 32px rgba(127,182,138,0.22)",
+              boxShadow: "0 12px 32px var(--season-button-shadow)",
             }}
           >
             Create your first trip <ArrowRight className="size-4" />
@@ -363,7 +398,10 @@ export default function Home() {
       >
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <Compass className="size-4" style={{ color: "#7FB68A" }} />
+            <Compass
+              className="season-transition size-4"
+              style={{ color: "var(--season-button)" }}
+            />
             <span
               className="text-lg"
               style={{

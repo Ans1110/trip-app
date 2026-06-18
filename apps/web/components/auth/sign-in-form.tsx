@@ -47,8 +47,8 @@ export function SignInForm() {
         trailing={
           <Link
             href="/forgot-password"
-            className="text-xs tracking-wide hover:underline"
-            style={{ color: "#7FB68A" }}
+            className="season-transition text-xs tracking-wide hover:underline"
+            style={{ color: "var(--season-button)" }}
           >
             Forgot?
           </Link>
@@ -73,11 +73,11 @@ export function SignInForm() {
       <button
         type="submit"
         disabled={mutation.isPending}
-        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
+        className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
         style={{
-          backgroundColor: "#7FB68A",
+          backgroundColor: "var(--season-button)",
           color: "#0B100D",
-          boxShadow: "0 8px 24px rgba(127,182,138,0.18)",
+          boxShadow: "0 8px 24px var(--season-button-shadow)",
         }}
       >
         {mutation.isPending ? (
@@ -118,7 +118,7 @@ function Field({ id, label, trailing, error, ...input }: FieldProps) {
       <input
         id={id}
         {...input}
-        className="px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-[#7FB68A]"
+        className="season-transition px-4 py-3 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]"
         style={{
           backgroundColor: "#161E19",
           border: `1px solid ${error ? "rgba(220,38,38,0.4)" : "#1F2A24"}`,

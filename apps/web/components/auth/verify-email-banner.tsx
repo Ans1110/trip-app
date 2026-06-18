@@ -22,16 +22,21 @@ export function VerifyEmailBanner() {
       style={{ pointerEvents: "none" }}
     >
       <div
-        className="mx-auto max-w-3xl flex items-center gap-3 px-4 py-3 rounded-2xl backdrop-blur-md"
+        className="season-transition mx-auto max-w-3xl flex items-center gap-3 px-4 py-3 rounded-2xl backdrop-blur-md"
         style={{
           pointerEvents: "auto",
-          backgroundColor: "rgba(127,182,138,0.10)",
-          border: "1px solid rgba(127,182,138,0.28)",
+          backgroundColor:
+            "color-mix(in srgb, var(--season-button) 14%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--season-button) 30%, transparent)",
           color: "#ECEFEA",
         }}
         role="status"
       >
-        <MailCheck className="size-4 shrink-0" style={{ color: "#A8E0B4" }} />
+        <MailCheck
+          className="season-transition size-4 shrink-0"
+          style={{ color: "var(--season-accent)" }}
+        />
         <p className="text-sm flex-1 min-w-0">
           {resend.isSuccess ? (
             <>
@@ -55,11 +60,13 @@ export function VerifyEmailBanner() {
           type="button"
           onClick={() => resend.mutate(me.email)}
           disabled={resend.isPending || resend.isSuccess}
-          className="hidden sm:inline-flex items-center gap-1.5 text-xs tracking-wide px-3 py-1.5 rounded-full transition-colors disabled:opacity-60"
+          className="season-transition hidden sm:inline-flex items-center gap-1.5 text-xs tracking-wide px-3 py-1.5 rounded-full disabled:opacity-60"
           style={{
-            backgroundColor: "rgba(127,182,138,0.18)",
+            backgroundColor:
+              "color-mix(in srgb, var(--season-button) 22%, transparent)",
             color: "#ECEFEA",
-            border: "1px solid rgba(127,182,138,0.30)",
+            border:
+              "1px solid color-mix(in srgb, var(--season-button) 32%, transparent)",
           }}
         >
           {resend.isPending ? (
