@@ -49,10 +49,10 @@
 }
 
 :root {
-  --season-accent: #A8E0B4;
-  --season-heading: #ECEFEA;
-  --season-body: #C5D0C7;
-  --season-button: #7FB68A;
+  --season-accent: #f4b6c2;
+  --season-heading: #f5f1e8;
+  --season-body: #f4b6c2;
+  --season-button: #f4b6c2;
   --season-button-shadow: rgba(127, 182, 138, 0.18);
 
   --background: oklch(1 0 0);
