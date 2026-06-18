@@ -148,12 +148,16 @@ export class AuthClient {
     return this.captureSession(res);
   }
 
-  verifyEmail(input: VerifyEmailInput, auth: AuthCtx) {
-    return this.http.post<null>(
+  async verifyEmail(
+    input: VerifyEmailInput,
+    auth: AuthCtx,
+  ): Promise<ApiResult<SessionView>> {
+    const res = await this.http.post<UpstreamSessionResponse>(
       "/auth/verify-email",
       input,
       this.publicOpts(auth),
     );
+    return this.captureSession(res);
   }
 
   resendVerification(input: ResendVerificationInput, auth: AuthCtx) {
@@ -255,7 +259,7 @@ export class AuthClient {
 
   async me(auth: AuthCtx): Promise<ApiResult<User>> {
     const res = await this.callProtected<UpstreamUserResponse>(auth, (opts) =>
-      this.http.get<UpstreamUserResponse>("/users/me", opts),
+      this.http.get<UpstreamUserResponse>("/auth/me", opts),
     );
     return mapData(res, toUser);
   }
@@ -324,7 +328,7 @@ export class AuthClient {
   ): Promise<ApiResult<SessionView>> {
     if (!result.ok) return result;
     const session = result.data;
-    if (session && !session.requires_totp) {
+    if (session && !session.requires_totp && !session.requires_verification) {
       await persistSession(session);
     }
     return {

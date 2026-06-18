@@ -12,6 +12,7 @@ export type User = {
   email: string;
   name: string;
   avatar_url?: string;
+  is_verified: boolean;
   created_at: string;
 };
 
@@ -20,6 +21,7 @@ export type SessionView = {
   expires_in: number;
   token_type?: string;
   requires_totp?: boolean;
+  requires_verification?: boolean;
 };
 
 export type TOTPSetupView = {
@@ -45,6 +47,7 @@ export const toUser = (u: UpstreamUserResponse): User => ({
   email: u.email,
   name: u.name,
   avatar_url: u.avatar_url,
+  is_verified: u.is_verified,
   created_at: u.created_at,
 });
 
@@ -53,6 +56,7 @@ export const toSessionView = (s: UpstreamSessionResponse): SessionView => ({
   expires_in: s.expires_in,
   token_type: s.token_type,
   requires_totp: s.requires_totp,
+  requires_verification: s.requires_verification,
 });
 
 export const toTOTPSetupView = (

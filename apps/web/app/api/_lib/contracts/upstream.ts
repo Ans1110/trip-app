@@ -36,6 +36,7 @@ export type UpstreamUserResponse = {
   email: string;
   name: string;
   avatar_url?: string;
+  is_verified: boolean;
   created_at: string;
 };
 
@@ -46,6 +47,7 @@ export type UpstreamSessionResponse = {
   token_type?: string;
   user: UpstreamUserResponse;
   requires_totp?: boolean;
+  requires_verification?: boolean;
 };
 
 export type UpstreamTOTPSetupResponse = {
