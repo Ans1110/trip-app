@@ -210,9 +210,9 @@ export class HttpClient {
   }
 
   async fetchCsrfToken(ctx: RequestContext): Promise<string | null> {
-    const r = await this.get<{ csrfToken: string }>("/csrf", { ctx });
+    const r = await this.get<{ csrf_token: string }>("/csrf", { ctx });
     if (!r.ok) return null;
-    const token = r.data?.csrfToken;
+    const token = r.data?.csrf_token;
     return typeof token === "string" ? token : null;
   }
 
