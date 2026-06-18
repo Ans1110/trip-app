@@ -16,7 +16,7 @@ type Config struct {
 	OAuth        OAuthConfig
 	Cloudinary   CloudinaryConfig
 	External     ExternalConfig
-	Notification NotificationConfig
+	Notification NotificationConfig `mapstructure:"notifications"`
 	Security     SecurityConfig
 }
 
@@ -116,6 +116,7 @@ type ExternalConfig struct {
 
 type NotificationConfig struct {
 	FCMCredentialPath string `mapstructure:"fcm_credential_path"`
+	WebURL            string `mapstructure:"web_url"`
 	SMTP              SMTPConfig
 }
 
@@ -124,7 +125,7 @@ type SMTPConfig struct {
 	Port     int
 	User     string
 	Password string
-	From     string
+	From     string `mapstructure:"from_email"`
 }
 
 func Load(cfgPath string) (*Config, error) {

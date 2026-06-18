@@ -40,7 +40,7 @@ type svcMock struct {
 	logoutAll          func(context.Context, uuid.UUID) error
 	blacklistJTI       func(context.Context, string, time.Duration) error
 	isBlacklisted      func(context.Context, string) (bool, error)
-	verifyEmail        func(context.Context, string) error
+	verifyEmail        func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error)
 	resendVerification func(context.Context, string) error
 	forgotPassword     func(context.Context, string) error
 	resetPassword      func(context.Context, string, string) error
@@ -122,11 +122,11 @@ func (s *svcMock) IsBlacklisted(c context.Context, jti string) (bool, error) {
 	}
 	return false, nil
 }
-func (s *svcMock) VerifyEmail(c context.Context, tok string) error {
+func (s *svcMock) VerifyEmail(c context.Context, tok string, d auth.DeviceInfo) (*auth.SessionResponse, error) {
 	if s.verifyEmail != nil {
-		return s.verifyEmail(c, tok)
+		return s.verifyEmail(c, tok, d)
 	}
-	return nil
+	return &auth.SessionResponse{}, nil
 }
 func (s *svcMock) ResendVerification(c context.Context, email string) error {
 	if s.resendVerification != nil {
@@ -408,7 +408,9 @@ func TestHandlerEmailFlows(t *testing.T) {
 	})
 
 	t.Run("verify_email_invalid_returns_401", func(t *testing.T) {
-		svc := &svcMock{verifyEmail: func(context.Context, string) error { return auth.ErrInvalidToken }}
+		svc := &svcMock{verifyEmail: func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error) {
+			return nil, auth.ErrInvalidToken
+		}}
 		w := doJSON(t, newRouter(svc, nil), http.MethodPost, "/api/v1/auth/verify-email",
 			auth.VerifyEmailRequest{Token: "x"})
 		assert.Equal(t, http.StatusUnauthorized, w.Code)

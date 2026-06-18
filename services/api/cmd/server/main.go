@@ -29,6 +29,7 @@ import (
 
 	// "github.com/Ans1110/trip-app/pkg/event"
 	"github.com/Ans1110/trip-app/pkg/logger"
+	"github.com/Ans1110/trip-app/pkg/mail"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	pkgredis "github.com/Ans1110/trip-app/pkg/redis"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -94,6 +95,7 @@ func main() {
 	}()
 
 	// Auth wiring
+	mailer := mail.New(cfg.Notification, logger)
 	authRepo := auth.NewRepository(db)
 	authSvc := auth.NewService(auth.ServiceConfig{
 		Repo:       authRepo,
@@ -101,6 +103,7 @@ func main() {
 		PrivateKey: privateKey,
 		JWT:        cfg.JWT,
 		Security:   cfg.Security,
+		Mailer:     mailer,
 		Redis:      rdb,
 	})
 	authHandler := auth.NewHandler(authSvc, logger, auth.CookieConfig{
@@ -183,7 +186,11 @@ func setupRouter(
 	}
 	bodyLimitMW := middleware.BodyLimit(int64(bodyLimitMB) * 1024 * 1024)
 	timeoutMW := middleware.Timeout(reqTimeout)
-	rateLimitMW := middleware.RateLimit(rdb, 120, time.Minute, logger)
+	rateLimitMax := 120
+	if cfg.Server.Mode != gin.ReleaseMode {
+		rateLimitMax = 1000
+	}
+	rateLimitMW := middleware.RateLimit(rdb, rateLimitMax, time.Minute, logger)
 	csrfMW := middleware.CSRFProtect(rdb)
 	secureCookie := cfg.Server.Mode == gin.ReleaseMode
 

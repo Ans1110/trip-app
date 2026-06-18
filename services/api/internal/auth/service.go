@@ -87,7 +87,7 @@ type IService interface {
 	BlacklistJTI(ctx context.Context, jti string, ttl time.Duration) error
 	IsBlacklisted(ctx context.Context, jti string) (bool, error)
 
-	VerifyEmail(ctx context.Context, token string) error
+	VerifyEmail(ctx context.Context, token string, device DeviceInfo) (*SessionResponse, error)
 	ResendVerification(ctx context.Context, email string) error
 
 	ForgotPassword(ctx context.Context, email string) error
@@ -208,19 +208,18 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest, device Devi
 		return nil, err
 	}
 
-	s.sendVerificationEmail(ctx, user, verificationToken)
+	go s.sendVerificationEmail(context.WithoutCancel(ctx), user, verificationToken)
 
-	resp, _, err := s.createSession(ctx, user, device, "")
-	if err != nil {
-		return nil, err
-	}
-	s.logger.Info("user registered",
+	s.logger.Info("user registered (verification pending)",
 		zap.String("user_id", user.ID.String()),
 		zap.String("email", email),
 		zap.String("ip", device.IPAddress),
 	)
-	s.audit(ctx, AuditRegister, AuditSuccess, &user.ID, device, "")
-	return resp, nil
+	s.audit(ctx, AuditRegister, AuditSuccess, &user.ID, device, "verification pending")
+	return &SessionResponse{
+		User:                 toUserResponse(user),
+		RequiresVerification: true,
+	}, nil
 }
 
 func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo) (*SessionResponse, error) {
@@ -482,17 +481,17 @@ func (s *Service) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func (s *Service) VerifyEmail(ctx context.Context, token string) error {
+func (s *Service) VerifyEmail(ctx context.Context, token string, device DeviceInfo) (*SessionResponse, error) {
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 
 	ev, err := s.repo.FindEmailVerificationByTokenHash(ctx, hashToken(token))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if ev == nil {
 		s.logger.Warn("email verification failed: invalid or expired token")
-		return ErrInvalidToken
+		return nil, ErrInvalidToken
 	}
 	if err := s.repo.WithTx(ctx, func(tx IRepository) error {
 		if err := tx.MarkEmailVerificationUsed(ctx, ev.ID); err != nil {
@@ -500,10 +499,25 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 		}
 		return tx.UpdateUserFields(ctx, ev.UserID, map[string]any{"is_verified": true})
 	}); err != nil {
-		return err
+		return nil, err
 	}
-	s.logger.Info("email verified", zap.String("user_id", ev.UserID.String()))
-	return nil
+	user, err := s.repo.FindUserByID(ctx, ev.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+	user.IsVerified = true
+	resp, _, err := s.createSession(ctx, user, device, "")
+	if err != nil {
+		return nil, err
+	}
+	s.logger.Info("email verified",
+		zap.String("user_id", ev.UserID.String()),
+		zap.String("ip", device.IPAddress),
+	)
+	return resp, nil
 }
 
 func (s *Service) ResendVerification(ctx context.Context, email string) error {
@@ -875,11 +889,12 @@ func rateKey(parts ...string) string {
 
 func toUserResponse(u *User) UserResponse {
 	return UserResponse{
-		ID:        u.ID.String(),
-		Email:     u.Email,
-		Name:      u.Name,
-		AvatarURL: u.AvatarURL,
-		CreatedAt: u.CreatedAt,
+		ID:         u.ID.String(),
+		Email:      u.Email,
+		Name:       u.Name,
+		AvatarURL:  u.AvatarURL,
+		IsVerified: u.IsVerified,
+		CreatedAt:  u.CreatedAt,
 	}
 }
 

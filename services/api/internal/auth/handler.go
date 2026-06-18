@@ -262,11 +262,12 @@ func (h *Handler) VerifyEmail(c *gin.Context) {
 		response.BadRequest(c, err.Error())
 		return
 	}
-	if err := h.svc.VerifyEmail(c.Request.Context(), req.Token); err != nil {
+	resp, err := h.svc.VerifyEmail(c.Request.Context(), req.Token, deviceFromCtx(c))
+	if err != nil {
 		h.respondServiceError(c, err)
 		return
 	}
-	response.OK(c, nil)
+	h.issueSession(c, resp, http.StatusOK)
 }
 
 // ResendVerification godoc

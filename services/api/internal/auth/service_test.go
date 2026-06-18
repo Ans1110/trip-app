@@ -375,8 +375,11 @@ func TestRegister(t *testing.T) {
 		}, noDevice)
 
 		require.NoError(t, err)
-		assertValidSession(t, resp)
+		require.NotNil(t, resp)
 		assert.Equal(t, "bob@example.com", resp.User.Email)
+		assert.True(t, resp.RequiresVerification)
+		assert.Empty(t, resp.AccessToken)
+		assert.Empty(t, resp.RefreshToken)
 	})
 
 	t.Run("duplicate_email", func(t *testing.T) {
@@ -418,8 +421,9 @@ func TestRegister(t *testing.T) {
 			Name:     "Bob",
 		}, noDevice)
 		require.NoError(t, err)
-		assertValidSession(t, resp)
-		assert.True(t, mailer.verificationCalled)
+		require.NotNil(t, resp)
+		assert.True(t, resp.RequiresVerification)
+		assert.Eventually(t, func() bool { return mailer.verificationCalled }, time.Second, 10*time.Millisecond)
 	})
 }
 
@@ -844,7 +848,7 @@ func TestIsBlacklisted(t *testing.T) {
 func TestVerifyEmail(t *testing.T) {
 	t.Run("invalid_token_rejected", func(t *testing.T) {
 		repo := &repoMock{}
-		err := newSvc(repo).VerifyEmail(ctx, "bad-token")
+		_, err := newSvc(repo).VerifyEmail(ctx, "bad-token", noDevice)
 		require.ErrorIs(t, err, auth.ErrInvalidToken)
 	})
 
@@ -852,14 +856,15 @@ func TestVerifyEmail(t *testing.T) {
 		raw := "verify-email-token"
 		hash := auth.HashToken(raw)
 		evID := uuid.New()
-		userID := uuid.New()
+		user := newActiveUser()
+		user.IsVerified = false
 		markedUsed := false
 		updatedVerified := false
 
 		repo := &repoMock{
 			findEmailVerificationByTokenHash: func(_ context.Context, h string) (*auth.EmailVerification, error) {
 				if h == hash {
-					return &auth.EmailVerification{ID: evID, UserID: userID}, nil
+					return &auth.EmailVerification{ID: evID, UserID: user.ID}, nil
 				}
 				return nil, nil
 			},
@@ -875,11 +880,18 @@ func TestVerifyEmail(t *testing.T) {
 				}
 				return nil
 			},
+			findUserByID: func(_ context.Context, id uuid.UUID) (*auth.User, error) {
+				if id == user.ID {
+					return user, nil
+				}
+				return nil, nil
+			},
 		}
-		err := newSvc(repo).VerifyEmail(ctx, raw)
+		resp, err := newSvc(repo).VerifyEmail(ctx, raw, noDevice)
 		require.NoError(t, err)
 		assert.True(t, markedUsed)
 		assert.True(t, updatedVerified)
+		assertValidSession(t, resp)
 	})
 }
 

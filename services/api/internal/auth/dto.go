@@ -44,11 +44,12 @@ type JWK struct {
 }
 
 type UserResponse struct {
-	ID        string    `json:"id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	AvatarURL string    `json:"avatar_url,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string    `json:"id"`
+	Email      string    `json:"email"`
+	Name       string    `json:"name"`
+	AvatarURL  string    `json:"avatar_url,omitempty"`
+	IsVerified bool      `json:"is_verified"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type TOTPSetupResponse struct {
@@ -87,10 +88,11 @@ type LogoutRequest struct {
 }
 
 type SessionResponse struct {
-	AccessToken  string       `json:"access_token"`
-	RefreshToken string       `json:"refresh_token"`
-	ExpiresIn    int64        `json:"expires_in"`
-	TokenType    string       `json:"token_type,omitempty"`
-	User         UserResponse `json:"user"`
-	RequiresTOTP bool         `json:"requires_totp,omitempty"`
+	AccessToken          string       `json:"access_token"`
+	RefreshToken         string       `json:"refresh_token"`
+	ExpiresIn            int64        `json:"expires_in"`
+	TokenType            string       `json:"token_type,omitempty"`
+	User                 UserResponse `json:"user"`
+	RequiresTOTP         bool         `json:"requires_totp,omitempty"`
+	RequiresVerification bool         `json:"requires_verification,omitempty"`
 }
