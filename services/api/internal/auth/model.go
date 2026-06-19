@@ -149,6 +149,24 @@ const (
 	AuditAccountDeactivated AuditAction = "account_deactivated"
 	AuditAccountDeleted     AuditAction = "account_deleted"
 	AuditRateLimited        AuditAction = "rate_limited"
+
+	AuditFriendRequestSent      AuditAction = "friend_request_sent"
+	AuditFriendRequestAccepted  AuditAction = "friend_request_accepted"
+	AuditFriendRequestDeclined  AuditAction = "friend_request_declined"
+	AuditFriendRequestCancelled AuditAction = "friend_request_cancelled"
+	AuditFriendRemoved          AuditAction = "friend_removed"
+	AuditFriendBlocked          AuditAction = "friend_blocked"
+	AuditFriendUnblocked        AuditAction = "friend_unblocked"
+	AuditFriendInviteCreated    AuditAction = "friend_invite_created"
+	AuditFriendInviteRevoked    AuditAction = "friend_invite_revoked"
+	AuditFriendInviteAccepted   AuditAction = "friend_invite_accepted"
+)
+
+const (
+	AuditResourceFriendship    = "friendship"
+	AuditResourceFriendRequest = "friend_request"
+	AuditResourceFriendBlock   = "friend_block"
+	AuditResourceFriendInvite  = "friend_invite"
 )
 
 type AuditStatus string

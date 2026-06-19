@@ -24,6 +24,7 @@ import (
 
 	_ "github.com/Ans1110/trip-app/docs"
 	"github.com/Ans1110/trip-app/internal/auth"
+	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/database"
 
@@ -112,9 +113,19 @@ func main() {
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	// Friend wiring
+	friendRepo := friend.NewRepository(db)
+	friendSvc := friend.NewService(friend.ServiceConfig{
+		Repo:   friendRepo,
+		Logger: logger,
+		WebURL: cfg.Notification.WebURL,
+		Audit:  authRepo,
+	})
+	friendHandler := friend.NewHandler(friendSvc, logger)
+
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, authHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, authHandler, friendHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -151,6 +162,7 @@ func setupRouter(
 	publicKey *rsa.PublicKey,
 	rdb *redis.Client,
 	authHandler auth.IHandler,
+	friendHandler friend.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -207,6 +219,7 @@ func setupRouter(
 	protected.Use(jwtMW, bodyLimitMW, timeoutMW, rateLimitMW, csrfMW)
 
 	authHandler.RegisterRoutes(public, protected)
+	friendHandler.RegisterRoutes(protected)
 
 	return r
 }

@@ -1,23 +1,31 @@
-CREATE SCHEMA IF NOT EXISTS friend;
+CREATE TABLE friend.friends (
+  user_id UUID NOT NULL,
+  friend_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-CREATE TABLE IF NOT EXISTS friend.friend (
-    user_id UUID NOT NULL,
-    friend_id UUID NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, friend_id)
+  PRIMARY KEY (user_id, friend_id),
+
+  CHECK (user_id <> friend_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_friend_user_id ON friend.friend(user_id);
+CREATE TABLE friend.invitations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-CREATE TABLE IF NOT EXISTS friend.invitation (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sender_id UUID NOT NULL,
-    receiver_id UUID NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE(sender_id, receiver_id)
+  sender_id UUID NOT NULL,
+  receiver_id UUID NOT NULL,
+
+  status TEXT NOT NULL DEFAULT 'pending',
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  CHECK (sender_id <> receiver_id),
+
+  UNIQUE(sender_id, receiver_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_invitation_sender_id ON friend.invitation(sender_id);
-CREATE INDEX IF NOT EXISTS idx_invitation_receiver_id ON friend.invitation(receiver_id);
+CREATE UNIQUE INDEX idx_friend_pair
+ON friend.invitations (
+  LEAST(sender_id, receiver_id),
+  GREATEST(sender_id, receiver_id)
+);
