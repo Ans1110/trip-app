@@ -48,8 +48,6 @@ type IRepository interface {
 	RevokeOtherSessions(ctx context.Context, userID, exceptID uuid.UUID) error
 
 	ListUserRoles(ctx context.Context, userID uuid.UUID) ([]string, error)
-
-	CreateAuditLog(ctx context.Context, log *AuditLog) error
 }
 
 type repository struct {
@@ -267,8 +265,4 @@ func (r *repository) ListUserRoles(ctx context.Context, userID uuid.UUID) ([]str
 		Where("ur.user_id = ?", userID).
 		Pluck("r.name", &names).Error
 	return names, err
-}
-
-func (r *repository) CreateAuditLog(ctx context.Context, log *AuditLog) error {
-	return r.db.WithContext(ctx).Create(log).Error
 }

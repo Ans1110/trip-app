@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	"github.com/golang-jwt/jwt/v5"
@@ -118,6 +119,7 @@ type ServiceConfig struct {
 	OAuth      OAuthVerifier
 	Redis      *redis.Client
 	Issuer     string
+	Audit      audit.Writer
 }
 
 type Service struct {
@@ -134,6 +136,7 @@ type Service struct {
 	totpKey    string
 	opTimeout  time.Duration
 	rl         *rateLimiter
+	auditW     audit.Writer
 }
 
 func NewService(cfg ServiceConfig) IService {
@@ -155,6 +158,7 @@ func NewService(cfg ServiceConfig) IService {
 		totpKey:    cfg.Security.TOTPEncryptionKey,
 		opTimeout:  cfg.Security.OperationTimeout,
 		rl:         newRateLimiter(cfg.Redis, cfg.Security.RateLimit),
+		auditW:     cfg.Audit,
 	}
 }
 
@@ -177,7 +181,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest, device Devi
 			zap.String("email", email),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditRegister, AuditFailure, nil, device, "duplicate email")
+		s.audit(ctx, AuditRegister, audit.Failure, nil, device, "duplicate email")
 		return nil, ErrEmailExists
 	}
 
@@ -215,7 +219,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest, device Devi
 		zap.String("email", email),
 		zap.String("ip", device.IPAddress),
 	)
-	s.audit(ctx, AuditRegister, AuditSuccess, &user.ID, device, "verification pending")
+	s.audit(ctx, AuditRegister, audit.Success, &user.ID, device, "verification pending")
 	return &SessionResponse{
 		User:                 toUserResponse(user),
 		RequiresVerification: true,
@@ -240,7 +244,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 			zap.String("email", email),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditLoginFailed, AuditFailure, nil, device, "invalid credentials")
+		s.audit(ctx, AuditLoginFailed, audit.Failure, nil, device, "invalid credentials")
 		return nil, ErrInvalidCredentials
 	}
 	if !checkPassword(*user.PasswordHash, req.Password) {
@@ -249,7 +253,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 			zap.String("email", email),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "wrong password")
+		s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "wrong password")
 		return nil, ErrInvalidCredentials
 	}
 	if user.IsBlocked {
@@ -257,7 +261,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 			zap.String("user_id", user.ID.String()),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "blocked")
+		s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "blocked")
 		return nil, ErrUserBlocked
 	}
 	if user.Status == UserStatusDeleted {
@@ -265,7 +269,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 			zap.String("user_id", user.ID.String()),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "deleted")
+		s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "deleted")
 		return nil, ErrUserNotFound
 	}
 
@@ -276,7 +280,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 				zap.String("user_id", user.ID.String()),
 				zap.String("ip", device.IPAddress),
 			)
-			s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "invalid totp")
+			s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "invalid totp")
 		}
 		return nil, err
 	}
@@ -302,7 +306,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 		zap.String("ip", device.IPAddress),
 		zap.String("device_type", string(device.DeviceType)),
 	)
-	s.audit(ctx, AuditLogin, AuditSuccess, &user.ID, device, "")
+	s.audit(ctx, AuditLogin, audit.Success, &user.ID, device, "")
 	if s.rl != nil {
 		s.rl.resetWindow(ctx, rateLogin, rateKey(email, device.IPAddress))
 	}
@@ -327,7 +331,7 @@ func (s *Service) OAuthLogin(ctx context.Context, identity OAuthIdentity, device
 			zap.String("provider", identity.Provider),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "oauth blocked")
+		s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "oauth blocked")
 		return nil, ErrUserBlocked
 	}
 	if user.Status == UserStatusDeleted {
@@ -336,7 +340,7 @@ func (s *Service) OAuthLogin(ctx context.Context, identity OAuthIdentity, device
 			zap.String("provider", identity.Provider),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditLoginFailed, AuditFailure, &user.ID, device, "oauth deleted")
+		s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "oauth deleted")
 		return nil, ErrUserNotFound
 	}
 	if err := s.reactiveIfDeactivated(ctx, user); err != nil {
@@ -415,7 +419,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string, device Devic
 			zap.String("user_id", session.UserID.String()),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditRefresh, AuditFailure, &session.UserID, device, "user unavailable")
+		s.audit(ctx, AuditRefresh, audit.Failure, &session.UserID, device, "user unavailable")
 		return nil, ErrInvalidToken
 	}
 
@@ -429,7 +433,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string, device Devic
 			zap.String("user_id", session.UserID.String()),
 			zap.String("ip", device.IPAddress),
 		)
-		s.audit(ctx, AuditRefresh, AuditFailure, &user.ID, device, "concurrent rotation")
+		s.audit(ctx, AuditRefresh, audit.Failure, &user.ID, device, "concurrent rotation")
 		return nil, ErrInvalidToken
 	}
 
@@ -442,7 +446,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string, device Devic
 		zap.String("old_session_id", session.ID.String()),
 		zap.String("ip", device.IPAddress),
 	)
-	s.audit(ctx, AuditRefresh, AuditSuccess, &user.ID, device, "")
+	s.audit(ctx, AuditRefresh, audit.Success, &user.ID, device, "")
 	return resp, nil
 }
 
@@ -465,7 +469,7 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 		zap.String("session_id", session.ID.String()),
 		zap.String("user_id", session.UserID.String()),
 	)
-	s.audit(ctx, AuditLogout, AuditSuccess, &session.UserID, DeviceInfo{}, "")
+	s.audit(ctx, AuditLogout, audit.Success, &session.UserID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -477,7 +481,7 @@ func (s *Service) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 		return err
 	}
 	s.logger.Info("all session revoked", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditLogin, AuditSuccess, &userID, DeviceInfo{}, "all")
+	s.audit(ctx, AuditLogin, audit.Success, &userID, DeviceInfo{}, "all")
 	return nil
 }
 
@@ -611,7 +615,7 @@ func (s *Service) ResetPassword(ctx context.Context, token string, newPassword s
 	s.logger.Info("password_reset completed",
 		zap.String("user_id", pr.UserID.String()),
 	)
-	s.audit(ctx, AuditPasswordReset, AuditSuccess, &pr.UserID, DeviceInfo{}, "")
+	s.audit(ctx, AuditPasswordReset, audit.Success, &pr.UserID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -651,7 +655,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		s.logger.Warn("password change failed: wrong current password",
 			zap.String("user_id", userID.String()),
 		)
-		s.audit(ctx, AuditPasswordChange, AuditFailure, &userID, DeviceInfo{}, "wrong password")
+		s.audit(ctx, AuditPasswordChange, audit.Failure, &userID, DeviceInfo{}, "wrong password")
 		return ErrInvalidCredentials
 	}
 	pwHash, err := hashPassword(newPassword)
@@ -681,7 +685,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	}
 
 	s.logger.Info("password changed", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditPasswordChange, AuditSuccess, &userID, DeviceInfo{}, "")
+	s.audit(ctx, AuditPasswordChange, audit.Success, &userID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -742,11 +746,11 @@ func (s *Service) EnableTOTP(ctx context.Context, userID uuid.UUID, code string)
 	counter, ok := verifyTOTP(secret, code)
 	if !ok {
 		s.logger.Warn("totp enable failed: invalid code", zap.String("user_id", userID.String()))
-		s.audit(ctx, AuditTOTPEnabled, AuditFailure, &userID, DeviceInfo{}, "invalid_code")
+		s.audit(ctx, AuditTOTPEnabled, audit.Failure, &userID, DeviceInfo{}, "invalid_code")
 		return ErrInvalidTOTP
 	}
 	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
-		s.audit(ctx, AuditTOTPEnabled, AuditFailure, &userID, DeviceInfo{}, "replay")
+		s.audit(ctx, AuditTOTPEnabled, audit.Failure, &userID, DeviceInfo{}, "replay")
 		return err
 	}
 	if err := s.repo.UpsertMFAConfig(ctx, &MFAConfig{
@@ -758,7 +762,7 @@ func (s *Service) EnableTOTP(ctx context.Context, userID uuid.UUID, code string)
 	}
 	s.clearPendingTOTP(ctx, userID)
 	s.logger.Info("totp enabled", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditTOTPEnabled, AuditSuccess, &userID, DeviceInfo{}, "")
+	s.audit(ctx, AuditTOTPEnabled, audit.Success, &userID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -784,11 +788,11 @@ func (s *Service) DisableTOTP(ctx context.Context, userID uuid.UUID, code string
 	counter, ok := verifyTOTP(secret, code)
 	if !ok {
 		s.logger.Warn("totp disable failed: invalid code", zap.String("user_id", userID.String()))
-		s.audit(ctx, AuditTOTPDisabled, AuditFailure, &userID, DeviceInfo{}, "invalid_code")
+		s.audit(ctx, AuditTOTPDisabled, audit.Failure, &userID, DeviceInfo{}, "invalid_code")
 		return ErrInvalidTOTP
 	}
 	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
-		s.audit(ctx, AuditTOTPDisabled, AuditFailure, &userID, DeviceInfo{}, "replay")
+		s.audit(ctx, AuditTOTPDisabled, audit.Failure, &userID, DeviceInfo{}, "replay")
 		return err
 	}
 	if err := s.repo.DeleteMFAConfig(ctx, userID); err != nil {
@@ -796,7 +800,7 @@ func (s *Service) DisableTOTP(ctx context.Context, userID uuid.UUID, code string
 	}
 	s.clearPendingTOTP(ctx, userID)
 	s.logger.Info("totp disabled", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditTOTPDisabled, AuditSuccess, &userID, DeviceInfo{}, "")
+	s.audit(ctx, AuditTOTPDisabled, audit.Success, &userID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -842,7 +846,7 @@ func (s *Service) DeactivateAccount(ctx context.Context, userID uuid.UUID) error
 		return err
 	}
 	s.logger.Info("account deactivated", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditAccountDeactivated, AuditSuccess, &userID, DeviceInfo{}, "")
+	s.audit(ctx, AuditAccountDeactivated, audit.Success, &userID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -859,7 +863,7 @@ func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
 		return err
 	}
 	s.logger.Info("account deletion scheduled", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditAccountDeleted, AuditSuccess, &userID, DeviceInfo{}, "")
+	s.audit(ctx, AuditAccountDeleted, audit.Success, &userID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -942,11 +946,11 @@ func (s *Service) unprotectTOTPSecret(stored string) (string, error) {
 	return decryptSecret(stored, s.totpKey)
 }
 
-func (s *Service) audit(ctx context.Context, action AuditAction, status AuditStatus, userID *uuid.UUID, device DeviceInfo, detail string) {
-	if s.repo == nil {
+func (s *Service) audit(ctx context.Context, action audit.Action, status audit.Status, userID *uuid.UUID, device DeviceInfo, detail string) {
+	if s.auditW == nil {
 		return
 	}
-	log := &AuditLog{
+	log := &audit.Log{
 		ID:           uuid.New(),
 		ActorUserID:  userID,
 		TargetUserID: userID,
@@ -966,7 +970,7 @@ func (s *Service) audit(ctx context.Context, action AuditAction, status AuditSta
 	if detail != "" {
 		log.Detail = map[string]any{"message": detail}
 	}
-	if err := s.repo.CreateAuditLog(ctx, log); err != nil {
+	if err := s.auditW.Create(ctx, log); err != nil {
 		s.logger.Warn("audit log write failed",
 			zap.Error(err),
 			zap.String("action", string(action)),
@@ -984,7 +988,7 @@ func (s *Service) checkRate(ctx context.Context, action rateAction, identifier s
 				zap.String("action", string(action)),
 				zap.String("identifier", identifier),
 			)
-			s.audit(ctx, AuditRateLimited, AuditFailure, userID, device, string(action))
+			s.audit(ctx, AuditRateLimited, audit.Failure, userID, device, string(action))
 			return err
 		}
 		// fail-open strategy for rate limiter errors

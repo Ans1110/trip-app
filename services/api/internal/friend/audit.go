@@ -3,13 +3,31 @@ package friend
 import (
 	"context"
 
-	"github.com/Ans1110/trip-app/internal/auth"
+	"github.com/Ans1110/trip-app/internal/audit"
 )
 
-// AuditWriter persists friend-domain audit events. Implemented by auth.IRepository.
-type AuditWriter interface {
-	CreateAuditLog(ctx context.Context, log *auth.AuditLog) error
-}
+// Friend-domain audit action vocabulary. The Action type and the persistence
+// layer live in internal/audit.
+const (
+	AuditFriendRequestSent      audit.Action = "friend_request_sent"
+	AuditFriendRequestAccepted  audit.Action = "friend_request_accepted"
+	AuditFriendRequestDeclined  audit.Action = "friend_request_declined"
+	AuditFriendRequestCancelled audit.Action = "friend_request_cancelled"
+	AuditFriendRemoved          audit.Action = "friend_removed"
+	AuditFriendBlocked          audit.Action = "friend_blocked"
+	AuditFriendUnblocked        audit.Action = "friend_unblocked"
+	AuditFriendInviteCreated    audit.Action = "friend_invite_created"
+	AuditFriendInviteRevoked    audit.Action = "friend_invite_revoked"
+	AuditFriendInviteAccepted   audit.Action = "friend_invite_accepted"
+)
+
+// Resource types tagged on audit log rows so operators can filter by domain.
+const (
+	AuditResourceFriendship    = "friendship"
+	AuditResourceFriendRequest = "friend_request"
+	AuditResourceFriendBlock   = "friend_block"
+	AuditResourceFriendInvite  = "friend_invite"
+)
 
 // auditMeta carries per-request fields that the handler captures off the gin
 // context (IP, User-Agent) so the service layer can record them on audit logs

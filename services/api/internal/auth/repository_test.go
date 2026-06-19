@@ -714,48 +714,6 @@ func TestListUserRoles(t *testing.T) {
 	assert.ElementsMatch(t, []string{"admin", "editor"}, roles)
 }
 
-func TestCreateAuditLog(t *testing.T) {
-	repo := auth.NewRepository(setupDB(t))
-	ctx := context.Background()
-
-	u := newUser(t)
-	require.NoError(t, repo.CreateUser(ctx, u))
-
-	uid := u.ID
-	ip := "127.0.0.1"
-	reqID := uuid.New()
-	log := &auth.AuditLog{
-		ID:           uuid.New(),
-		ActorUserID:  &uid,
-		TargetUserID: &uid,
-		Action:       auth.AuditLogin,
-		Status:       auth.AuditSuccess,
-		ResourceType: "user_session",
-		ResourceID:   uuid.NewString(),
-		IPAddress:    &ip,
-		UserAgent:    "test-agent/1.0",
-		RequestID:    &reqID,
-		TraceID:      "trace-abc",
-		Detail:       map[string]any{"message": "test entry", "extra": float64(7)},
-	}
-	require.NoError(t, repo.CreateAuditLog(ctx, log))
-
-	var stored auth.AuditLog
-	require.NoError(t, repo.(*auth.RepositoryForTest).DB().First(&stored, "id = ?", log.ID).Error)
-	assert.Equal(t, auth.AuditLogin, stored.Action)
-	assert.Equal(t, auth.AuditSuccess, stored.Status)
-	require.NotNil(t, stored.ActorUserID)
-	assert.Equal(t, uid, *stored.ActorUserID)
-	require.NotNil(t, stored.TargetUserID)
-	assert.Equal(t, uid, *stored.TargetUserID)
-	require.NotNil(t, stored.IPAddress)
-	assert.Equal(t, "127.0.0.1", *stored.IPAddress)
-	require.NotNil(t, stored.RequestID)
-	assert.Equal(t, reqID, *stored.RequestID)
-	assert.Equal(t, "trace-abc", stored.TraceID)
-	assert.Equal(t, "test entry", stored.Detail["message"])
-	assert.Equal(t, float64(7), stored.Detail["extra"])
-}
 
 func TestUserLifecycle(t *testing.T) {
 	repo := auth.NewRepository(setupDB(t))

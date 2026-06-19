@@ -3,6 +3,7 @@ package auth
 import (
 	"time"
 
+	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/google/uuid"
 )
 
@@ -133,65 +134,20 @@ func (UserRole) TableName() string {
 	return "auth.user_roles"
 }
 
-type AuditAction string
-
+// Auth-domain audit action vocabulary. The Action type and the persistence
+// layer live in internal/audit; this list is just the auth domain's events.
 const (
-	AuditLogin              AuditAction = "login"
-	AuditLoginFailed        AuditAction = "login_failed"
-	AuditRegister           AuditAction = "register"
-	AuditOAuthLogin         AuditAction = "oauth_login"
-	AuditRefresh            AuditAction = "token_refresh"
-	AuditLogout             AuditAction = "logout"
-	AuditPasswordReset      AuditAction = "password_reset"
-	AuditPasswordChange     AuditAction = "password_change"
-	AuditTOTPEnabled        AuditAction = "totp_enabled"
-	AuditTOTPDisabled       AuditAction = "totp_disabled"
-	AuditAccountDeactivated AuditAction = "account_deactivated"
-	AuditAccountDeleted     AuditAction = "account_deleted"
-	AuditRateLimited        AuditAction = "rate_limited"
-
-	AuditFriendRequestSent      AuditAction = "friend_request_sent"
-	AuditFriendRequestAccepted  AuditAction = "friend_request_accepted"
-	AuditFriendRequestDeclined  AuditAction = "friend_request_declined"
-	AuditFriendRequestCancelled AuditAction = "friend_request_cancelled"
-	AuditFriendRemoved          AuditAction = "friend_removed"
-	AuditFriendBlocked          AuditAction = "friend_blocked"
-	AuditFriendUnblocked        AuditAction = "friend_unblocked"
-	AuditFriendInviteCreated    AuditAction = "friend_invite_created"
-	AuditFriendInviteRevoked    AuditAction = "friend_invite_revoked"
-	AuditFriendInviteAccepted   AuditAction = "friend_invite_accepted"
+	AuditLogin              audit.Action = "login"
+	AuditLoginFailed        audit.Action = "login_failed"
+	AuditRegister           audit.Action = "register"
+	AuditOAuthLogin         audit.Action = "oauth_login"
+	AuditRefresh            audit.Action = "token_refresh"
+	AuditLogout             audit.Action = "logout"
+	AuditPasswordReset      audit.Action = "password_reset"
+	AuditPasswordChange     audit.Action = "password_change"
+	AuditTOTPEnabled        audit.Action = "totp_enabled"
+	AuditTOTPDisabled       audit.Action = "totp_disabled"
+	AuditAccountDeactivated audit.Action = "account_deactivated"
+	AuditAccountDeleted     audit.Action = "account_deleted"
+	AuditRateLimited        audit.Action = "rate_limited"
 )
-
-const (
-	AuditResourceFriendship    = "friendship"
-	AuditResourceFriendRequest = "friend_request"
-	AuditResourceFriendBlock   = "friend_block"
-	AuditResourceFriendInvite  = "friend_invite"
-)
-
-type AuditStatus string
-
-const (
-	AuditSuccess AuditStatus = "success"
-	AuditFailure AuditStatus = "failure"
-)
-
-type AuditLog struct {
-	ID           uuid.UUID      `gorm:"type:uuid;primaryKey"`
-	ActorUserID  *uuid.UUID     `gorm:"type:uuid;column:actor_user_id;index"`
-	TargetUserID *uuid.UUID     `gorm:"type:uuid;column:target_user_id;index"`
-	Action       AuditAction    `gorm:"size:64;not null;index"`
-	Status       AuditStatus    `gorm:"size:32;not null"`
-	ResourceType string         `gorm:"size:64;column:resource_type"`
-	ResourceID   string         `gorm:"type:text;column:resource_id"`
-	IPAddress    *string        `gorm:"type:inet;column:ip_address"`
-	UserAgent    string         `gorm:"type:text;column:user_agent"`
-	RequestID    *uuid.UUID     `gorm:"type:uuid;column:request_id"`
-	TraceID      string         `gorm:"type:text;column:trace_id"`
-	Detail       map[string]any `gorm:"type:jsonb;serializer:json"`
-	CreatedAt    time.Time
-}
-
-func (AuditLog) TableName() string {
-	return "auth.audit_logs"
-}

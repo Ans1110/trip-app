@@ -23,6 +23,7 @@ import (
 	"time"
 
 	_ "github.com/Ans1110/trip-app/docs"
+	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/Ans1110/trip-app/pkg/config"
@@ -97,6 +98,7 @@ func main() {
 
 	// Auth wiring
 	mailer := mail.New(cfg.Notification, logger)
+	auditRepo := audit.NewRepository(db)
 	authRepo := auth.NewRepository(db)
 	authSvc := auth.NewService(auth.ServiceConfig{
 		Repo:       authRepo,
@@ -106,6 +108,7 @@ func main() {
 		Security:   cfg.Security,
 		Mailer:     mailer,
 		Redis:      rdb,
+		Audit:      auditRepo,
 	})
 	authHandler := auth.NewHandler(authSvc, logger, auth.CookieConfig{
 		MaxAge:   cfg.JWT.RefreshTokenTTL,
@@ -119,7 +122,7 @@ func main() {
 		Repo:   friendRepo,
 		Logger: logger,
 		WebURL: cfg.Notification.WebURL,
-		Audit:  authRepo,
+		Audit:  auditRepo,
 	})
 	friendHandler := friend.NewHandler(friendSvc, logger)
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/google/uuid"
@@ -13,15 +14,15 @@ import (
 )
 
 type auditWriterMock struct {
-	logs []*auth.AuditLog
+	logs []*audit.Log
 }
 
-func (a *auditWriterMock) CreateAuditLog(_ context.Context, log *auth.AuditLog) error {
+func (a *auditWriterMock) Create(_ context.Context, log *audit.Log) error {
 	a.logs = append(a.logs, log)
 	return nil
 }
 
-func withAudit(w friend.AuditWriter) func(*friend.ServiceConfig) {
+func withAudit(w audit.Writer) func(*friend.ServiceConfig) {
 	return func(cfg *friend.ServiceConfig) {
 		cfg.Audit = w
 	}
@@ -51,9 +52,9 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, aw.logs, 1)
 		log := aw.logs[0]
-		assert.Equal(t, auth.AuditFriendRequestSent, log.Action)
-		assert.Equal(t, auth.AuditSuccess, log.Status)
-		assert.Equal(t, auth.AuditResourceFriendRequest, log.ResourceType)
+		assert.Equal(t, friend.AuditFriendRequestSent, log.Action)
+		assert.Equal(t, audit.Success, log.Status)
+		assert.Equal(t, friend.AuditResourceFriendRequest, log.ResourceType)
 		require.NotNil(t, log.ActorUserID)
 		assert.Equal(t, sender.ID, *log.ActorUserID)
 		require.NotNil(t, log.TargetUserID)
@@ -71,8 +72,8 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 
 		require.NoError(t, svc.RemoveFriend(ctx, actor, target))
 		require.Len(t, aw.logs, 1)
-		assert.Equal(t, auth.AuditFriendRemoved, aw.logs[0].Action)
-		assert.Equal(t, auth.AuditResourceFriendship, aw.logs[0].ResourceType)
+		assert.Equal(t, friend.AuditFriendRemoved, aw.logs[0].Action)
+		assert.Equal(t, friend.AuditResourceFriendship, aw.logs[0].ResourceType)
 		assert.Equal(t, target.String(), aw.logs[0].ResourceID)
 	})
 
@@ -93,7 +94,7 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 
 		require.NoError(t, svc.AcceptRequest(ctx, req.ReceiverID, req.ID))
 		require.Len(t, aw.logs, 1)
-		assert.Equal(t, auth.AuditFriendRequestAccepted, aw.logs[0].Action)
+		assert.Equal(t, friend.AuditFriendRequestAccepted, aw.logs[0].Action)
 		require.NotNil(t, aw.logs[0].TargetUserID)
 		assert.Equal(t, req.SenderID, *aw.logs[0].TargetUserID)
 	})
@@ -109,8 +110,8 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 
 		require.NoError(t, svc.BlockUser(ctx, blocker, target.ID))
 		require.Len(t, aw.logs, 1)
-		assert.Equal(t, auth.AuditFriendBlocked, aw.logs[0].Action)
-		assert.Equal(t, auth.AuditResourceFriendBlock, aw.logs[0].ResourceType)
+		assert.Equal(t, friend.AuditFriendBlocked, aw.logs[0].Action)
+		assert.Equal(t, friend.AuditResourceFriendBlock, aw.logs[0].ResourceType)
 	})
 
 	t.Run("unblock_writes_audit", func(t *testing.T) {
@@ -120,7 +121,7 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 
 		require.NoError(t, svc.UnblockUser(ctx, uuid.New(), uuid.New()))
 		require.Len(t, aw.logs, 1)
-		assert.Equal(t, auth.AuditFriendUnblocked, aw.logs[0].Action)
+		assert.Equal(t, friend.AuditFriendUnblocked, aw.logs[0].Action)
 	})
 
 	t.Run("create_invite_writes_audit", func(t *testing.T) {
@@ -131,7 +132,7 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 		_, err := svc.CreateInvite(ctx, uuid.New(), time.Hour, 3)
 		require.NoError(t, err)
 		require.Len(t, aw.logs, 1)
-		assert.Equal(t, auth.AuditFriendInviteCreated, aw.logs[0].Action)
+		assert.Equal(t, friend.AuditFriendInviteCreated, aw.logs[0].Action)
 		require.NotNil(t, aw.logs[0].Detail)
 		assert.Equal(t, 3, aw.logs[0].Detail["max_uses"])
 	})
@@ -143,7 +144,7 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 
 		require.NoError(t, svc.RevokeInvite(ctx, uuid.New(), uuid.New()))
 		require.Len(t, aw.logs, 1)
-		assert.Equal(t, auth.AuditFriendInviteRevoked, aw.logs[0].Action)
+		assert.Equal(t, friend.AuditFriendInviteRevoked, aw.logs[0].Action)
 	})
 
 	t.Run("accept_invite_writes_audit", func(t *testing.T) {
@@ -167,7 +168,7 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 		_, err := svc.AcceptInvite(ctx, uuid.New(), "TOKEN-LONG-ENOUGH")
 		require.NoError(t, err)
 		require.Len(t, aw.logs, 1)
-		assert.Equal(t, auth.AuditFriendInviteAccepted, aw.logs[0].Action)
+		assert.Equal(t, friend.AuditFriendInviteAccepted, aw.logs[0].Action)
 		require.NotNil(t, aw.logs[0].TargetUserID)
 		assert.Equal(t, inviter.ID, *aw.logs[0].TargetUserID)
 	})

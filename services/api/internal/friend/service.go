@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	"github.com/google/uuid"
@@ -64,7 +65,7 @@ type service struct {
 	logger    *zap.Logger
 	webURL    string
 	inviteTTL time.Duration
-	audit     AuditWriter
+	audit     audit.Writer
 }
 
 type ServiceConfig struct {
@@ -72,7 +73,7 @@ type ServiceConfig struct {
 	Logger    *zap.Logger
 	WebURL    string
 	InviteTTL time.Duration
-	Audit     AuditWriter
+	Audit     audit.Writer
 }
 
 func NewService(cfg ServiceConfig) IService {
@@ -98,8 +99,8 @@ func NewService(cfg ServiceConfig) IService {
 // best-effort and must not break the user-facing action.
 func (s *service) recordAudit(
 	ctx context.Context,
-	action auth.AuditAction,
-	status auth.AuditStatus,
+	action audit.Action,
+	status audit.Status,
 	actorID uuid.UUID,
 	targetID *uuid.UUID,
 	resourceType string,
@@ -109,7 +110,7 @@ func (s *service) recordAudit(
 	if s.audit == nil {
 		return
 	}
-	log := &auth.AuditLog{
+	log := &audit.Log{
 		ID:           uuid.New(),
 		Action:       action,
 		Status:       status,
@@ -137,7 +138,7 @@ func (s *service) recordAudit(
 	if meta.UserAgent != "" {
 		log.UserAgent = meta.UserAgent
 	}
-	if err := s.audit.CreateAuditLog(ctx, log); err != nil {
+	if err := s.audit.Create(ctx, log); err != nil {
 		s.logger.Warn("audit log write failed",
 			zap.Error(err),
 			zap.String("action", string(action)),
@@ -189,8 +190,8 @@ func (s *service) RemoveFriend(ctx context.Context, userID, friendID uuid.UUID) 
 	if err := s.repo.DeleteFriendship(ctx, userID, friendID); err != nil {
 		return err
 	}
-	s.recordAudit(ctx, auth.AuditFriendRemoved, auth.AuditSuccess,
-		userID, &friendID, auth.AuditResourceFriendship, friendID.String(), nil)
+	s.recordAudit(ctx, AuditFriendRemoved, audit.Success,
+		userID, &friendID, AuditResourceFriendship, friendID.String(), nil)
 	return nil
 }
 
@@ -251,8 +252,8 @@ func (s *service) SendRequest(ctx context.Context, senderID, receiverID uuid.UUI
 	if sender == nil {
 		return nil, ErrUserNotFound
 	}
-	s.recordAudit(ctx, auth.AuditFriendRequestSent, auth.AuditSuccess,
-		senderID, &receiverID, auth.AuditResourceFriendRequest, req.ID.String(), nil)
+	s.recordAudit(ctx, AuditFriendRequestSent, audit.Success,
+		senderID, &receiverID, AuditResourceFriendRequest, req.ID.String(), nil)
 	return buildRequestResponse(req, *sender, *receiver), nil
 }
 
@@ -276,8 +277,8 @@ func (s *service) AcceptRequest(ctx context.Context, userID, requestID uuid.UUID
 		return err
 	}
 	sender := req.SenderID
-	s.recordAudit(ctx, auth.AuditFriendRequestAccepted, auth.AuditSuccess,
-		userID, &sender, auth.AuditResourceFriendRequest, req.ID.String(), nil)
+	s.recordAudit(ctx, AuditFriendRequestAccepted, audit.Success,
+		userID, &sender, AuditResourceFriendRequest, req.ID.String(), nil)
 	return nil
 }
 
@@ -296,8 +297,8 @@ func (s *service) DeclineRequest(ctx context.Context, userID, requestID uuid.UUI
 		return err
 	}
 	sender := req.SenderID
-	s.recordAudit(ctx, auth.AuditFriendRequestDeclined, auth.AuditSuccess,
-		userID, &sender, auth.AuditResourceFriendRequest, req.ID.String(), nil)
+	s.recordAudit(ctx, AuditFriendRequestDeclined, audit.Success,
+		userID, &sender, AuditResourceFriendRequest, req.ID.String(), nil)
 	return nil
 }
 
@@ -316,8 +317,8 @@ func (s *service) CancelRequest(ctx context.Context, userID, requestID uuid.UUID
 		return err
 	}
 	receiver := req.ReceiverID
-	s.recordAudit(ctx, auth.AuditFriendRequestCancelled, auth.AuditSuccess,
-		userID, &receiver, auth.AuditResourceFriendRequest, req.ID.String(), nil)
+	s.recordAudit(ctx, AuditFriendRequestCancelled, audit.Success,
+		userID, &receiver, AuditResourceFriendRequest, req.ID.String(), nil)
 	return nil
 }
 
@@ -373,8 +374,8 @@ func (s *service) BlockUser(ctx context.Context, blockerID, targetID uuid.UUID) 
 	}); err != nil {
 		return err
 	}
-	s.recordAudit(ctx, auth.AuditFriendBlocked, auth.AuditSuccess,
-		blockerID, &targetID, auth.AuditResourceFriendBlock, targetID.String(), nil)
+	s.recordAudit(ctx, AuditFriendBlocked, audit.Success,
+		blockerID, &targetID, AuditResourceFriendBlock, targetID.String(), nil)
 	return nil
 }
 
@@ -382,8 +383,8 @@ func (s *service) UnblockUser(ctx context.Context, blockerID, targetID uuid.UUID
 	if err := s.repo.UnblockUser(ctx, blockerID, targetID); err != nil {
 		return err
 	}
-	s.recordAudit(ctx, auth.AuditFriendUnblocked, auth.AuditSuccess,
-		blockerID, &targetID, auth.AuditResourceFriendBlock, targetID.String(), nil)
+	s.recordAudit(ctx, AuditFriendUnblocked, audit.Success,
+		blockerID, &targetID, AuditResourceFriendBlock, targetID.String(), nil)
 	return nil
 }
 
@@ -446,8 +447,8 @@ func (s *service) CreateInvite(ctx context.Context, userID uuid.UUID, ttl time.D
 	if err := s.repo.CreateInviteToken(ctx, rec); err != nil {
 		return nil, err
 	}
-	s.recordAudit(ctx, auth.AuditFriendInviteCreated, auth.AuditSuccess,
-		userID, nil, auth.AuditResourceFriendInvite, rec.ID.String(),
+	s.recordAudit(ctx, AuditFriendInviteCreated, audit.Success,
+		userID, nil, AuditResourceFriendInvite, rec.ID.String(),
 		map[string]any{"max_uses": rec.MaxUses, "expires_at": rec.ExpiresAt})
 	return &InviteResponse{
 		ID:        rec.ID.String(),
@@ -482,8 +483,8 @@ func (s *service) RevokeInvite(ctx context.Context, userID, inviteID uuid.UUID) 
 	if err := s.repo.RevokeInviteToken(ctx, userID, inviteID); err != nil {
 		return err
 	}
-	s.recordAudit(ctx, auth.AuditFriendInviteRevoked, auth.AuditSuccess,
-		userID, nil, auth.AuditResourceFriendInvite, inviteID.String(), nil)
+	s.recordAudit(ctx, AuditFriendInviteRevoked, audit.Success,
+		userID, nil, AuditResourceFriendInvite, inviteID.String(), nil)
 	return nil
 }
 
@@ -536,8 +537,8 @@ func (s *service) AcceptInvite(ctx context.Context, userID uuid.UUID, token stri
 		return nil, err
 	}
 	inviterID := rec.UserID
-	s.recordAudit(ctx, auth.AuditFriendInviteAccepted, auth.AuditSuccess,
-		userID, &inviterID, auth.AuditResourceFriendInvite, rec.ID.String(), nil)
+	s.recordAudit(ctx, AuditFriendInviteAccepted, audit.Success,
+		userID, &inviterID, AuditResourceFriendInvite, rec.ID.String(), nil)
 	return &summary, nil
 }
 

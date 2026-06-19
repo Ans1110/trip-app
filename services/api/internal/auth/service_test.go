@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/middleware"
@@ -73,7 +74,6 @@ type repoMock struct {
 	revokeAllSessions                 func(context.Context, uuid.UUID) error
 	revokeOtherSessions               func(context.Context, uuid.UUID, uuid.UUID) error
 	listUserRoles                     func(context.Context, uuid.UUID) ([]string, error)
-	createAuditLog                    func(context.Context, *auth.AuditLog) error
 }
 
 func (m *repoMock) WithTx(c context.Context, fn func(auth.IRepository) error) error {
@@ -257,13 +257,6 @@ func (m *repoMock) ListUserRoles(c context.Context, id uuid.UUID) ([]string, err
 	}
 	return nil, nil
 }
-func (m *repoMock) CreateAuditLog(c context.Context, log *auth.AuditLog) error {
-	if m.createAuditLog != nil {
-		return m.createAuditLog(c, log)
-	}
-	return nil
-}
-
 // ---- mock mailer ----
 
 type mockMailer struct {
@@ -296,6 +289,25 @@ func (m *mockOAuth) VerifyGithub(_ context.Context, _ string) (*auth.OAuthIdenti
 }
 func (m *mockOAuth) VerifyFacebook(_ context.Context, _ string) (*auth.OAuthIdentity, error) {
 	return m.identity, m.err
+}
+
+// ---- mock audit writer ----
+
+type auditWriterMock struct {
+	create func(context.Context, *audit.Log) error
+}
+
+func (a *auditWriterMock) Create(c context.Context, log *audit.Log) error {
+	if a.create != nil {
+		return a.create(c, log)
+	}
+	return nil
+}
+
+func withAudit(w audit.Writer) func(*auth.ServiceConfig) {
+	return func(cfg *auth.ServiceConfig) {
+		cfg.Audit = w
+	}
 }
 
 // ---- helpers ----
@@ -1418,15 +1430,17 @@ func TestAccessTokenIncludesAudienceAndRoles(t *testing.T) {
 func TestAuditLogEmitted(t *testing.T) {
 	t.Run("login_success", func(t *testing.T) {
 		user := newActiveUser()
-		var actions []auth.AuditAction
-		repo := &repoMock{
-			findUserByEmail: func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
-			createAuditLog: func(_ context.Context, log *auth.AuditLog) error {
+		var actions []audit.Action
+		aw := &auditWriterMock{
+			create: func(_ context.Context, log *audit.Log) error {
 				actions = append(actions, log.Action)
 				return nil
 			},
 		}
-		_, err := newSvc(repo).Login(ctx, auth.LoginRequest{
+		repo := &repoMock{
+			findUserByEmail: func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
+		}
+		_, err := newSvc(repo, withAudit(aw)).Login(ctx, auth.LoginRequest{
 			Email: user.Email, Password: "password123",
 		}, noDevice)
 		require.NoError(t, err)
@@ -1435,40 +1449,44 @@ func TestAuditLogEmitted(t *testing.T) {
 
 	t.Run("login_failure_logs_failed", func(t *testing.T) {
 		user := newActiveUser()
-		var statuses []auth.AuditStatus
-		repo := &repoMock{
-			findUserByEmail: func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
-			createAuditLog: func(_ context.Context, log *auth.AuditLog) error {
+		var statuses []audit.Status
+		aw := &auditWriterMock{
+			create: func(_ context.Context, log *audit.Log) error {
 				if log.Action == auth.AuditLoginFailed {
 					statuses = append(statuses, log.Status)
 				}
 				return nil
 			},
 		}
-		_, err := newSvc(repo).Login(ctx, auth.LoginRequest{
+		repo := &repoMock{
+			findUserByEmail: func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
+		}
+		_, err := newSvc(repo, withAudit(aw)).Login(ctx, auth.LoginRequest{
 			Email: user.Email, Password: "wrong",
 		}, noDevice)
 		require.ErrorIs(t, err, auth.ErrInvalidCredentials)
-		assert.Contains(t, statuses, auth.AuditFailure)
+		assert.Contains(t, statuses, audit.Failure)
 	})
 
 	t.Run("propagates_request_id_and_trace_id_from_context", func(t *testing.T) {
 		user := newActiveUser()
-		var captured *auth.AuditLog
-		repo := &repoMock{
-			findUserByEmail: func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
-			createAuditLog: func(_ context.Context, log *auth.AuditLog) error {
+		var captured *audit.Log
+		aw := &auditWriterMock{
+			create: func(_ context.Context, log *audit.Log) error {
 				if log.Action == auth.AuditLogin {
 					captured = log
 				}
 				return nil
 			},
 		}
+		repo := &repoMock{
+			findUserByEmail: func(_ context.Context, _ string) (*auth.User, error) { return user, nil },
+		}
 		reqID := uuid.New()
 		reqCtx := middleware.WithRequestID(ctx, reqID)
 		reqCtx = middleware.WithTraceID(reqCtx, "trace-xyz")
 
-		_, err := newSvc(repo).Login(reqCtx, auth.LoginRequest{
+		_, err := newSvc(repo, withAudit(aw)).Login(reqCtx, auth.LoginRequest{
 			Email: user.Email, Password: "password123",
 		}, noDevice)
 		require.NoError(t, err)
