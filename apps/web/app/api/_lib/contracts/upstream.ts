@@ -78,3 +78,60 @@ export type UpstreamJWK = {
 export type UpstreamJWKResponse = {
   keys: UpstreamJWK[];
 };
+
+// ---- friend ----
+
+export type UpstreamUserSummary = {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url?: string;
+};
+
+export type UpstreamFriendResponse = {
+  user: UpstreamUserSummary;
+  created_at: string;
+};
+
+export type UpstreamRequestResponse = {
+  id: string;
+  status: string;
+  message?: string;
+  sender: UpstreamUserSummary;
+  receiver: UpstreamUserSummary;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UpstreamBlockResponse = {
+  user: UpstreamUserSummary;
+  created_at: string;
+};
+
+export type UpstreamInviteResponse = {
+  id: string;
+  token?: string;
+  url?: string;
+  max_uses: number;
+  uses: number;
+  expires_at: string;
+  created_at: string;
+};
+
+export type UpstreamSendFriendRequestPayload = {
+  receiver_id: string;
+  message?: string;
+};
+
+export type UpstreamBlockPayload = {
+  target_id: string;
+};
+
+export type UpstreamCreateInvitePayload = {
+  max_uses?: number;
+  ttl_seconds?: number;
+};
+
+export type UpstreamAcceptInvitePayload = {
+  token: string;
+};

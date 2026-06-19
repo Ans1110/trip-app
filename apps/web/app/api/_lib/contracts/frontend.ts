@@ -1,10 +1,15 @@
 import "server-only";
 import {
+  UpstreamBlockResponse,
+  UpstreamFriendResponse,
+  UpstreamInviteResponse,
   UpstreamJWKResponse,
+  UpstreamRequestResponse,
   UpstreamSessionResponse,
   UpstreamTOTPSetupResponse,
   UpstreamUserResponse,
   UpstreamUserSession,
+  UpstreamUserSummary,
 } from "./upstream";
 
 export type User = {
@@ -75,4 +80,84 @@ export const toUserSessionView = (s: UpstreamUserSession): UserSessionView => ({
   last_active_at: s.last_active_at,
   expires_at: s.expires_at,
   created_at: s.created_at,
+});
+
+// ---- friend ----
+
+export type UserSummaryView = {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url?: string;
+};
+
+export type FriendView = {
+  user: UserSummaryView;
+  created_at: string;
+};
+
+export type FriendRequestView = {
+  id: string;
+  status: string;
+  message?: string;
+  sender: UserSummaryView;
+  receiver: UserSummaryView;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FriendBlockView = {
+  user: UserSummaryView;
+  created_at: string;
+};
+
+export type FriendInviteView = {
+  id: string;
+  token?: string;
+  url?: string;
+  max_uses: number;
+  uses: number;
+  expires_at: string;
+  created_at: string;
+};
+
+export const toUserSummaryView = (u: UpstreamUserSummary): UserSummaryView => ({
+  id: u.id,
+  email: u.email,
+  name: u.name,
+  avatar_url: u.avatar_url,
+});
+
+export const toFriendView = (f: UpstreamFriendResponse): FriendView => ({
+  user: toUserSummaryView(f.user),
+  created_at: f.created_at,
+});
+
+export const toFriendRequestView = (
+  r: UpstreamRequestResponse,
+): FriendRequestView => ({
+  id: r.id,
+  status: r.status,
+  message: r.message,
+  sender: toUserSummaryView(r.sender),
+  receiver: toUserSummaryView(r.receiver),
+  created_at: r.created_at,
+  updated_at: r.updated_at,
+});
+
+export const toFriendBlockView = (b: UpstreamBlockResponse): FriendBlockView => ({
+  user: toUserSummaryView(b.user),
+  created_at: b.created_at,
+});
+
+export const toFriendInviteView = (
+  i: UpstreamInviteResponse,
+): FriendInviteView => ({
+  id: i.id,
+  token: i.token,
+  url: i.url,
+  max_uses: i.max_uses,
+  uses: i.uses,
+  expires_at: i.expires_at,
+  created_at: i.created_at,
 });
