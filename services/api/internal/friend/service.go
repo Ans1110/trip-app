@@ -19,6 +19,7 @@ var (
 	ErrUserNotFound      = errors.New("user not found")
 	ErrCannotTargetSelf  = errors.New("cannot target self")
 	ErrAlreadyFriends    = errors.New("already friends")
+	ErrNotFriends        = errors.New("not friends")
 	ErrRequestExists     = errors.New("friend request already pending")
 	ErrRequestNotFound   = errors.New("friend request not found")
 	ErrForbidden         = errors.New("forbidden")
@@ -177,6 +178,13 @@ func (s *service) ListFriends(ctx context.Context, userID uuid.UUID) ([]FriendRe
 func (s *service) RemoveFriend(ctx context.Context, userID, friendID uuid.UUID) error {
 	if userID == friendID {
 		return ErrCannotTargetSelf
+	}
+	areFriends, err := s.repo.AreFriends(ctx, userID, friendID)
+	if err != nil {
+		return err
+	}
+	if !areFriends {
+		return ErrNotFriends
 	}
 	if err := s.repo.DeleteFriendship(ctx, userID, friendID); err != nil {
 		return err
@@ -508,6 +516,13 @@ func (s *service) AcceptInvite(ctx context.Context, userID uuid.UUID, token stri
 
 	var summary UserSummary
 	err = s.repo.WithTx(ctx, func(tx IRepository) error {
+		already, err := tx.AreFriends(ctx, userID, rec.UserID)
+		if err != nil {
+			return err
+		}
+		if already {
+			return ErrAlreadyFriends
+		}
 		if err := tx.IncrementInviteUses(ctx, rec.ID); err != nil {
 			return err
 		}

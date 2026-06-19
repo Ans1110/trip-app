@@ -292,6 +292,14 @@ func TestHandlerRemoveFriend(t *testing.T) {
 		w := doJSON(t, newRouter(svc, &uid), http.MethodDelete, "/api/v1/friends/"+friendID.String(), nil)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
+
+	t.Run("not_friends_returns_404", func(t *testing.T) {
+		svc := &svcMock{removeFriend: func(context.Context, uuid.UUID, uuid.UUID) error {
+			return friend.ErrNotFriends
+		}}
+		w := doJSON(t, newRouter(svc, &uid), http.MethodDelete, "/api/v1/friends/"+friendID.String(), nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
 }
 
 func TestHandlerSearch(t *testing.T) {

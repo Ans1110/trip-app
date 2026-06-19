@@ -505,7 +505,8 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrUserNotFound),
 		errors.Is(err, ErrRequestNotFound),
-		errors.Is(err, ErrInviteNotFound):
+		errors.Is(err, ErrInviteNotFound),
+		errors.Is(err, ErrNotFriends):
 		response.NotFound(c, err.Error())
 	case errors.Is(err, ErrAlreadyFriends),
 		errors.Is(err, ErrRequestExists):

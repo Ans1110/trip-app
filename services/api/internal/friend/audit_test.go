@@ -63,6 +63,7 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 	t.Run("remove_friend_writes_audit", func(t *testing.T) {
 		actor, target := uuid.New(), uuid.New()
 		repo := &repoMock{
+			areFriends:       func(_ context.Context, _, _ uuid.UUID) (bool, error) { return true, nil },
 			deleteFriendship: func(_ context.Context, _, _ uuid.UUID) error { return nil },
 		}
 		aw := &auditWriterMock{}
@@ -185,7 +186,10 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 	})
 
 	t.Run("audit_carries_ip_and_user_agent_from_ctx", func(t *testing.T) {
-		repo := &repoMock{deleteFriendship: func(_ context.Context, _, _ uuid.UUID) error { return nil }}
+		repo := &repoMock{
+			areFriends:       func(_ context.Context, _, _ uuid.UUID) (bool, error) { return true, nil },
+			deleteFriendship: func(_ context.Context, _, _ uuid.UUID) error { return nil },
+		}
 		aw := &auditWriterMock{}
 		svc := newSvc(repo, withAudit(aw))
 

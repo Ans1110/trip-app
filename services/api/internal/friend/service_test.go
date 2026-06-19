@@ -294,6 +294,11 @@ func TestRemoveFriend(t *testing.T) {
 		called := false
 		me, them := uuid.New(), uuid.New()
 		repo := &repoMock{
+			areFriends: func(_ context.Context, a, b uuid.UUID) (bool, error) {
+				assert.Equal(t, me, a)
+				assert.Equal(t, them, b)
+				return true, nil
+			},
 			deleteFriendship: func(_ context.Context, a, b uuid.UUID) error {
 				called = true
 				assert.Equal(t, me, a)
@@ -303,6 +308,17 @@ func TestRemoveFriend(t *testing.T) {
 		}
 		require.NoError(t, newSvc(repo).RemoveFriend(ctx, me, them))
 		assert.True(t, called)
+	})
+
+	t.Run("not_friends_rejected", func(t *testing.T) {
+		deleted := false
+		repo := &repoMock{
+			areFriends:       func(context.Context, uuid.UUID, uuid.UUID) (bool, error) { return false, nil },
+			deleteFriendship: func(context.Context, uuid.UUID, uuid.UUID) error { deleted = true; return nil },
+		}
+		err := newSvc(repo).RemoveFriend(ctx, uuid.New(), uuid.New())
+		require.ErrorIs(t, err, friend.ErrNotFriends)
+		assert.False(t, deleted)
 	})
 }
 
@@ -769,6 +785,22 @@ func TestAcceptInvite(t *testing.T) {
 		}
 		_, err := newSvc(repo).AcceptInvite(ctx, caller, "tok")
 		require.ErrorIs(t, err, friend.ErrInviteExhausted)
+	})
+
+	t.Run("already_friends_rejected_without_consuming_token", func(t *testing.T) {
+		inviteID := uuid.New()
+		consumed := false
+		repo := &repoMock{
+			findInviteTokenByHash: func(context.Context, string) (*friend.InviteToken, error) {
+				return &friend.InviteToken{ID: inviteID, UserID: inviter.ID, MaxUses: 5, ExpiresAt: time.Now().Add(time.Hour)}, nil
+			},
+			findUserByID:        func(context.Context, uuid.UUID) (*auth.User, error) { return inviter, nil },
+			areFriends:          func(context.Context, uuid.UUID, uuid.UUID) (bool, error) { return true, nil },
+			incrementInviteUses: func(context.Context, uuid.UUID) error { consumed = true; return nil },
+		}
+		_, err := newSvc(repo).AcceptInvite(ctx, caller, "TOKEN-LONG-ENOUGH")
+		require.ErrorIs(t, err, friend.ErrAlreadyFriends)
+		assert.False(t, consumed, "invite token must not be consumed when already friends")
 	})
 
 	t.Run("inviter_inactive_treated_as_invalid", func(t *testing.T) {
