@@ -29,7 +29,7 @@ export function SignUpForm() {
         setPendingEmail(session.user?.email ?? vars.email);
         return;
       }
-      window.location.assign("/");
+      window.location.assign("/trips");
     },
   });
 

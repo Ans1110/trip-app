@@ -22,7 +22,7 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
   useEffect(() => {
     if (!verify.isSuccess) return;
     const id = window.setTimeout(() => {
-      window.location.assign("/");
+      window.location.assign("/trips");
     }, REDIRECT_DELAY_MS);
     return () => window.clearTimeout(id);
   }, [verify.isSuccess]);
@@ -63,16 +63,16 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
     return (
       <Card tone="success" eyebrow="Email verified">
         <p className="text-sm" style={{ color: "#ECEFEA" }}>
-          Your email is confirmed. Taking you home…
+          Your email is confirmed. Taking you to your trips…
         </p>
         <p className="text-xs" style={{ color: "#8B9A8E" }}>
           Not redirecting?{" "}
           <Link
-            href="/"
+            href="/trips"
             className="season-transition underline-offset-4 hover:underline"
             style={{ color: "var(--season-accent)" }}
           >
-            Go home now
+            Go to trips
           </Link>
         </p>
       </Card>

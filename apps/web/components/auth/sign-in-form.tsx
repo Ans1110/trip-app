@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Loader2 } from "lucide-react";
@@ -8,7 +9,16 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { signInSchema, type SignInInput } from "@/lib/auth-schemas";
 import { errorMessage, useSignIn } from "@/hooks/auth-hooks";
 
+const safeNext = (raw: string | null): string => {
+  if (!raw) return "/trips";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/trips";
+  return raw;
+};
+
 export function SignInForm() {
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
+
   const {
     register,
     handleSubmit,
@@ -19,7 +29,7 @@ export function SignInForm() {
   });
 
   const mutation = useSignIn({
-    onSuccess: () => window.location.assign("/"),
+    onSuccess: () => window.location.assign(next),
   });
 
   const submitError = errorMessage(mutation.error);
