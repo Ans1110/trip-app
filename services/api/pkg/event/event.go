@@ -33,8 +33,6 @@ const (
 	EventRoomMemberLeft      = "room.member_left"
 	EventRoomMemberRemoved   = "room.member_removed"
 	EventRoomCodeRegenerated = "room.code_regenerated"
-	EventRoomInviteCreated   = "room.invite_created"
-	EventRoomInviteRevoked   = "room.invite_revoked"
 
 	// Calendar events
 	EventCalendarEventCreated = "calendar.event_created"
