@@ -30,11 +30,6 @@ type IHandler interface {
 	PreviewByCode(c *gin.Context)
 	JoinRoom(c *gin.Context)
 
-	// Invites
-	CreateInvite(c *gin.Context)
-	ListInvites(c *gin.Context)
-	RevokeInvite(c *gin.Context)
-
 	// Itinerary
 	CreateItinerary(c *gin.Context)
 	ListItinerary(c *gin.Context)
@@ -76,10 +71,6 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 		trips.POST("/:id/room/leave", h.LeaveRoom)
 		trips.DELETE("/:id/room/members/:user_id", h.RemoveMember)
 		trips.POST("/:id/room/code", h.RegenerateCode)
-
-		trips.POST("/:id/room/invites", h.CreateInvite)
-		trips.GET("/:id/room/invites", h.ListInvites)
-		trips.DELETE("/:id/room/invites/:token", h.RevokeInvite)
 
 		trips.GET("/:id/itinerary", h.ListItinerary)
 		trips.POST("/:id/itinerary", h.CreateItinerary)
@@ -349,12 +340,12 @@ func (h *Handler) PreviewByCode(c *gin.Context) {
 }
 
 // JoinRoom godoc
-// @Summary  Join a room via invite token or room code
+// @Summary  Join a room via room code (shared by QR or raw code entry)
 // @Tags     rooms
 // @Security BearerAuth
 // @Accept   json
 // @Produce  json
-// @Param    body  body  JoinRoomPayload  true  "token or code"
+// @Param    body  body  JoinRoomPayload  true  "code"
 // @Success  200   {object}  response.Response{data=JoinRoomResponse}
 // @Router   /rooms/join [post]
 func (h *Handler) JoinRoom(c *gin.Context) {
@@ -373,56 +364,6 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 		return
 	}
 	response.OK(c, out)
-}
-
-// ---- Invites ----
-
-func (h *Handler) CreateInvite(c *gin.Context) {
-	uid, tripID, ok := h.bindUserAndTrip(c)
-	if !ok {
-		return
-	}
-	var p CreateInvitePayload
-	if err := c.ShouldBindJSON(&p); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-	out, err := h.svc.CreateInvite(auditCtx(c), uid, tripID, p)
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.Created(c, out)
-}
-
-func (h *Handler) ListInvites(c *gin.Context) {
-	uid, tripID, ok := h.bindUserAndTrip(c)
-	if !ok {
-		return
-	}
-	out, err := h.svc.ListInvites(c.Request.Context(), uid, tripID)
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.OK(c, out)
-}
-
-func (h *Handler) RevokeInvite(c *gin.Context) {
-	uid, tripID, ok := h.bindUserAndTrip(c)
-	if !ok {
-		return
-	}
-	token := c.Param("token")
-	if token == "" {
-		response.BadRequest(c, "invalid token")
-		return
-	}
-	if err := h.svc.RevokeInvite(auditCtx(c), uid, tripID, token); err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.OK(c, nil)
 }
 
 // ---- Itinerary ----
@@ -592,7 +533,6 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 		errors.Is(err, ErrRoomNotFound),
 		errors.Is(err, ErrItineraryNotFound),
 		errors.Is(err, ErrTodoNotFound),
-		errors.Is(err, ErrInviteNotFound),
 		errors.Is(err, ErrUserNotFound),
 		errors.Is(err, ErrNotMember):
 		response.NotFound(c, err.Error())
@@ -600,11 +540,9 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 		errors.Is(err, ErrOwnerCannotLeave),
 		errors.Is(err, ErrCannotRemoveOwner):
 		response.Forbidden(c)
-	case errors.Is(err, ErrInviteInvalid):
-		response.BadRequest(c, err.Error())
 	case errors.Is(err, ErrInvalidDateRange),
 		errors.Is(err, ErrInvalidPayload),
-		errors.Is(err, ErrJoinIdentifierMiss):
+		errors.Is(err, ErrCodeRequired):
 		response.BadRequest(c, err.Error())
 	default:
 		h.logger.Error("trip handler: internal error", zap.Error(err))

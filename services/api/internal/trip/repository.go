@@ -42,13 +42,6 @@ type IRepository interface {
 	FindMemberByTrip(ctx context.Context, tripID, userID uuid.UUID) (*RoomMember, error)
 	CountRoomMembers(ctx context.Context, roomID uuid.UUID) (int, error)
 
-	// Invite tokens
-	CreateInvite(ctx context.Context, t *RoomInviteToken) error
-	FindInviteByToken(ctx context.Context, token string) (*RoomInviteToken, error)
-	ListActiveInvites(ctx context.Context, roomID uuid.UUID) ([]RoomInviteToken, error)
-	RevokeInvite(ctx context.Context, token string) error
-	IncrementInviteUsed(ctx context.Context, token string) error
-
 	// Itinerary
 	CreateItinerary(ctx context.Context, it *Itinerary) error
 	FindItineraryByID(ctx context.Context, id uuid.UUID) (*Itinerary, error)
@@ -316,46 +309,6 @@ func (r *repository) CountRoomMembers(ctx context.Context, roomID uuid.UUID) (in
 	err := r.db.WithContext(ctx).Model(&RoomMember{}).
 		Where("room_id = ?", roomID).Count(&n).Error
 	return int(n), err
-}
-
-// ---- Invite tokens ----
-
-func (r *repository) CreateInvite(ctx context.Context, t *RoomInviteToken) error {
-	if t.CreatedAt.IsZero() {
-		t.CreatedAt = time.Now()
-	}
-	return r.db.WithContext(ctx).Create(t).Error
-}
-
-func (r *repository) FindInviteByToken(ctx context.Context, token string) (*RoomInviteToken, error) {
-	var t RoomInviteToken
-	err := r.db.WithContext(ctx).First(&t, "token = ?", token).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	return &t, err
-}
-
-func (r *repository) ListActiveInvites(ctx context.Context, roomID uuid.UUID) ([]RoomInviteToken, error) {
-	var rows []RoomInviteToken
-	now := time.Now()
-	err := r.db.WithContext(ctx).
-		Where("room_id = ? AND revoked_at IS NULL AND expires_at > ?", roomID, now).
-		Where("max_uses = 0 OR used_count < max_uses").
-		Order("created_at DESC").Find(&rows).Error
-	return rows, err
-}
-
-func (r *repository) RevokeInvite(ctx context.Context, token string) error {
-	now := time.Now()
-	return r.db.WithContext(ctx).Model(&RoomInviteToken{}).
-		Where("token = ? AND revoked_at IS NULL", token).
-		Update("revoked_at", now).Error
-}
-
-func (r *repository) IncrementInviteUsed(ctx context.Context, token string) error {
-	return r.db.WithContext(ctx).
-		Exec(`UPDATE trip.room_invite_tokens SET used_count = used_count + 1 WHERE token = ?`, token).Error
 }
 
 // ---- Itinerary ----

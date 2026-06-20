@@ -17,20 +17,18 @@ import (
 )
 
 var (
-	ErrTripNotFound       = errors.New("trip not found")
-	ErrRoomNotFound       = errors.New("room not found")
-	ErrInviteInvalid      = errors.New("invite invalid or expired")
-	ErrInviteNotFound     = errors.New("invite not found")
-	ErrItineraryNotFound  = errors.New("itinerary item not found")
-	ErrTodoNotFound       = errors.New("todo not found")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrForbidden          = errors.New("forbidden")
-	ErrNotMember          = errors.New("not a room member")
-	ErrOwnerCannotLeave   = errors.New("trip owner cannot leave; transfer or delete trip")
-	ErrCannotRemoveOwner  = errors.New("cannot remove trip owner")
-	ErrInvalidDateRange   = errors.New("end_date must be on or after start_date")
-	ErrInvalidPayload     = errors.New("invalid payload")
-	ErrJoinIdentifierMiss = errors.New("token or code required")
+	ErrTripNotFound      = errors.New("trip not found")
+	ErrRoomNotFound      = errors.New("room not found")
+	ErrItineraryNotFound = errors.New("itinerary item not found")
+	ErrTodoNotFound      = errors.New("todo not found")
+	ErrUserNotFound      = errors.New("user not found")
+	ErrForbidden         = errors.New("forbidden")
+	ErrNotMember         = errors.New("not a room member")
+	ErrOwnerCannotLeave  = errors.New("trip owner cannot leave; transfer or delete trip")
+	ErrCannotRemoveOwner = errors.New("cannot remove trip owner")
+	ErrInvalidDateRange  = errors.New("end_date must be on or after start_date")
+	ErrInvalidPayload    = errors.New("invalid payload")
+	ErrCodeRequired      = errors.New("room code required")
 )
 
 const dateLayout = "2006-01-02"
@@ -50,11 +48,6 @@ type IService interface {
 	LeaveRoom(ctx context.Context, userID, tripID uuid.UUID) error
 	RemoveMember(ctx context.Context, actorID, tripID, targetID uuid.UUID) error
 	RegenerateCode(ctx context.Context, userID, tripID uuid.UUID) (*RoomResponse, error)
-
-	// Invites
-	CreateInvite(ctx context.Context, userID, tripID uuid.UUID, p CreateInvitePayload) (*InviteTokenResponse, error)
-	ListInvites(ctx context.Context, userID, tripID uuid.UUID) ([]InviteTokenResponse, error)
-	RevokeInvite(ctx context.Context, userID, tripID uuid.UUID, token string) error
 
 	// Itinerary
 	CreateItinerary(ctx context.Context, userID, tripID uuid.UUID, p CreateItineraryPayload) (*ItineraryResponse, error)
@@ -425,45 +418,17 @@ func (s *service) PreviewByCode(ctx context.Context, userID uuid.UUID, code stri
 }
 
 func (s *service) JoinRoom(ctx context.Context, userID uuid.UUID, p JoinRoomPayload) (*JoinRoomResponse, error) {
-	token := strings.TrimSpace(p.Token)
 	code := strings.ToUpper(strings.TrimSpace(p.Code))
-	if token == "" && code == "" {
-		return nil, ErrJoinIdentifierMiss
+	if code == "" {
+		return nil, ErrCodeRequired
 	}
 
-	var (
-		room       *Room
-		tok        *RoomInviteToken
-		consumeTok bool
-	)
-
-	if token != "" {
-		t, err := s.repo.FindInviteByToken(ctx, token)
-		if err != nil {
-			return nil, err
-		}
-		if t == nil || !t.Active(time.Now()) {
-			return nil, ErrInviteInvalid
-		}
-		tok = t
-		consumeTok = true
-		r, rerr := s.repo.FindRoomByID(ctx, t.RoomID)
-		if rerr != nil {
-			return nil, rerr
-		}
-		if r == nil {
-			return nil, ErrRoomNotFound
-		}
-		room = r
-	} else {
-		r, err := s.repo.FindRoomByCode(ctx, code)
-		if err != nil {
-			return nil, err
-		}
-		if r == nil {
-			return nil, ErrRoomNotFound
-		}
-		room = r
+	room, err := s.repo.FindRoomByCode(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+	if room == nil {
+		return nil, ErrRoomNotFound
 	}
 
 	// Idempotent: if already a member, return success with flag rather than 409.
@@ -479,19 +444,11 @@ func (s *service) JoinRoom(ctx context.Context, userID uuid.UUID, p JoinRoomPayl
 		}, nil
 	}
 
-	if err := s.repo.WithTx(ctx, func(tx IRepository) error {
-		if err := tx.AddMember(ctx, &RoomMember{
-			RoomID:   room.ID,
-			UserID:   userID,
-			Role:     RoleMember,
-			JoinedAt: time.Now(),
-		}); err != nil {
-			return err
-		}
-		if consumeTok && tok != nil {
-			return tx.IncrementInviteUsed(ctx, tok.Token)
-		}
-		return nil
+	if err := s.repo.AddMember(ctx, &RoomMember{
+		RoomID:   room.ID,
+		UserID:   userID,
+		Role:     RoleMember,
+		JoinedAt: time.Now(),
 	}); err != nil {
 		return nil, err
 	}
@@ -501,7 +458,7 @@ func (s *service) JoinRoom(ctx context.Context, userID uuid.UUID, p JoinRoomPayl
 		"room_id": room.ID.String(),
 		"trip_id": room.TripID.String(),
 		"user_id": userID.String(),
-		"via":     joinSource(token, code),
+		"via":     "code",
 	})
 
 	return &JoinRoomResponse{
@@ -620,116 +577,6 @@ func (s *service) RegenerateCode(ctx context.Context, userID, tripID uuid.UUID) 
 		"new_code": code,
 	})
 	return s.GetRoom(ctx, userID, tripID)
-}
-
-// ---- Invites ----
-
-func (s *service) CreateInvite(ctx context.Context, userID, tripID uuid.UUID, p CreateInvitePayload) (*InviteTokenResponse, error) {
-	t, err := s.repo.FindTripByID(ctx, tripID)
-	if err != nil {
-		return nil, err
-	}
-	if t == nil {
-		return nil, ErrTripNotFound
-	}
-	if err := s.requireAdmin(ctx, tripID, userID, t.OwnerID); err != nil {
-		return nil, err
-	}
-	room, err := s.repo.FindRoomByTripID(ctx, tripID)
-	if err != nil {
-		return nil, err
-	}
-	if room == nil {
-		return nil, ErrRoomNotFound
-	}
-	tokenStr, err := randomToken(24)
-	if err != nil {
-		return nil, err
-	}
-	tok := &RoomInviteToken{
-		Token:     tokenStr,
-		RoomID:    room.ID,
-		CreatedBy: userID,
-		ExpiresAt: time.Now().Add(time.Duration(p.ExpiresInMinutes) * time.Minute),
-		MaxUses:   p.MaxUses,
-		CreatedAt: time.Now(),
-	}
-	if err := s.repo.CreateInvite(ctx, tok); err != nil {
-		return nil, err
-	}
-	s.recordAudit(ctx, AuditRoomInviteCreated, audit.Success, userID, nil, AuditResourceInvite, tok.Token, nil)
-	s.publish(ctx, event.EventRoomInviteCreated, userID, room.ID, map[string]any{
-		"room_id":    room.ID.String(),
-		"trip_id":    tripID.String(),
-		"token":      tok.Token,
-		"expires_at": tok.ExpiresAt,
-	})
-	return inviteToResponse(*tok), nil
-}
-
-func (s *service) ListInvites(ctx context.Context, userID, tripID uuid.UUID) ([]InviteTokenResponse, error) {
-	t, err := s.repo.FindTripByID(ctx, tripID)
-	if err != nil {
-		return nil, err
-	}
-	if t == nil {
-		return nil, ErrTripNotFound
-	}
-	if err := s.requireAdmin(ctx, tripID, userID, t.OwnerID); err != nil {
-		return nil, err
-	}
-	room, err := s.repo.FindRoomByTripID(ctx, tripID)
-	if err != nil {
-		return nil, err
-	}
-	if room == nil {
-		return nil, ErrRoomNotFound
-	}
-	rows, err := s.repo.ListActiveInvites(ctx, room.ID)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]InviteTokenResponse, 0, len(rows))
-	for _, r := range rows {
-		out = append(out, *inviteToResponse(r))
-	}
-	return out, nil
-}
-
-func (s *service) RevokeInvite(ctx context.Context, userID, tripID uuid.UUID, token string) error {
-	t, err := s.repo.FindTripByID(ctx, tripID)
-	if err != nil {
-		return err
-	}
-	if t == nil {
-		return ErrTripNotFound
-	}
-	if err := s.requireAdmin(ctx, tripID, userID, t.OwnerID); err != nil {
-		return err
-	}
-	tok, err := s.repo.FindInviteByToken(ctx, token)
-	if err != nil {
-		return err
-	}
-	if tok == nil {
-		return ErrInviteNotFound
-	}
-	room, err := s.repo.FindRoomByTripID(ctx, tripID)
-	if err != nil {
-		return err
-	}
-	if room == nil || tok.RoomID != room.ID {
-		return ErrInviteNotFound
-	}
-	if err := s.repo.RevokeInvite(ctx, token); err != nil {
-		return err
-	}
-	s.recordAudit(ctx, AuditRoomInviteRevoked, audit.Success, userID, nil, AuditResourceInvite, token, nil)
-	s.publish(ctx, event.EventRoomInviteRevoked, userID, room.ID, map[string]any{
-		"room_id": room.ID.String(),
-		"token":   token,
-	})
-	return nil
 }
 
 // ---- Itinerary ----
@@ -1149,19 +996,6 @@ func parseDateRange(startStr, endStr string) (time.Time, time.Time, error) {
 	return start, end, nil
 }
 
-func randomToken(byteLen int) (string, error) {
-	b := make([]byte, byteLen)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
-	out := make([]byte, byteLen)
-	for i, v := range b {
-		out[i] = alphabet[int(v)%len(alphabet)]
-	}
-	return string(out), nil
-}
-
 // randomRoomCode returns a human-friendly 8-char code (A-Z + 2-9, no
 // ambiguous chars). 56^8 ≈ 9.6e13 possibilities — collisions rare but
 // caller still retries on conflict.
@@ -1176,16 +1010,6 @@ func randomRoomCode() (string, error) {
 		out[i] = alphabet[int(v)%len(alphabet)]
 	}
 	return string(out), nil
-}
-
-func joinSource(token, code string) string {
-	if token != "" {
-		return "token"
-	}
-	if code != "" {
-		return "code"
-	}
-	return "unknown"
 }
 
 func toUserSummary(u auth.User) UserSummary {
@@ -1203,17 +1027,6 @@ func toUserSummaryPublic(u auth.User) UserSummary {
 		ID:        u.ID.String(),
 		Name:      u.Name,
 		AvatarURL: u.AvatarURL,
-	}
-}
-
-func inviteToResponse(t RoomInviteToken) *InviteTokenResponse {
-	return &InviteTokenResponse{
-		Token:     t.Token,
-		RoomID:    t.RoomID.String(),
-		ExpiresAt: t.ExpiresAt,
-		MaxUses:   t.MaxUses,
-		UsedCount: t.UsedCount,
-		CreatedAt: t.CreatedAt,
 	}
 }
 

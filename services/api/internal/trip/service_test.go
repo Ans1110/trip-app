@@ -43,12 +43,6 @@ type repoMock struct {
 	findMemberByTrip func(context.Context, uuid.UUID, uuid.UUID) (*trip.RoomMember, error)
 	countRoomMembers func(context.Context, uuid.UUID) (int, error)
 
-	createInvite        func(context.Context, *trip.RoomInviteToken) error
-	findInviteByToken   func(context.Context, string) (*trip.RoomInviteToken, error)
-	listActiveInvites   func(context.Context, uuid.UUID) ([]trip.RoomInviteToken, error)
-	revokeInvite        func(context.Context, string) error
-	incrementInviteUsed func(context.Context, string) error
-
 	createItinerary   func(context.Context, *trip.Itinerary) error
 	findItineraryByID func(context.Context, uuid.UUID) (*trip.Itinerary, error)
 	updateItinerary   func(context.Context, uuid.UUID, map[string]any) error
@@ -213,41 +207,6 @@ func (r *repoMock) CountRoomMembers(c context.Context, roomID uuid.UUID) (int, e
 		return r.countRoomMembers(c, roomID)
 	}
 	return 0, nil
-}
-
-func (r *repoMock) CreateInvite(c context.Context, t *trip.RoomInviteToken) error {
-	if r.createInvite != nil {
-		return r.createInvite(c, t)
-	}
-	return nil
-}
-
-func (r *repoMock) FindInviteByToken(c context.Context, token string) (*trip.RoomInviteToken, error) {
-	if r.findInviteByToken != nil {
-		return r.findInviteByToken(c, token)
-	}
-	return nil, nil
-}
-
-func (r *repoMock) ListActiveInvites(c context.Context, roomID uuid.UUID) ([]trip.RoomInviteToken, error) {
-	if r.listActiveInvites != nil {
-		return r.listActiveInvites(c, roomID)
-	}
-	return nil, nil
-}
-
-func (r *repoMock) RevokeInvite(c context.Context, token string) error {
-	if r.revokeInvite != nil {
-		return r.revokeInvite(c, token)
-	}
-	return nil
-}
-
-func (r *repoMock) IncrementInviteUsed(c context.Context, token string) error {
-	if r.incrementInviteUsed != nil {
-		return r.incrementInviteUsed(c, token)
-	}
-	return nil
 }
 
 func (r *repoMock) CreateItinerary(c context.Context, it *trip.Itinerary) error {
@@ -437,64 +396,6 @@ func TestDeleteTrip_OwnerOnly(t *testing.T) {
 
 // ---- Join ----
 
-func TestJoinRoom_ByToken_Success(t *testing.T) {
-	roomID, tripID, user := uuid.New(), uuid.New(), uuid.New()
-	tok := &trip.RoomInviteToken{
-		Token:     "abc",
-		RoomID:    roomID,
-		ExpiresAt: time.Now().Add(time.Hour),
-		MaxUses:   5,
-		UsedCount: 0,
-	}
-	addedMember := false
-	consumed := false
-	repo := &repoMock{
-		findInviteByToken: func(_ context.Context, _ string) (*trip.RoomInviteToken, error) { return tok, nil },
-		findRoomByID: func(_ context.Context, id uuid.UUID) (*trip.Room, error) {
-			return &trip.Room{ID: id, TripID: tripID, RoomCode: "AAAA1111"}, nil
-		},
-		findMember: func(_ context.Context, _, _ uuid.UUID) (*trip.RoomMember, error) { return nil, nil },
-		addMember: func(_ context.Context, m *trip.RoomMember) error {
-			addedMember = true
-			assert.Equal(t, trip.RoleMember, m.Role)
-			return nil
-		},
-		incrementInviteUsed: func(_ context.Context, _ string) error {
-			consumed = true
-			return nil
-		},
-	}
-	svc := newSvc(repo)
-	out, err := svc.JoinRoom(ctx, user, trip.JoinRoomPayload{Token: "abc"})
-	require.NoError(t, err)
-	assert.False(t, out.AlreadyMember)
-	assert.Equal(t, tripID.String(), out.TripID)
-	assert.True(t, addedMember)
-	assert.True(t, consumed)
-}
-
-func TestJoinRoom_ByToken_ExpiredOrExhausted(t *testing.T) {
-	cases := []struct {
-		name string
-		tok  *trip.RoomInviteToken
-	}{
-		{"expired", &trip.RoomInviteToken{Token: "x", ExpiresAt: time.Now().Add(-time.Minute), MaxUses: 0}},
-		{"exhausted", &trip.RoomInviteToken{Token: "x", ExpiresAt: time.Now().Add(time.Hour), MaxUses: 1, UsedCount: 1}},
-		{"revoked", &trip.RoomInviteToken{Token: "x", ExpiresAt: time.Now().Add(time.Hour), MaxUses: 0,
-			RevokedAt: func() *time.Time { t := time.Now(); return &t }()}},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			repo := &repoMock{
-				findInviteByToken: func(_ context.Context, _ string) (*trip.RoomInviteToken, error) { return tc.tok, nil },
-			}
-			svc := newSvc(repo)
-			_, err := svc.JoinRoom(ctx, uuid.New(), trip.JoinRoomPayload{Token: "x"})
-			assert.ErrorIs(t, err, trip.ErrInviteInvalid)
-		})
-	}
-}
-
 func TestJoinRoom_ByCode_Success(t *testing.T) {
 	roomID, tripID, user := uuid.New(), uuid.New(), uuid.New()
 	repo := &repoMock{
@@ -531,10 +432,10 @@ func TestJoinRoom_AlreadyMember_ReturnsFlagNotError(t *testing.T) {
 	assert.True(t, out.AlreadyMember)
 }
 
-func TestJoinRoom_RequiresTokenOrCode(t *testing.T) {
+func TestJoinRoom_RequiresCode(t *testing.T) {
 	svc := newSvc(&repoMock{})
 	_, err := svc.JoinRoom(ctx, uuid.New(), trip.JoinRoomPayload{})
-	assert.ErrorIs(t, err, trip.ErrJoinIdentifierMiss)
+	assert.ErrorIs(t, err, trip.ErrCodeRequired)
 }
 
 // ---- Membership ----

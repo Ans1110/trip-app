@@ -57,34 +57,6 @@ type RoomMember struct {
 
 func (RoomMember) TableName() string { return "trip.room_members" }
 
-type RoomInviteToken struct {
-	Token     string     `gorm:"primaryKey;column:token"`
-	RoomID    uuid.UUID  `gorm:"type:uuid;column:room_id;not null;index"`
-	CreatedBy uuid.UUID  `gorm:"type:uuid;column:created_by;not null"`
-	ExpiresAt time.Time  `gorm:"column:expires_at;not null"`
-	MaxUses   int        `gorm:"column:max_uses;not null;default:0"` // 0 = unlimited
-	UsedCount int        `gorm:"column:used_count;not null;default:0"`
-	RevokedAt *time.Time `gorm:"column:revoked_at"`
-	CreatedAt time.Time  `gorm:"column:created_at"`
-}
-
-func (RoomInviteToken) TableName() string { return "trip.room_invite_tokens" }
-
-// Active reports whether the token is still usable: not revoked, not expired,
-// and (if a usage cap is set) under the cap.
-func (t *RoomInviteToken) Active(now time.Time) bool {
-	if t.RevokedAt != nil {
-		return false
-	}
-	if !t.ExpiresAt.IsZero() && !t.ExpiresAt.After(now) {
-		return false
-	}
-	if t.MaxUses > 0 && t.UsedCount >= t.MaxUses {
-		return false
-	}
-	return true
-}
-
 type Itinerary struct {
 	ID          uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	TripID      uuid.UUID      `gorm:"type:uuid;column:trip_id;not null;index"`

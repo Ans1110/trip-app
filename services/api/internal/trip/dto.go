@@ -90,25 +90,10 @@ type RoomPreview struct {
 	AlreadyJoined bool      `json:"already_joined"`
 }
 
-// ---- Invite tokens ----
-
-type CreateInvitePayload struct {
-	ExpiresInMinutes int `json:"expires_in_minutes" binding:"required,min=5,max=43200"` // 5min..30days
-	MaxUses          int `json:"max_uses" binding:"min=0,max=1000"`                     // 0 = unlimited
-}
-
-type InviteTokenResponse struct {
-	Token     string    `json:"token"`
-	RoomID    string    `json:"room_id"`
-	ExpiresAt time.Time `json:"expires_at"`
-	MaxUses   int       `json:"max_uses"`
-	UsedCount int       `json:"used_count"`
-	CreatedAt time.Time `json:"created_at"`
-}
+// ---- Join ----
 
 type JoinRoomPayload struct {
-	Token string `json:"token"`
-	Code  string `json:"code"`
+	Code string `json:"code" binding:"required"`
 }
 
 type JoinRoomResponse struct {

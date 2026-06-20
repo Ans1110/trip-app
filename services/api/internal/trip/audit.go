@@ -16,14 +16,11 @@ const (
 	AuditRoomMemberLeft     audit.Action = "room_member_left"
 	AuditRoomMemberRemoved  audit.Action = "room_member_removed"
 	AuditRoomCodeRegenerated audit.Action = "room_code_regenerated"
-	AuditRoomInviteCreated  audit.Action = "room_invite_created"
-	AuditRoomInviteRevoked  audit.Action = "room_invite_revoked"
 )
 
 const (
-	AuditResourceTrip   = "trip"
-	AuditResourceRoom   = "room"
-	AuditResourceInvite = "room_invite"
+	AuditResourceTrip = "trip"
+	AuditResourceRoom = "room"
 )
 
 type auditMeta struct {
