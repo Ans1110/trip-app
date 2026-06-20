@@ -8,21 +8,33 @@ import (
 
 const (
 	// Auth events
-	EventUserRegistered  = "auth.registered"
-	EventUserVerified    = "auth.verified"
-	EventPasswordReset   = "auth.password_reset"
-	EventUserDeactivated = "auth.deactivated"
-	EventUserBlocked     = "auth.blocked"
+	EventUserRegistered    = "auth.registered"
+	EventUserVerified      = "auth.verified"
+	EventUserLoggedIn      = "auth.logged_in"
+	EventUserLoggedOut     = "auth.logged_out"
+	EventPasswordReset     = "auth.password_reset"
+	EventPasswordChanged   = "auth.password_changed"
+	EventUserDeactivated   = "auth.deactivated"
+	EventUserDeleted       = "auth.deleted"
+	EventUserBlocked       = "auth.blocked"
 
 	// Trip events
+	EventTripCreated       = "trip.created"
 	EventTripUpdated       = "trip.updated"
 	EventTripDeleted       = "trip.deleted"
-	EventMemberJoined      = "trip.member_joined"
-	EventMemberLeft        = "trip.member_left"
 	EventActivityCreated   = "trip.activity_created"
 	EventPackingItemPacked = "trip.packing_item_packed"
 	EventTodoUpdated       = "trip.todo_updated"
 	EventTodoReminder      = "todo.reminder"
+
+	// Room (collaboration space) events. Friend and Room are decoupled, so
+	// membership changes are scoped to room, not trip.
+	EventRoomMemberJoined    = "room.member_joined"
+	EventRoomMemberLeft      = "room.member_left"
+	EventRoomMemberRemoved   = "room.member_removed"
+	EventRoomCodeRegenerated = "room.code_regenerated"
+	EventRoomInviteCreated   = "room.invite_created"
+	EventRoomInviteRevoked   = "room.invite_revoked"
 
 	// Calendar events
 	EventCalendarEventCreated = "calendar.event_created"
@@ -53,8 +65,13 @@ const (
 	// Profile / social events
 	EventUserFollowed       = "profile.followed"
 	EventUserProfileUpdated = "profile.updated"
-	EventFriendRequest      = "friend.request"
-	EventFriendAccepted     = "friend.accepted"
+	EventFriendRequestSent      = "friend.request_sent"
+	EventFriendRequestAccepted  = "friend.request_accepted"
+	EventFriendRequestDeclined  = "friend.request_declined"
+	EventFriendRequestCancelled = "friend.request_cancelled"
+	EventFriendRemoved          = "friend.removed"
+	EventFriendBlocked          = "friend.blocked"
+	EventFriendUnblocked        = "friend.unblocked"
 
 	// Location events
 	EventUserCheckedIn = "location.checked_in"

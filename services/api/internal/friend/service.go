@@ -5,8 +5,11 @@ import (
 	"errors"
 	"strings"
 
+	"time"
+
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
+	"github.com/Ans1110/trip-app/pkg/event"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -44,12 +47,14 @@ type service struct {
 	repo   IRepository
 	logger *zap.Logger
 	audit  audit.Writer
+	bus    *event.Bus
 }
 
 type ServiceConfig struct {
 	Repo   IRepository
 	Logger *zap.Logger
 	Audit  audit.Writer
+	Bus    *event.Bus
 }
 
 func NewService(cfg ServiceConfig) IService {
@@ -61,12 +66,23 @@ func NewService(cfg ServiceConfig) IService {
 		repo:   cfg.Repo,
 		logger: logger.With(zap.String("layer", "friend.service")),
 		audit:  cfg.Audit,
+		bus:    cfg.Bus,
 	}
 }
 
-// recordAudit writes a friend-domain audit row. No-op when no writer is wired
-// (e.g. in unit tests). Failures are logged but never propagated — audit is
-// best-effort and must not break the user-facing action.
+func (s *service) publish(ctx context.Context, evtType string, actorID, targetID uuid.UUID, payload map[string]any) {
+	if s.bus == nil {
+		return
+	}
+	s.bus.Publish(ctx, event.Event{
+		Type:      evtType,
+		Payload:   payload,
+		UserID:    actorID,
+		TargetID:  targetID,
+		Timestamp: time.Now(),
+	})
+}
+
 func (s *service) recordAudit(
 	ctx context.Context,
 	action audit.Action,
@@ -162,6 +178,10 @@ func (s *service) RemoveFriend(ctx context.Context, userID, friendID uuid.UUID) 
 	}
 	s.recordAudit(ctx, AuditFriendRemoved, audit.Success,
 		userID, &friendID, AuditResourceFriendship, friendID.String(), nil)
+	s.publish(ctx, event.EventFriendRemoved, userID, friendID, map[string]any{
+		"actor_id":  userID.String(),
+		"friend_id": friendID.String(),
+	})
 	return nil
 }
 
@@ -233,6 +253,11 @@ func (s *service) SendRequest(ctx context.Context, senderID, receiverID uuid.UUI
 	}
 	s.recordAudit(ctx, AuditFriendRequestSent, audit.Success,
 		senderID, &receiverID, AuditResourceFriendRequest, req.ID.String(), nil)
+	s.publish(ctx, event.EventFriendRequestSent, senderID, receiverID, map[string]any{
+		"request_id":  req.ID.String(),
+		"sender_id":   senderID.String(),
+		"receiver_id": receiverID.String(),
+	})
 	return buildRequestResponse(req, *sender, *receiver), nil
 }
 
@@ -258,6 +283,11 @@ func (s *service) AcceptRequest(ctx context.Context, userID, requestID uuid.UUID
 	sender := req.SenderID
 	s.recordAudit(ctx, AuditFriendRequestAccepted, audit.Success,
 		userID, &sender, AuditResourceFriendRequest, req.ID.String(), nil)
+	s.publish(ctx, event.EventFriendRequestAccepted, userID, sender, map[string]any{
+		"request_id":  req.ID.String(),
+		"sender_id":   sender.String(),
+		"receiver_id": userID.String(),
+	})
 	return nil
 }
 
@@ -278,6 +308,10 @@ func (s *service) DeclineRequest(ctx context.Context, userID, requestID uuid.UUI
 	sender := req.SenderID
 	s.recordAudit(ctx, AuditFriendRequestDeclined, audit.Success,
 		userID, &sender, AuditResourceFriendRequest, req.ID.String(), nil)
+	s.publish(ctx, event.EventFriendRequestDeclined, userID, sender, map[string]any{
+		"request_id": req.ID.String(),
+		"sender_id":  sender.String(),
+	})
 	return nil
 }
 
@@ -298,6 +332,10 @@ func (s *service) CancelRequest(ctx context.Context, userID, requestID uuid.UUID
 	receiver := req.ReceiverID
 	s.recordAudit(ctx, AuditFriendRequestCancelled, audit.Success,
 		userID, &receiver, AuditResourceFriendRequest, req.ID.String(), nil)
+	s.publish(ctx, event.EventFriendRequestCancelled, userID, receiver, map[string]any{
+		"request_id":  req.ID.String(),
+		"receiver_id": receiver.String(),
+	})
 	return nil
 }
 
@@ -355,6 +393,10 @@ func (s *service) BlockUser(ctx context.Context, blockerID, targetID uuid.UUID) 
 	}
 	s.recordAudit(ctx, AuditFriendBlocked, audit.Success,
 		blockerID, &targetID, AuditResourceFriendBlock, targetID.String(), nil)
+	s.publish(ctx, event.EventFriendBlocked, blockerID, targetID, map[string]any{
+		"blocker_id": blockerID.String(),
+		"target_id":  targetID.String(),
+	})
 	return nil
 }
 
@@ -364,6 +406,10 @@ func (s *service) UnblockUser(ctx context.Context, blockerID, targetID uuid.UUID
 	}
 	s.recordAudit(ctx, AuditFriendUnblocked, audit.Success,
 		blockerID, &targetID, AuditResourceFriendBlock, targetID.String(), nil)
+	s.publish(ctx, event.EventFriendUnblocked, blockerID, targetID, map[string]any{
+		"blocker_id": blockerID.String(),
+		"target_id":  targetID.String(),
+	})
 	return nil
 }
 
@@ -463,4 +509,3 @@ func buildRequestResponse(r *Request, sender, receiver auth.User) *RequestRespon
 		UpdatedAt: r.UpdatedAt,
 	}
 }
-

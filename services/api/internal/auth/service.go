@@ -13,6 +13,7 @@ import (
 
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/pkg/config"
+	"github.com/Ans1110/trip-app/pkg/event"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -120,6 +121,7 @@ type ServiceConfig struct {
 	Redis      *redis.Client
 	Issuer     string
 	Audit      audit.Writer
+	Bus        *event.Bus
 }
 
 type Service struct {
@@ -137,6 +139,7 @@ type Service struct {
 	opTimeout  time.Duration
 	rl         *rateLimiter
 	auditW     audit.Writer
+	bus        *event.Bus
 }
 
 func NewService(cfg ServiceConfig) IService {
@@ -159,7 +162,21 @@ func NewService(cfg ServiceConfig) IService {
 		opTimeout:  cfg.Security.OperationTimeout,
 		rl:         newRateLimiter(cfg.Redis, cfg.Security.RateLimit),
 		auditW:     cfg.Audit,
+		bus:        cfg.Bus,
 	}
+}
+
+func (s *Service) publish(ctx context.Context, evtType string, userID uuid.UUID, targetID uuid.UUID, payload map[string]any) {
+	if s.bus == nil {
+		return
+	}
+	s.bus.Publish(ctx, event.Event{
+		Type:      evtType,
+		Payload:   payload,
+		UserID:    userID,
+		TargetID:  targetID,
+		Timestamp: time.Now(),
+	})
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest, device DeviceInfo) (*SessionResponse, error) {
@@ -220,6 +237,11 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest, device Devi
 		zap.String("ip", device.IPAddress),
 	)
 	s.audit(ctx, AuditRegister, audit.Success, &user.ID, device, "verification pending")
+	s.publish(ctx, event.EventUserRegistered, user.ID, user.ID, map[string]any{
+		"email":      user.Email,
+		"name":       user.Name,
+		"ip_address": device.IPAddress,
+	})
 	return &SessionResponse{
 		User:                 toUserResponse(user),
 		RequiresVerification: true,
@@ -307,6 +329,12 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 		zap.String("device_type", string(device.DeviceType)),
 	)
 	s.audit(ctx, AuditLogin, audit.Success, &user.ID, device, "")
+	s.publish(ctx, event.EventUserLoggedIn, user.ID, user.ID, map[string]any{
+		"email":       user.Email,
+		"ip_address":  device.IPAddress,
+		"device_type": string(device.DeviceType),
+		"user_agent":  device.UserAgent,
+	})
 	if s.rl != nil {
 		s.rl.resetWindow(ctx, rateLogin, rateKey(email, device.IPAddress))
 	}
@@ -321,7 +349,7 @@ func (s *Service) OAuthLogin(ctx context.Context, identity OAuthIdentity, device
 		return nil, ErrInvalidOAuth
 	}
 
-	user, err := s.resolveOAuthUser(ctx, identity)
+	user, created, err := s.resolveOAuthUser(ctx, identity)
 	if err != nil {
 		return nil, err
 	}
@@ -357,6 +385,21 @@ func (s *Service) OAuthLogin(ctx context.Context, identity OAuthIdentity, device
 		zap.String("ip", device.IPAddress),
 		zap.String("device_type", string(device.DeviceType)),
 	)
+	if created {
+		s.publish(ctx, event.EventUserRegistered, user.ID, user.ID, map[string]any{
+			"email":      user.Email,
+			"name":       user.Name,
+			"provider":   identity.Provider,
+			"ip_address": device.IPAddress,
+		})
+	}
+	s.publish(ctx, event.EventUserLoggedIn, user.ID, user.ID, map[string]any{
+		"email":       user.Email,
+		"provider":    identity.Provider,
+		"ip_address":  device.IPAddress,
+		"device_type": string(device.DeviceType),
+		"user_agent":  device.UserAgent,
+	})
 	return resp, nil
 }
 
@@ -470,6 +513,9 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 		zap.String("user_id", session.UserID.String()),
 	)
 	s.audit(ctx, AuditLogout, audit.Success, &session.UserID, DeviceInfo{}, "")
+	s.publish(ctx, event.EventUserLoggedOut, session.UserID, session.UserID, map[string]any{
+		"session_id": session.ID.String(),
+	})
 	return nil
 }
 
@@ -521,6 +567,10 @@ func (s *Service) VerifyEmail(ctx context.Context, token string, device DeviceIn
 		zap.String("user_id", ev.UserID.String()),
 		zap.String("ip", device.IPAddress),
 	)
+	s.publish(ctx, event.EventUserVerified, user.ID, user.ID, map[string]any{
+		"email":      user.Email,
+		"ip_address": device.IPAddress,
+	})
 	return resp, nil
 }
 
@@ -616,6 +666,7 @@ func (s *Service) ResetPassword(ctx context.Context, token string, newPassword s
 		zap.String("user_id", pr.UserID.String()),
 	)
 	s.audit(ctx, AuditPasswordReset, audit.Success, &pr.UserID, DeviceInfo{}, "")
+	s.publish(ctx, event.EventPasswordReset, pr.UserID, pr.UserID, nil)
 	return nil
 }
 
@@ -686,6 +737,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 
 	s.logger.Info("password changed", zap.String("user_id", userID.String()))
 	s.audit(ctx, AuditPasswordChange, audit.Success, &userID, DeviceInfo{}, "")
+	s.publish(ctx, event.EventPasswordChanged, userID, userID, nil)
 	return nil
 }
 
@@ -847,6 +899,7 @@ func (s *Service) DeactivateAccount(ctx context.Context, userID uuid.UUID) error
 	}
 	s.logger.Info("account deactivated", zap.String("user_id", userID.String()))
 	s.audit(ctx, AuditAccountDeactivated, audit.Success, &userID, DeviceInfo{}, "")
+	s.publish(ctx, event.EventUserDeactivated, userID, userID, nil)
 	return nil
 }
 
@@ -864,6 +917,7 @@ func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
 	}
 	s.logger.Info("account deletion scheduled", zap.String("user_id", userID.String()))
 	s.audit(ctx, AuditAccountDeleted, audit.Success, &userID, DeviceInfo{}, "")
+	s.publish(ctx, event.EventUserDeleted, userID, userID, nil)
 	return nil
 }
 
@@ -1117,29 +1171,33 @@ func (s *Service) consumeTOTPStep(ctx context.Context, userID uuid.UUID, counter
 	return nil
 }
 
-func (s *Service) resolveOAuthUser(ctx context.Context, identity OAuthIdentity) (*User, error) {
+func (s *Service) resolveOAuthUser(ctx context.Context, identity OAuthIdentity) (*User, bool, error) {
 	provider, err := s.repo.FindProviderByProviderID(ctx, identity.Provider, identity.ProviderID)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if provider != nil {
 		user, err := s.repo.FindUserByID(ctx, provider.UserID)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if user == nil {
-			return nil, ErrUserNotFound
+			return nil, false, ErrUserNotFound
 		}
-		return user, nil
+		return user, false, nil
 	}
 
-	var user *User
+	var (
+		user    *User
+		created bool
+	)
 	err = s.repo.WithTx(ctx, func(tx IRepository) error {
-		u, err := s.findOrCreateUserByEmailTx(ctx, tx, identity)
+		u, isNew, err := s.findOrCreateUserByEmailTx(ctx, tx, identity)
 		if err != nil {
 			return err
 		}
 		user = u
+		created = isNew
 		return tx.CreateProvider(ctx, &Provider{
 			ID:         uuid.New(),
 			UserID:     u.ID,
@@ -1148,20 +1206,20 @@ func (s *Service) resolveOAuthUser(ctx context.Context, identity OAuthIdentity) 
 		})
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return user, nil
+	return user, created, nil
 }
 
-func (s *Service) findOrCreateUserByEmailTx(ctx context.Context, tx IRepository, identity OAuthIdentity) (*User, error) {
+func (s *Service) findOrCreateUserByEmailTx(ctx context.Context, tx IRepository, identity OAuthIdentity) (*User, bool, error) {
 	email := normalizeEmail(identity.Email)
 	if email != "" {
 		existing, err := tx.FindUserByEmail(ctx, email)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if existing != nil {
-			return existing, nil
+			return existing, false, nil
 		}
 	}
 	user := &User{
@@ -1173,14 +1231,14 @@ func (s *Service) findOrCreateUserByEmailTx(ctx context.Context, tx IRepository,
 		IsVerified: true,
 	}
 	if err := tx.CreateUser(ctx, user); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	s.logger.Info("oauth: new user created",
 		zap.String("user_id", user.ID.String()),
 		zap.String("email", email),
 		zap.String("provider", identity.Provider),
 	)
-	return user, nil
+	return user, true, nil
 }
 
 func (s *Service) signAccessToken(ctx context.Context, user *User, sessionID uuid.UUID, provider string) (string, time.Time, error) {
