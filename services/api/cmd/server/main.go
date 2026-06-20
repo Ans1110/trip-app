@@ -26,10 +26,10 @@ import (
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/friend"
+	"github.com/Ans1110/trip-app/internal/trip"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/database"
-
-	// "github.com/Ans1110/trip-app/pkg/event"
+	"github.com/Ans1110/trip-app/pkg/event"
 	"github.com/Ans1110/trip-app/pkg/logger"
 	"github.com/Ans1110/trip-app/pkg/mail"
 	"github.com/Ans1110/trip-app/pkg/middleware"
@@ -72,7 +72,7 @@ func main() {
 		logger.Fatal("run migrations", zap.Error(err))
 	}
 
-	// bus := event.New(logger)
+	bus := event.New(logger)
 
 	privateKey, err := loadPrivateKey(cfg.JWT.PrivateKeyPath)
 	if err != nil {
@@ -109,6 +109,7 @@ func main() {
 		Mailer:     mailer,
 		Redis:      rdb,
 		Audit:      auditRepo,
+		Bus:        bus,
 	})
 	authHandler := auth.NewHandler(authSvc, logger, auth.CookieConfig{
 		MaxAge:   cfg.JWT.RefreshTokenTTL,
@@ -122,12 +123,23 @@ func main() {
 		Repo:   friendRepo,
 		Logger: logger,
 		Audit:  auditRepo,
+		Bus:    bus,
 	})
 	friendHandler := friend.NewHandler(friendSvc, logger)
 
+	// Trip / Room wiring
+	tripRepo := trip.NewRepository(db)
+	tripSvc := trip.NewService(trip.ServiceConfig{
+		Repo:   tripRepo,
+		Logger: logger,
+		Audit:  auditRepo,
+		Bus:    bus,
+	})
+	tripHandler := trip.NewHandler(tripSvc, logger)
+
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, authHandler, friendHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, authHandler, friendHandler, tripHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -165,6 +177,7 @@ func setupRouter(
 	rdb *redis.Client,
 	authHandler auth.IHandler,
 	friendHandler friend.IHandler,
+	tripHandler trip.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -222,6 +235,7 @@ func setupRouter(
 
 	authHandler.RegisterRoutes(public, protected)
 	friendHandler.RegisterRoutes(protected)
+	tripHandler.RegisterRoutes(protected)
 
 	return r
 }
