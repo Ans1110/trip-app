@@ -156,10 +156,8 @@ func (r *repository) CreateOrReviveRequest(ctx context.Context, req *Request) er
 	req.Status = RequestPending
 	req.CreatedAt = now
 	req.UpdatedAt = now
-	// Clear any prior row for the unordered pair (e.g., an old accepted/declined
-	// row, or a stale row with the reverse direction) before inserting. Both
-	// directions are constrained by idx_friend_pair, so without this delete a
-	// cross-direction reuse hits a unique-key violation.
+	// Clear any prior row for the unordered pair  before inserting.
+	// Both directions are constrained by idx_friend_pair
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(`
 			DELETE FROM friend.invitations
