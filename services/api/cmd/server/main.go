@@ -121,7 +121,6 @@ func main() {
 	friendSvc := friend.NewService(friend.ServiceConfig{
 		Repo:   friendRepo,
 		Logger: logger,
-		WebURL: cfg.Notification.WebURL,
 		Audit:  auditRepo,
 	})
 	friendHandler := friend.NewHandler(friendSvc, logger)

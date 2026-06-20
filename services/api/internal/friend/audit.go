@@ -16,9 +16,6 @@ const (
 	AuditFriendRemoved          audit.Action = "friend_removed"
 	AuditFriendBlocked          audit.Action = "friend_blocked"
 	AuditFriendUnblocked        audit.Action = "friend_unblocked"
-	AuditFriendInviteCreated    audit.Action = "friend_invite_created"
-	AuditFriendInviteRevoked    audit.Action = "friend_invite_revoked"
-	AuditFriendInviteAccepted   audit.Action = "friend_invite_accepted"
 )
 
 // Resource types tagged on audit log rows so operators can filter by domain.
@@ -26,7 +23,6 @@ const (
 	AuditResourceFriendship    = "friendship"
 	AuditResourceFriendRequest = "friend_request"
 	AuditResourceFriendBlock   = "friend_block"
-	AuditResourceFriendInvite  = "friend_invite"
 )
 
 // auditMeta carries per-request fields that the handler captures off the gin

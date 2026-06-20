@@ -48,18 +48,3 @@ type Block struct {
 func (Block) TableName() string {
 	return "friend.blocks"
 }
-
-type InviteToken struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey"`
-	UserID    uuid.UUID  `gorm:"type:uuid;column:user_id;not null"`
-	TokenHash string     `gorm:"column:token_hash;not null;uniqueIndex"`
-	MaxUses   int        `gorm:"column:max_uses;not null;default:1"`
-	Uses      int        `gorm:"column:uses;not null;default:0"`
-	ExpiresAt time.Time  `gorm:"column:expires_at;not null"`
-	RevokedAt *time.Time `gorm:"column:revoked_at"`
-	CreatedAt time.Time  `gorm:"column:created_at"`
-}
-
-func (InviteToken) TableName() string {
-	return "friend.invitation_tokens"
-}

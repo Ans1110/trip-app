@@ -3,7 +3,6 @@ package friend_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
@@ -122,55 +121,6 @@ func TestAuditRecordsFriendActions(t *testing.T) {
 		require.NoError(t, svc.UnblockUser(ctx, uuid.New(), uuid.New()))
 		require.Len(t, aw.logs, 1)
 		assert.Equal(t, friend.AuditFriendUnblocked, aw.logs[0].Action)
-	})
-
-	t.Run("create_invite_writes_audit", func(t *testing.T) {
-		repo := &repoMock{createInviteToken: func(_ context.Context, _ *friend.InviteToken) error { return nil }}
-		aw := &auditWriterMock{}
-		svc := newSvc(repo, withAudit(aw))
-
-		_, err := svc.CreateInvite(ctx, uuid.New(), time.Hour, 3)
-		require.NoError(t, err)
-		require.Len(t, aw.logs, 1)
-		assert.Equal(t, friend.AuditFriendInviteCreated, aw.logs[0].Action)
-		require.NotNil(t, aw.logs[0].Detail)
-		assert.Equal(t, 3, aw.logs[0].Detail["max_uses"])
-	})
-
-	t.Run("revoke_invite_writes_audit", func(t *testing.T) {
-		repo := &repoMock{revokeInviteToken: func(_ context.Context, _, _ uuid.UUID) error { return nil }}
-		aw := &auditWriterMock{}
-		svc := newSvc(repo, withAudit(aw))
-
-		require.NoError(t, svc.RevokeInvite(ctx, uuid.New(), uuid.New()))
-		require.Len(t, aw.logs, 1)
-		assert.Equal(t, friend.AuditFriendInviteRevoked, aw.logs[0].Action)
-	})
-
-	t.Run("accept_invite_writes_audit", func(t *testing.T) {
-		inviter := newUser("Inviter")
-		tok := &friend.InviteToken{
-			ID:        uuid.New(),
-			UserID:    inviter.ID,
-			MaxUses:   1,
-			Uses:      0,
-			ExpiresAt: time.Now().Add(time.Hour),
-		}
-		repo := &repoMock{
-			findInviteTokenByHash: func(_ context.Context, _ string) (*friend.InviteToken, error) { return tok, nil },
-			findUserByID:          func(_ context.Context, _ uuid.UUID) (*auth.User, error) { return inviter, nil },
-			incrementInviteUses:   func(_ context.Context, _ uuid.UUID) error { return nil },
-			createFriendship:      func(_ context.Context, _, _ uuid.UUID) error { return nil },
-		}
-		aw := &auditWriterMock{}
-		svc := newSvc(repo, withAudit(aw))
-
-		_, err := svc.AcceptInvite(ctx, uuid.New(), "TOKEN-LONG-ENOUGH")
-		require.NoError(t, err)
-		require.Len(t, aw.logs, 1)
-		assert.Equal(t, friend.AuditFriendInviteAccepted, aw.logs[0].Action)
-		require.NotNil(t, aw.logs[0].TargetUserID)
-		assert.Equal(t, inviter.ID, *aw.logs[0].TargetUserID)
 	})
 
 	t.Run("failed_send_request_does_not_write_audit", func(t *testing.T) {

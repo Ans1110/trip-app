@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"time"
 
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	"github.com/Ans1110/trip-app/pkg/response"
@@ -30,11 +29,6 @@ type IHandler interface {
 	Block(c *gin.Context)
 	Unblock(c *gin.Context)
 	ListBlocks(c *gin.Context)
-
-	CreateInvite(c *gin.Context)
-	ListInvites(c *gin.Context)
-	RevokeInvite(c *gin.Context)
-	AcceptInvite(c *gin.Context)
 }
 
 type Handler struct {
@@ -69,11 +63,6 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 		g.GET("/blocks", h.ListBlocks)
 		g.POST("/blocks", h.Block)
 		g.DELETE("/blocks/:user_id", h.Unblock)
-
-		g.GET("/invites", h.ListInvites)
-		g.POST("/invites", h.CreateInvite)
-		g.DELETE("/invites/:id", h.RevokeInvite)
-		g.POST("/invites/accept", h.AcceptInvite)
 	}
 }
 
@@ -369,121 +358,6 @@ func (h *Handler) Unblock(c *gin.Context) {
 	response.OK(c, nil)
 }
 
-// ListInvites godoc
-// @Summary      List the caller's active add-friend invitations
-// @Tags         friends
-// @Security     BearerAuth
-// @Produce      json
-// @Success      200  {object}  response.Response{data=[]InviteResponse}
-// @Failure      401  {object}  response.Response
-// @Router       /friends/invites [get]
-func (h *Handler) ListInvites(c *gin.Context) {
-	uid, ok := requireUser(c)
-	if !ok {
-		return
-	}
-	rows, err := h.svc.ListInvites(c.Request.Context(), uid)
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.OK(c, rows)
-}
-
-// CreateInvite godoc
-// @Summary      Create a single-use or multi-use add-friend invitation
-// @Description  Returns a token and a share URL the inviter can render as a QR code
-//               or send as a link. The token only appears in this response.
-// @Tags         friends
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Param        body  body      CreateInvitePayload  false  "max uses and TTL overrides"
-// @Success      201   {object}  response.Response{data=InviteResponse}
-// @Failure      400   {object}  response.Response
-// @Failure      401   {object}  response.Response
-// @Router       /friends/invites [post]
-func (h *Handler) CreateInvite(c *gin.Context) {
-	uid, ok := requireUser(c)
-	if !ok {
-		return
-	}
-	var req CreateInvitePayload
-	if c.Request.ContentLength > 0 {
-		if err := c.ShouldBindJSON(&req); err != nil {
-			response.BadRequest(c, err.Error())
-			return
-		}
-	}
-	ttl := time.Duration(req.TTLSeconds) * time.Second
-	out, err := h.svc.CreateInvite(auditCtx(c), uid, ttl, req.MaxUses)
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.Created(c, out)
-}
-
-// RevokeInvite godoc
-// @Summary      Revoke an active add-friend invitation
-// @Tags         friends
-// @Security     BearerAuth
-// @Produce      json
-// @Param        id   path      string  true  "invite id"
-// @Success      200  {object}  response.Response
-// @Failure      400  {object}  response.Response
-// @Failure      401  {object}  response.Response
-// @Failure      404  {object}  response.Response
-// @Router       /friends/invites/{id} [delete]
-func (h *Handler) RevokeInvite(c *gin.Context) {
-	uid, ok := requireUser(c)
-	if !ok {
-		return
-	}
-	inviteID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		response.BadRequest(c, "invalid invite id")
-		return
-	}
-	if err := h.svc.RevokeInvite(auditCtx(c), uid, inviteID); err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.OK(c, nil)
-}
-
-// AcceptInvite godoc
-// @Summary      Accept an add-friend invitation by token (QR scan or shared link)
-// @Tags         friends
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Param        body  body      AcceptInvitePayload  true  "invite token"
-// @Success      200   {object}  response.Response{data=UserSummary}
-// @Failure      400   {object}  response.Response
-// @Failure      401   {object}  response.Response
-// @Failure      403   {object}  response.Response
-// @Failure      404   {object}  response.Response
-// @Failure      409   {object}  response.Response
-// @Router       /friends/invites/accept [post]
-func (h *Handler) AcceptInvite(c *gin.Context) {
-	uid, ok := requireUser(c)
-	if !ok {
-		return
-	}
-	var req AcceptInvitePayload
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-	out, err := h.svc.AcceptInvite(auditCtx(c), uid, req.Token)
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.OK(c, out)
-}
-
 func (h *Handler) actOnRequest(c *gin.Context, fn func(ctx context.Context, userID, requestID uuid.UUID) error) {
 	uid, ok := requireUser(c)
 	if !ok {
@@ -505,16 +379,12 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrUserNotFound),
 		errors.Is(err, ErrRequestNotFound),
-		errors.Is(err, ErrInviteNotFound),
 		errors.Is(err, ErrNotFriends):
 		response.NotFound(c, err.Error())
 	case errors.Is(err, ErrAlreadyFriends),
 		errors.Is(err, ErrRequestExists):
 		response.Conflict(c, err.Error())
-	case errors.Is(err, ErrCannotTargetSelf),
-		errors.Is(err, ErrInviteSelf),
-		errors.Is(err, ErrInviteInvalid),
-		errors.Is(err, ErrInviteExhausted):
+	case errors.Is(err, ErrCannotTargetSelf):
 		response.BadRequest(c, err.Error())
 	case errors.Is(err, ErrForbidden),
 		errors.Is(err, ErrBlocked):

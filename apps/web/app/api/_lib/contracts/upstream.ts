@@ -108,16 +108,6 @@ export type UpstreamBlockResponse = {
   created_at: string;
 };
 
-export type UpstreamInviteResponse = {
-  id: string;
-  token?: string;
-  url?: string;
-  max_uses: number;
-  uses: number;
-  expires_at: string;
-  created_at: string;
-};
-
 export type UpstreamSendFriendRequestPayload = {
   receiver_id: string;
   message?: string;
@@ -125,13 +115,4 @@ export type UpstreamSendFriendRequestPayload = {
 
 export type UpstreamBlockPayload = {
   target_id: string;
-};
-
-export type UpstreamCreateInvitePayload = {
-  max_uses?: number;
-  ttl_seconds?: number;
-};
-
-export type UpstreamAcceptInvitePayload = {
-  token: string;
 };

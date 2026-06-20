@@ -34,12 +34,6 @@ type IRepository interface {
 	BlockUser(ctx context.Context, blockerID, blockedID uuid.UUID) error
 	UnblockUser(ctx context.Context, blockerID, blockedID uuid.UUID) error
 	ListBlocks(ctx context.Context, userID uuid.UUID) ([]Block, error)
-
-	CreateInviteToken(ctx context.Context, t *InviteToken) error
-	FindInviteTokenByHash(ctx context.Context, hash string) (*InviteToken, error)
-	IncrementInviteUses(ctx context.Context, id uuid.UUID) error
-	RevokeInviteToken(ctx context.Context, userID, id uuid.UUID) error
-	ListActiveInvites(ctx context.Context, userID uuid.UUID) ([]InviteToken, error)
 }
 
 type repository struct {
@@ -162,14 +156,23 @@ func (r *repository) CreateOrReviveRequest(ctx context.Context, req *Request) er
 	req.Status = RequestPending
 	req.CreatedAt = now
 	req.UpdatedAt = now
-	return r.db.WithContext(ctx).Exec(`
-		INSERT INTO friend.invitations (id, sender_id, receiver_id, status, message, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT (sender_id, receiver_id) DO UPDATE
-		SET status = EXCLUDED.status,
-		    message = EXCLUDED.message,
-		    updated_at = EXCLUDED.updated_at
-	`, req.ID, req.SenderID, req.ReceiverID, req.Status, req.Message, req.CreatedAt, req.UpdatedAt).Error
+	// Clear any prior row for the unordered pair (e.g., an old accepted/declined
+	// row, or a stale row with the reverse direction) before inserting. Both
+	// directions are constrained by idx_friend_pair, so without this delete a
+	// cross-direction reuse hits a unique-key violation.
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(`
+			DELETE FROM friend.invitations
+			WHERE (sender_id = ? AND receiver_id = ?)
+			   OR (sender_id = ? AND receiver_id = ?)
+		`, req.SenderID, req.ReceiverID, req.ReceiverID, req.SenderID).Error; err != nil {
+			return err
+		}
+		return tx.Exec(`
+			INSERT INTO friend.invitations (id, sender_id, receiver_id, status, message, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, req.ID, req.SenderID, req.ReceiverID, req.Status, req.Message, req.CreatedAt, req.UpdatedAt).Error
+	})
 }
 
 func (r *repository) UpdateRequestStatus(ctx context.Context, id uuid.UUID, status RequestStatus) error {
@@ -220,61 +223,4 @@ func (r *repository) ListBlocks(ctx context.Context, userID uuid.UUID) ([]Block,
 		Where("blocker_id = ?", userID).
 		Order("created_at DESC").Find(&bs).Error
 	return bs, err
-}
-
-func (r *repository) CreateInviteToken(ctx context.Context, t *InviteToken) error {
-	return r.db.WithContext(ctx).Create(t).Error
-}
-
-func (r *repository) FindInviteTokenByHash(ctx context.Context, hash string) (*InviteToken, error) {
-	var t InviteToken
-	err := r.db.WithContext(ctx).
-		Where("token_hash = ? AND revoked_at IS NULL AND expires_at > ?", hash, time.Now()).
-		First(&t).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	return &t, err
-}
-
-// IncrementInviteUses atomically increments the use counter and only succeeds while
-// uses < max_uses; the affected-row count tells the caller whether the consume won.
-func (r *repository) IncrementInviteUses(ctx context.Context, id uuid.UUID) error {
-	res := r.db.WithContext(ctx).Exec(
-		`UPDATE friend.invitation_tokens
-		    SET uses = uses + 1
-		  WHERE id = ?
-		    AND uses < max_uses
-		    AND revoked_at IS NULL
-		    AND expires_at > now()`,
-		id)
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return ErrInviteExhausted
-	}
-	return nil
-}
-
-func (r *repository) RevokeInviteToken(ctx context.Context, userID, id uuid.UUID) error {
-	now := time.Now()
-	res := r.db.WithContext(ctx).Model(&InviteToken{}).
-		Where("id = ? AND user_id = ? AND revoked_at IS NULL", id, userID).
-		Update("revoked_at", now)
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return ErrInviteNotFound
-	}
-	return nil
-}
-
-func (r *repository) ListActiveInvites(ctx context.Context, userID uuid.UUID) ([]InviteToken, error) {
-	var ts []InviteToken
-	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND revoked_at IS NULL AND expires_at > ?", userID, time.Now()).
-		Order("created_at DESC").Find(&ts).Error
-	return ts, err
 }

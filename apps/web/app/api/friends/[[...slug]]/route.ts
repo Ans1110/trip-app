@@ -5,7 +5,7 @@ import { friendClient } from "../../_lib/clients/friend-client";
 import type { ApiResult } from "../../_lib/http-client";
 import { extractRequestContext } from "../../_lib/request-context";
 
-type RouteParams = { params: Promise<{ slug: string[] }> };
+type RouteParams = { params: Promise<{ slug?: string[] }> };
 
 type AuthArg = {
   ctx: ReturnType<typeof extractRequestContext>;
@@ -15,7 +15,7 @@ type AuthArg = {
 type Dispatch = (req: NextRequest, auth: AuthArg) => Promise<ApiResult<unknown>>;
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
-  const { slug } = await params;
+  const slug = (await params).slug ?? [];
   const auth = buildAuth(req);
   const dispatch = matchGet(slug);
   if (!dispatch) return notFound(req.method, slug);
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  const { slug } = await params;
+  const slug = (await params).slug ?? [];
   const auth = buildAuth(req);
   const dispatch = matchPost(slug);
   if (!dispatch) return notFound(req.method, slug);
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
-  const { slug } = await params;
+  const slug = (await params).slug ?? [];
   const auth = buildAuth(req);
   const dispatch = matchDelete(slug);
   if (!dispatch) return notFound(req.method, slug);
@@ -65,10 +65,6 @@ const matchGet = (slug: string[]): Dispatch | null => {
   if (slug.length === 1 && slug[0] === "blocks") {
     return (_req, auth) => friendClient.listBlocks(auth);
   }
-  // GET /friends/invites
-  if (slug.length === 1 && slug[0] === "invites") {
-    return (_req, auth) => friendClient.listInvites(auth);
-  }
   return null;
 };
 
@@ -97,22 +93,6 @@ const matchPost = (slug: string[]): Dispatch | null => {
       return friendClient.blockUser(body as never, auth);
     };
   }
-  // POST /friends/invites
-  if (slug.length === 1 && slug[0] === "invites") {
-    return async (req, auth) => {
-      const body = await readJson(req);
-      if (body instanceof Response) return responseToResult(body);
-      return friendClient.createInvite(body as never, auth);
-    };
-  }
-  // POST /friends/invites/accept
-  if (slug.length === 2 && slug[0] === "invites" && slug[1] === "accept") {
-    return async (req, auth) => {
-      const body = await readJson(req);
-      if (body instanceof Response) return responseToResult(body);
-      return friendClient.acceptInvite(body as never, auth);
-    };
-  }
   return null;
 };
 
@@ -124,10 +104,6 @@ const matchDelete = (slug: string[]): Dispatch | null => {
   // DELETE /friends/blocks/{user_id}
   if (slug.length === 2 && slug[0] === "blocks") {
     return (_req, auth) => friendClient.unblockUser(slug[1], auth);
-  }
-  // DELETE /friends/invites/{id}
-  if (slug.length === 2 && slug[0] === "invites") {
-    return (_req, auth) => friendClient.revokeInvite(slug[1], auth);
   }
   // DELETE /friends/{user_id}
   if (slug.length === 1) {

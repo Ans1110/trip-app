@@ -18,7 +18,7 @@ export const ACCESS_COOKIE = "access_token";
 export const REFRESH_COOKIE = "refresh_token";
 export const CSRF_COOKIE = "csrf_token";
 
-export const AUTH_COOKIE_PATH = "/api/auth";
+export const AUTH_COOKIE_PATH = "/api";
 
 export const ACCESS_TTL_SECONDS = 60 * 15;
 export const REFRESH_TTL_SECONDS = 60 * 60 * 24 * 30;

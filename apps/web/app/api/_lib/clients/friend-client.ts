@@ -12,23 +12,18 @@ import { RequestContext } from "../request-context";
 import { ensureCsrfToken, readSessionTokens } from "../session-store";
 import {
   FriendBlockView,
-  FriendInviteView,
   FriendRequestView,
   FriendView,
   toFriendBlockView,
-  toFriendInviteView,
   toFriendRequestView,
   toFriendView,
   toUserSummaryView,
   UserSummaryView,
 } from "../contracts/frontend";
 import {
-  UpstreamAcceptInvitePayload,
   UpstreamBlockPayload,
   UpstreamBlockResponse,
-  UpstreamCreateInvitePayload,
   UpstreamFriendResponse,
-  UpstreamInviteResponse,
   UpstreamRequestResponse,
   UpstreamSendFriendRequestPayload,
   UpstreamUserSummary,
@@ -36,12 +31,9 @@ import {
 
 export type SendFriendRequestInput = UpstreamSendFriendRequestPayload;
 export type BlockUserInput = UpstreamBlockPayload;
-export type CreateInviteInput = UpstreamCreateInvitePayload;
-export type AcceptInviteInput = UpstreamAcceptInvitePayload;
 
 export type {
   FriendBlockView,
-  FriendInviteView,
   FriendRequestView,
   FriendView,
   UserSummaryView,
@@ -193,51 +185,6 @@ export class FriendClient {
         opts,
       ),
     );
-  }
-
-  async listInvites(auth: AuthCtx): Promise<ApiResult<FriendInviteView[]>> {
-    const res = await this.callProtected<UpstreamInviteResponse[]>(
-      auth,
-      (opts) =>
-        this.http.get<UpstreamInviteResponse[]>("/friends/invites", opts),
-    );
-    return mapData(res, (rows) => rows.map(toFriendInviteView));
-  }
-
-  async createInvite(
-    input: CreateInviteInput,
-    auth: AuthCtx,
-  ): Promise<ApiResult<FriendInviteView>> {
-    const res = await this.callProtected<UpstreamInviteResponse>(auth, (opts) =>
-      this.http.post<UpstreamInviteResponse>("/friends/invites", input, opts),
-    );
-    return mapData(res, toFriendInviteView);
-  }
-
-  async revokeInvite(
-    inviteID: string,
-    auth: AuthCtx,
-  ): Promise<ApiResult<null>> {
-    return this.callProtected<null>(auth, (opts) =>
-      this.http.delete<null>(
-        `/friends/invites/${encodeURIComponent(inviteID)}`,
-        opts,
-      ),
-    );
-  }
-
-  async acceptInvite(
-    input: AcceptInviteInput,
-    auth: AuthCtx,
-  ): Promise<ApiResult<UserSummaryView>> {
-    const res = await this.callProtected<UpstreamUserSummary>(auth, (opts) =>
-      this.http.post<UpstreamUserSummary>(
-        "/friends/invites/accept",
-        input,
-        opts,
-      ),
-    );
-    return mapData(res, toUserSummaryView);
   }
 
   private protectedOpts(auth: AuthCtx, deps: ProtectedDeps): HttpOptions {

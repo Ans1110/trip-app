@@ -2,7 +2,6 @@ import "server-only";
 import {
   UpstreamBlockResponse,
   UpstreamFriendResponse,
-  UpstreamInviteResponse,
   UpstreamJWKResponse,
   UpstreamRequestResponse,
   UpstreamSessionResponse,
@@ -111,16 +110,6 @@ export type FriendBlockView = {
   created_at: string;
 };
 
-export type FriendInviteView = {
-  id: string;
-  token?: string;
-  url?: string;
-  max_uses: number;
-  uses: number;
-  expires_at: string;
-  created_at: string;
-};
-
 export const toUserSummaryView = (u: UpstreamUserSummary): UserSummaryView => ({
   id: u.id,
   email: u.email,
@@ -148,16 +137,4 @@ export const toFriendRequestView = (
 export const toFriendBlockView = (b: UpstreamBlockResponse): FriendBlockView => ({
   user: toUserSummaryView(b.user),
   created_at: b.created_at,
-});
-
-export const toFriendInviteView = (
-  i: UpstreamInviteResponse,
-): FriendInviteView => ({
-  id: i.id,
-  token: i.token,
-  url: i.url,
-  max_uses: i.max_uses,
-  uses: i.uses,
-  expires_at: i.expires_at,
-  created_at: i.created_at,
 });

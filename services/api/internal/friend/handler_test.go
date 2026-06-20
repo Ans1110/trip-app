@@ -38,10 +38,6 @@ type svcMock struct {
 	blockUser            func(context.Context, uuid.UUID, uuid.UUID) error
 	unblockUser          func(context.Context, uuid.UUID, uuid.UUID) error
 	listBlocks           func(context.Context, uuid.UUID) ([]friend.BlockResponse, error)
-	createInvite         func(context.Context, uuid.UUID, time.Duration, int) (*friend.InviteResponse, error)
-	listInvites          func(context.Context, uuid.UUID) ([]friend.InviteResponse, error)
-	revokeInvite         func(context.Context, uuid.UUID, uuid.UUID) error
-	acceptInvite         func(context.Context, uuid.UUID, string) (*friend.UserSummary, error)
 }
 
 func (m *svcMock) ListFriends(c context.Context, uid uuid.UUID) ([]friend.FriendResponse, error) {
@@ -128,34 +124,6 @@ func (m *svcMock) ListBlocks(c context.Context, uid uuid.UUID) ([]friend.BlockRe
 	return []friend.BlockResponse{}, nil
 }
 
-func (m *svcMock) CreateInvite(c context.Context, uid uuid.UUID, ttl time.Duration, max int) (*friend.InviteResponse, error) {
-	if m.createInvite != nil {
-		return m.createInvite(c, uid, ttl, max)
-	}
-	return &friend.InviteResponse{ID: uuid.NewString(), Token: "T", URL: "https://x/y/T", MaxUses: 1, ExpiresAt: time.Now().Add(time.Hour)}, nil
-}
-
-func (m *svcMock) ListInvites(c context.Context, uid uuid.UUID) ([]friend.InviteResponse, error) {
-	if m.listInvites != nil {
-		return m.listInvites(c, uid)
-	}
-	return []friend.InviteResponse{}, nil
-}
-
-func (m *svcMock) RevokeInvite(c context.Context, uid, id uuid.UUID) error {
-	if m.revokeInvite != nil {
-		return m.revokeInvite(c, uid, id)
-	}
-	return nil
-}
-
-func (m *svcMock) AcceptInvite(c context.Context, uid uuid.UUID, tok string) (*friend.UserSummary, error) {
-	if m.acceptInvite != nil {
-		return m.acceptInvite(c, uid, tok)
-	}
-	return &friend.UserSummary{ID: uuid.NewString(), Name: "Inviter"}, nil
-}
-
 // ---- helpers ----
 
 // newRouter mounts the friend handler at /api/v1, optionally injecting a userID
@@ -224,9 +192,6 @@ func TestRoutesRequireAuth(t *testing.T) {
 		{http.MethodPost, "/api/v1/friends/requests/" + uuid.NewString() + "/accept", nil},
 		{http.MethodGet, "/api/v1/friends/blocks", nil},
 		{http.MethodPost, "/api/v1/friends/blocks", friend.BlockPayload{TargetID: uuid.NewString()}},
-		{http.MethodGet, "/api/v1/friends/invites", nil},
-		{http.MethodPost, "/api/v1/friends/invites", nil},
-		{http.MethodPost, "/api/v1/friends/invites/accept", friend.AcceptInvitePayload{Token: "tok"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -487,124 +452,6 @@ func TestHandlerUnblockAndList(t *testing.T) {
 		require.NoError(t, json.Unmarshal(env.Data, &bs))
 		require.Len(t, bs, 1)
 		assert.Equal(t, "X", bs[0].User.Name)
-	})
-}
-
-// ---- invites (QR / share link) ----
-
-func TestHandlerCreateInvite(t *testing.T) {
-	uid := uuid.New()
-
-	t.Run("empty_body_uses_defaults", func(t *testing.T) {
-		svc := &svcMock{createInvite: func(_ context.Context, u uuid.UUID, ttl time.Duration, max int) (*friend.InviteResponse, error) {
-			assert.Equal(t, uid, u)
-			// empty body → zero ttl + zero max (service applies defaults)
-			assert.Equal(t, time.Duration(0), ttl)
-			assert.Equal(t, 0, max)
-			return &friend.InviteResponse{ID: uuid.NewString(), Token: "TOK", URL: "https://x/invite/TOK", MaxUses: 1, ExpiresAt: time.Now().Add(time.Hour)}, nil
-		}}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/friends/invites", nil)
-		assert.Equal(t, http.StatusCreated, w.Code)
-		env := parseEnvelope(t, w)
-		var inv friend.InviteResponse
-		require.NoError(t, json.Unmarshal(env.Data, &inv))
-		assert.Equal(t, "TOK", inv.Token)
-		assert.NotEmpty(t, inv.URL)
-	})
-
-	t.Run("body_overrides_passed_through", func(t *testing.T) {
-		svc := &svcMock{createInvite: func(_ context.Context, _ uuid.UUID, ttl time.Duration, max int) (*friend.InviteResponse, error) {
-			assert.Equal(t, 2*time.Hour, ttl)
-			assert.Equal(t, 5, max)
-			return &friend.InviteResponse{}, nil
-		}}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/friends/invites",
-			friend.CreateInvitePayload{TTLSeconds: int(2 * 60 * 60), MaxUses: 5})
-		assert.Equal(t, http.StatusCreated, w.Code)
-	})
-}
-
-func TestHandlerAcceptInvite(t *testing.T) {
-	uid := uuid.New()
-
-	t.Run("success", func(t *testing.T) {
-		svc := &svcMock{acceptInvite: func(_ context.Context, u uuid.UUID, tok string) (*friend.UserSummary, error) {
-			assert.Equal(t, uid, u)
-			assert.Equal(t, "TOKEN-LONG-ENOUGH", tok)
-			return &friend.UserSummary{ID: uuid.NewString(), Name: "Inviter"}, nil
-		}}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/friends/invites/accept",
-			friend.AcceptInvitePayload{Token: "TOKEN-LONG-ENOUGH"})
-		require.Equal(t, http.StatusOK, w.Code)
-		env := parseEnvelope(t, w)
-		var s friend.UserSummary
-		require.NoError(t, json.Unmarshal(env.Data, &s))
-		assert.Equal(t, "Inviter", s.Name)
-	})
-
-	t.Run("error_mapping", func(t *testing.T) {
-		cases := map[string]struct {
-			err  error
-			code int
-		}{
-			"invalid":   {friend.ErrInviteInvalid, http.StatusBadRequest},
-			"self":      {friend.ErrInviteSelf, http.StatusBadRequest},
-			"exhausted": {friend.ErrInviteExhausted, http.StatusBadRequest},
-			"blocked":   {friend.ErrBlocked, http.StatusForbidden},
-		}
-		for name, c := range cases {
-			t.Run(name, func(t *testing.T) {
-				svc := &svcMock{acceptInvite: func(context.Context, uuid.UUID, string) (*friend.UserSummary, error) {
-					return nil, c.err
-				}}
-				w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/friends/invites/accept",
-					friend.AcceptInvitePayload{Token: "TOKEN-LONG-ENOUGH"})
-				assert.Equal(t, c.code, w.Code)
-			})
-		}
-	})
-
-	t.Run("missing_token_returns_400", func(t *testing.T) {
-		w := doJSON(t, newRouter(&svcMock{}, &uid), http.MethodPost, "/api/v1/friends/invites/accept",
-			friend.AcceptInvitePayload{})
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-	})
-}
-
-func TestHandlerListAndRevokeInvite(t *testing.T) {
-	uid := uuid.New()
-	inviteID := uuid.New()
-
-	t.Run("list_returns_data", func(t *testing.T) {
-		svc := &svcMock{listInvites: func(context.Context, uuid.UUID) ([]friend.InviteResponse, error) {
-			return []friend.InviteResponse{{ID: inviteID.String(), MaxUses: 1, ExpiresAt: time.Now().Add(time.Hour)}}, nil
-		}}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodGet, "/api/v1/friends/invites", nil)
-		require.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("revoke_success", func(t *testing.T) {
-		called := false
-		svc := &svcMock{revokeInvite: func(_ context.Context, u, id uuid.UUID) error {
-			called = true
-			assert.Equal(t, uid, u)
-			assert.Equal(t, inviteID, id)
-			return nil
-		}}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodDelete, "/api/v1/friends/invites/"+inviteID.String(), nil)
-		assert.Equal(t, http.StatusOK, w.Code)
-		assert.True(t, called)
-	})
-
-	t.Run("revoke_not_found_returns_404", func(t *testing.T) {
-		svc := &svcMock{revokeInvite: func(context.Context, uuid.UUID, uuid.UUID) error { return friend.ErrInviteNotFound }}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodDelete, "/api/v1/friends/invites/"+inviteID.String(), nil)
-		assert.Equal(t, http.StatusNotFound, w.Code)
-	})
-
-	t.Run("revoke_invalid_id", func(t *testing.T) {
-		w := doJSON(t, newRouter(&svcMock{}, &uid), http.MethodDelete, "/api/v1/friends/invites/not-a-uuid", nil)
-		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 

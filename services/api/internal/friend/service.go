@@ -2,12 +2,8 @@ package friend
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
@@ -17,25 +13,14 @@ import (
 )
 
 var (
-	ErrUserNotFound      = errors.New("user not found")
-	ErrCannotTargetSelf  = errors.New("cannot target self")
-	ErrAlreadyFriends    = errors.New("already friends")
-	ErrNotFriends        = errors.New("not friends")
-	ErrRequestExists     = errors.New("friend request already pending")
-	ErrRequestNotFound   = errors.New("friend request not found")
-	ErrForbidden         = errors.New("forbidden")
-	ErrBlocked           = errors.New("interaction blocked")
-	ErrInviteNotFound    = errors.New("invite not found")
-	ErrInviteInvalid     = errors.New("invite invalid or expired")
-	ErrInviteExhausted   = errors.New("invite exhausted")
-	ErrInviteSelf        = errors.New("cannot accept your own invite")
-)
-
-const (
-	defaultInviteTTL     = 7 * 24 * time.Hour
-	maxInviteTTL         = 30 * 24 * time.Hour
-	defaultInviteMaxUses = 1
-	inviteTokenBytes     = 24 // 192-bit token, base64url ~32 chars
+	ErrUserNotFound     = errors.New("user not found")
+	ErrCannotTargetSelf = errors.New("cannot target self")
+	ErrAlreadyFriends   = errors.New("already friends")
+	ErrNotFriends       = errors.New("not friends")
+	ErrRequestExists    = errors.New("friend request already pending")
+	ErrRequestNotFound  = errors.New("friend request not found")
+	ErrForbidden        = errors.New("forbidden")
+	ErrBlocked          = errors.New("interaction blocked")
 )
 
 type IService interface {
@@ -53,44 +38,29 @@ type IService interface {
 	BlockUser(ctx context.Context, blockerID, targetID uuid.UUID) error
 	UnblockUser(ctx context.Context, blockerID, targetID uuid.UUID) error
 	ListBlocks(ctx context.Context, userID uuid.UUID) ([]BlockResponse, error)
-
-	CreateInvite(ctx context.Context, userID uuid.UUID, ttl time.Duration, maxUses int) (*InviteResponse, error)
-	ListInvites(ctx context.Context, userID uuid.UUID) ([]InviteResponse, error)
-	RevokeInvite(ctx context.Context, userID, inviteID uuid.UUID) error
-	AcceptInvite(ctx context.Context, userID uuid.UUID, token string) (*UserSummary, error)
 }
 
 type service struct {
-	repo      IRepository
-	logger    *zap.Logger
-	webURL    string
-	inviteTTL time.Duration
-	audit     audit.Writer
+	repo   IRepository
+	logger *zap.Logger
+	audit  audit.Writer
 }
 
 type ServiceConfig struct {
-	Repo      IRepository
-	Logger    *zap.Logger
-	WebURL    string
-	InviteTTL time.Duration
-	Audit     audit.Writer
+	Repo   IRepository
+	Logger *zap.Logger
+	Audit  audit.Writer
 }
 
 func NewService(cfg ServiceConfig) IService {
-	ttl := cfg.InviteTTL
-	if ttl <= 0 {
-		ttl = defaultInviteTTL
-	}
 	logger := cfg.Logger
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 	return &service{
-		repo:      cfg.Repo,
-		logger:    logger.With(zap.String("layer", "friend.service")),
-		webURL:    strings.TrimRight(cfg.WebURL, "/"),
-		inviteTTL: ttl,
-		audit:     cfg.Audit,
+		repo:   cfg.Repo,
+		logger: logger.With(zap.String("layer", "friend.service")),
+		audit:  cfg.Audit,
 	}
 }
 
@@ -233,6 +203,15 @@ func (s *service) SendRequest(ctx context.Context, senderID, receiverID uuid.UUI
 		return nil, err
 	}
 	if existing != nil {
+		return nil, ErrRequestExists
+	}
+	// A pending request from the receiver to the sender means the user should
+	// accept that incoming request rather than send their own — don't overwrite it.
+	incoming, err := s.repo.FindPendingRequest(ctx, receiverID, senderID)
+	if err != nil {
+		return nil, err
+	}
+	if incoming != nil {
 		return nil, ErrRequestExists
 	}
 
@@ -418,130 +397,6 @@ func (s *service) ListBlocks(ctx context.Context, userID uuid.UUID) ([]BlockResp
 	return out, nil
 }
 
-func (s *service) CreateInvite(ctx context.Context, userID uuid.UUID, ttl time.Duration, maxUses int) (*InviteResponse, error) {
-	if ttl <= 0 {
-		ttl = s.inviteTTL
-	}
-	if ttl > maxInviteTTL {
-		ttl = maxInviteTTL
-	}
-	if maxUses <= 0 {
-		maxUses = defaultInviteMaxUses
-	}
-
-	token, err := generateToken(inviteTokenBytes)
-	if err != nil {
-		return nil, err
-	}
-	hash := hashToken(token)
-	now := time.Now()
-	rec := &InviteToken{
-		ID:        uuid.New(),
-		UserID:    userID,
-		TokenHash: hash,
-		MaxUses:   maxUses,
-		Uses:      0,
-		ExpiresAt: now.Add(ttl),
-		CreatedAt: now,
-	}
-	if err := s.repo.CreateInviteToken(ctx, rec); err != nil {
-		return nil, err
-	}
-	s.recordAudit(ctx, AuditFriendInviteCreated, audit.Success,
-		userID, nil, AuditResourceFriendInvite, rec.ID.String(),
-		map[string]any{"max_uses": rec.MaxUses, "expires_at": rec.ExpiresAt})
-	return &InviteResponse{
-		ID:        rec.ID.String(),
-		Token:     token,
-		URL:       s.buildInviteURL(token),
-		MaxUses:   rec.MaxUses,
-		Uses:      rec.Uses,
-		ExpiresAt: rec.ExpiresAt,
-		CreatedAt: rec.CreatedAt,
-	}, nil
-}
-
-func (s *service) ListInvites(ctx context.Context, userID uuid.UUID) ([]InviteResponse, error) {
-	rows, err := s.repo.ListActiveInvites(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]InviteResponse, 0, len(rows))
-	for _, t := range rows {
-		out = append(out, InviteResponse{
-			ID:        t.ID.String(),
-			MaxUses:   t.MaxUses,
-			Uses:      t.Uses,
-			ExpiresAt: t.ExpiresAt,
-			CreatedAt: t.CreatedAt,
-		})
-	}
-	return out, nil
-}
-
-func (s *service) RevokeInvite(ctx context.Context, userID, inviteID uuid.UUID) error {
-	if err := s.repo.RevokeInviteToken(ctx, userID, inviteID); err != nil {
-		return err
-	}
-	s.recordAudit(ctx, AuditFriendInviteRevoked, audit.Success,
-		userID, nil, AuditResourceFriendInvite, inviteID.String(), nil)
-	return nil
-}
-
-func (s *service) AcceptInvite(ctx context.Context, userID uuid.UUID, token string) (*UserSummary, error) {
-	token = strings.TrimSpace(token)
-	if token == "" {
-		return nil, ErrInviteInvalid
-	}
-	hash := hashToken(token)
-	rec, err := s.repo.FindInviteTokenByHash(ctx, hash)
-	if err != nil {
-		return nil, err
-	}
-	if rec == nil {
-		return nil, ErrInviteInvalid
-	}
-	if rec.UserID == userID {
-		return nil, ErrInviteSelf
-	}
-	if err := s.checkNotBlocked(ctx, userID, rec.UserID); err != nil {
-		return nil, err
-	}
-	inviter, err := s.repo.FindUserByID(ctx, rec.UserID)
-	if err != nil {
-		return nil, err
-	}
-	if inviter == nil || inviter.Status != auth.UserStatusActive {
-		return nil, ErrInviteInvalid
-	}
-
-	var summary UserSummary
-	err = s.repo.WithTx(ctx, func(tx IRepository) error {
-		already, err := tx.AreFriends(ctx, userID, rec.UserID)
-		if err != nil {
-			return err
-		}
-		if already {
-			return ErrAlreadyFriends
-		}
-		if err := tx.IncrementInviteUses(ctx, rec.ID); err != nil {
-			return err
-		}
-		if err := tx.CreateFriendship(ctx, userID, rec.UserID); err != nil {
-			return err
-		}
-		summary = toUserSummary(*inviter)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	inviterID := rec.UserID
-	s.recordAudit(ctx, AuditFriendInviteAccepted, audit.Success,
-		userID, &inviterID, AuditResourceFriendInvite, rec.ID.String(), nil)
-	return &summary, nil
-}
-
 func (s *service) checkNotBlocked(ctx context.Context, a, b uuid.UUID) error {
 	if blocked, err := s.repo.IsBlocked(ctx, a, b); err != nil {
 		return err
@@ -588,13 +443,6 @@ func (s *service) hydrateRequests(ctx context.Context, rows []Request) ([]Reques
 	return out, nil
 }
 
-func (s *service) buildInviteURL(token string) string {
-	if s.webURL == "" {
-		return ""
-	}
-	return s.webURL + "/friends/invite/" + token
-}
-
 func toUserSummary(u auth.User) UserSummary {
 	return UserSummary{
 		ID:        u.ID.String(),
@@ -616,15 +464,3 @@ func buildRequestResponse(r *Request, sender, receiver auth.User) *RequestRespon
 	}
 }
 
-func generateToken(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
-}
-
-func hashToken(token string) string {
-	h := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(h[:])
-}
