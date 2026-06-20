@@ -163,7 +163,14 @@ func (r *repository) ListTrips(ctx context.Context, userID uuid.UUID, q ListTrip
 	}
 
 	if q.Status != "" {
-		tx = tx.Where("trip.trip.status = ?", q.Status)
+		switch strings.ToLower(q.Status) {
+		case string(TripCompleted):
+			tx = tx.Where("trip.trip.status = ? OR trip.trip.end_date < CURRENT_DATE", TripCompleted)
+		case string(TripPlanning), string(TripOngoing):
+			tx = tx.Where("trip.trip.status = ? AND trip.trip.end_date >= CURRENT_DATE", q.Status)
+		default:
+			tx = tx.Where("trip.trip.status = ?", q.Status)
+		}
 	}
 	if s := strings.TrimSpace(q.Q); s != "" {
 		tx = tx.Where("LOWER(trip.trip.title) LIKE ?", "%"+strings.ToLower(s)+"%")

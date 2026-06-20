@@ -29,6 +29,7 @@ var (
 	ErrInvalidDateRange  = errors.New("end_date must be on or after start_date")
 	ErrInvalidPayload    = errors.New("invalid payload")
 	ErrCodeRequired      = errors.New("room code required")
+	ErrStatusAutoOnly    = errors.New("'completed' status is set automatically when the trip ends")
 )
 
 const dateLayout = "2006-01-02"
@@ -208,6 +209,9 @@ func (s *service) UpdateTrip(ctx context.Context, userID, tripID uuid.UUID, p Up
 		patch["cover_image"] = *p.CoverImage
 	}
 	if p.Status != nil {
+		if *p.Status == string(TripCompleted) {
+			return nil, ErrStatusAutoOnly
+		}
 		patch["status"] = *p.Status
 	}
 	if p.StartDate != nil || p.EndDate != nil {
@@ -410,7 +414,7 @@ func (s *service) PreviewByCode(ctx context.Context, userID uuid.UUID, code stri
 		CoverImage:    t.CoverImage,
 		StartDate:     t.StartDate.Format(dateLayout),
 		EndDate:       t.EndDate.Format(dateLayout),
-		Status:        string(t.Status),
+		Status:        string(effectiveStatus(*t)),
 		Owner:         toUserSummaryPublic(*owner),
 		MemberCount:   count,
 		AlreadyJoined: already,
@@ -906,7 +910,7 @@ func (s *service) buildTripResponse(ctx context.Context, t Trip, room *Room, mem
 		CoverImage:  t.CoverImage,
 		StartDate:   t.StartDate.Format(dateLayout),
 		EndDate:     t.EndDate.Format(dateLayout),
-		Status:      string(t.Status),
+		Status:      string(effectiveStatus(t)),
 		MemberCount: memberCount,
 		MyRole:      role,
 		CreatedAt:   t.CreatedAt,
@@ -980,6 +984,21 @@ func (s *service) publish(ctx context.Context, evtType string, userID, targetID 
 }
 
 // ---- Pure helpers ----
+
+// effectiveStatus returns TripCompleted once the trip's end date has passed,
+// regardless of the stored status. Otherwise it returns the stored status.
+// Owners cannot set "completed" manually; it is derived from time.
+func effectiveStatus(t Trip) TripStatus {
+	if t.Status == TripCompleted {
+		return TripCompleted
+	}
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	if today.After(t.EndDate) {
+		return TripCompleted
+	}
+	return t.Status
+}
 
 func parseDateRange(startStr, endStr string) (time.Time, time.Time, error) {
 	start, err := time.Parse(dateLayout, startStr)

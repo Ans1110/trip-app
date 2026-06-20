@@ -542,7 +542,8 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 		response.Forbidden(c)
 	case errors.Is(err, ErrInvalidDateRange),
 		errors.Is(err, ErrInvalidPayload),
-		errors.Is(err, ErrCodeRequired):
+		errors.Is(err, ErrCodeRequired),
+		errors.Is(err, ErrStatusAutoOnly):
 		response.BadRequest(c, err.Error())
 	default:
 		h.logger.Error("trip handler: internal error", zap.Error(err))
