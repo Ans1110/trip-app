@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { FriendsFab } from "./friends/friends-fab";
 import { SeasonProvider } from "./season-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -22,7 +23,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SeasonProvider>{children}</SeasonProvider>
+      <SeasonProvider>
+        {children}
+        <FriendsFab />
+      </SeasonProvider>
     </QueryClientProvider>
   );
 }
