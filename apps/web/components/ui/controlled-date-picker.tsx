@@ -9,44 +9,33 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Label } from "./label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
+import { DatePicker } from "./date-picker";
 
-export type SelectOption = {
-  value: string;
-  label: string;
-};
-
-type ControlledSelectProps<T extends FieldValues> = {
+type ControlledDatePickerProps<T extends FieldValues> = {
   name: Path<T>;
   label?: string;
   hint?: string;
-  options: SelectOption[];
   placeholder?: string;
-  triggerClassName?: string;
   containerClassName?: string;
   labelClassName?: string;
+  triggerClassName?: string;
   disabled?: boolean;
-  "aria-label"?: string;
+  min?: string;
+  max?: string;
 };
 
-function ControlledSelect<T extends FieldValues>({
+function ControlledDatePicker<T extends FieldValues>({
   name,
   label,
   hint,
-  options,
   placeholder,
-  triggerClassName,
   containerClassName,
   labelClassName,
+  triggerClassName,
   disabled,
-  ...props
-}: ControlledSelectProps<T>) {
+  min,
+  max,
+}: ControlledDatePickerProps<T>) {
   const { control } = useFormContext<T>();
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
@@ -60,29 +49,17 @@ function ControlledSelect<T extends FieldValues>({
         name={name}
         render={({ field, fieldState: { error } }) => (
           <>
-            <Select
+            <DatePicker
+              id={name}
               value={(field.value as string | undefined) ?? ""}
-              onValueChange={(v) => field.onChange(v)}
+              onChange={field.onChange}
+              placeholder={placeholder}
               disabled={disabled}
-            >
-              <SelectTrigger
-                id={name}
-                aria-invalid={!!error}
-                className={triggerClassName}
-                aria-label={props["aria-label"]}
-                onBlur={field.onBlur}
-                ref={field.ref}
-              >
-                <SelectValue placeholder={placeholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              min={min}
+              max={max}
+              invalid={!!error}
+              className={triggerClassName}
+            />
             {error ? (
               <p className="text-[11px] text-[#FCA5A5]">{error.message}</p>
             ) : hint ? (
@@ -95,4 +72,4 @@ function ControlledSelect<T extends FieldValues>({
   );
 }
 
-export { ControlledSelect };
+export { ControlledDatePicker };

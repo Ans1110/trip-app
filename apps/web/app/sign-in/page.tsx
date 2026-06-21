@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Compass } from "lucide-react";
 
@@ -52,7 +53,9 @@ export default function SignInPage() {
             </p>
           </div>
 
-          <SignInForm />
+          <Suspense fallback={null}>
+            <SignInForm />
+          </Suspense>
 
           <p className="mt-8 text-sm" style={{ color: "#8B9A8E" }}>
             New to TripCraft?{" "}

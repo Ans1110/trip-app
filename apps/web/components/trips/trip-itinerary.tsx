@@ -33,7 +33,7 @@ import {
   useReorderItinerary,
   useUpdateItinerary,
 } from "@/hooks/trip-hooks";
-import type { Itinerary } from "@/lib/trip-api";
+import type { Itinerary, Trip } from "@/lib/trip-api";
 import {
   createItinerarySchema,
   updateItinerarySchema,
@@ -43,7 +43,8 @@ import {
 
 const ItineraryMap = dynamic(() => import("./itinerary-map"), { ssr: false });
 
-export function TripItinerary({ tripId }: { tripId: string }) {
+export function TripItinerary({ trip }: { trip: Trip }) {
+  const tripId = trip.id;
   const query = useItinerary(tripId);
 
   const grouped = useMemo(() => {
@@ -83,9 +84,7 @@ export function TripItinerary({ tripId }: { tripId: string }) {
 
       {mapMarkers.length > 0 && <ItineraryMap markers={mapMarkers} />}
 
-      {query.isLoading && (
-        <p className="text-sm text-[#8B9A8E]">Loading…</p>
-      )}
+      {query.isLoading && <p className="text-sm text-[#8B9A8E]">Loading…</p>}
       {query.isError && (
         <p className="text-sm text-[#FCA5A5]">{errorMessage(query.error)}</p>
       )}
@@ -117,7 +116,9 @@ function DayGroup({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -171,7 +172,7 @@ function NewItemForm({ tripId }: { tripId: string }) {
   const create = useCreateItinerary();
   const form = useForm<CreateItineraryFormInput>({
     resolver: zodResolver(createItinerarySchema),
-    defaultValues: { day: 1, title: "", location: "" },
+    defaultValues: { day: "1", title: "", location: "" },
   });
 
   const onSubmit = (v: CreateItineraryFormInput) => {
@@ -179,7 +180,7 @@ function NewItemForm({ tripId }: { tripId: string }) {
       {
         id: tripId,
         input: {
-          day: v.day,
+          day: Number(v.day),
           title: v.title || undefined,
           location: v.location || undefined,
         },
@@ -197,13 +198,12 @@ function NewItemForm({ tripId }: { tripId: string }) {
         noValidate
         className="flex flex-col gap-3 p-4 rounded-xl bg-[#121814] border border-[#1F2A24]"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-[80px_1fr_1fr_auto] gap-2 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr_auto] gap-2 items-end">
           <ControlledInput<CreateItineraryFormInput>
             name="day"
             label="Day"
-            type="number"
-            min={1}
-            valueAsNumber
+            inputMode="numeric"
+            placeholder="1"
           />
           <ControlledInput<CreateItineraryFormInput>
             name="title"
@@ -244,8 +244,14 @@ function SortableItemRow({
   tripId: string;
   item: Itinerary;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: item.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -361,7 +367,8 @@ function ItemRow({
                 {item.title || "Untitled"}
               </p>
               {(item.location ||
-                (item.latitude !== undefined && item.longitude !== undefined)) && (
+                (item.latitude !== undefined &&
+                  item.longitude !== undefined)) && (
                 <div className="flex items-center gap-1 text-[#8B9A8E]">
                   <MapPin className="size-3" />
                   <span className="text-xs">

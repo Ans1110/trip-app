@@ -1,19 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
 
+import { ControlledDatePicker } from "@/components/ui/controlled-date-picker";
+import { ControlledInput } from "@/components/ui/controlled-input";
+import { ControlledSelect } from "@/components/ui/controlled-select";
+import { ControlledTextarea } from "@/components/ui/controlled-textarea";
 import {
   errorMessage,
   useDeleteTrip,
   useUpdateTrip,
 } from "@/hooks/trip-hooks";
 import type { Trip, TripUpdatableStatus } from "@/lib/trip-api";
+import {
+  updateTripSchema,
+  type UpdateTripFormInput,
+} from "@/lib/trip-schemas";
 
 import { CoverImageDrawer } from "./cover-image-drawer";
 
-const statusOptions: { value: TripUpdatableStatus; label: string }[] = [
+const statusOptions = [
   { value: "planning", label: "Planning" },
   { value: "ongoing", label: "Ongoing" },
 ];
@@ -22,32 +32,42 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
-  const [title, setTitle] = useState(trip.title);
-  const [description, setDescription] = useState(trip.description);
-  const [startDate, setStartDate] = useState(trip.start_date.slice(0, 10));
-  const [endDate, setEndDate] = useState(trip.end_date.slice(0, 10));
-  const [status, setStatus] = useState<TripUpdatableStatus>(
-    trip.status === "completed" ? "ongoing" : trip.status,
-  );
+
+  const defaults: UpdateTripFormInput = {
+    title: trip.title,
+    description: trip.description,
+    start_date: trip.start_date.slice(0, 10),
+    end_date: trip.end_date.slice(0, 10),
+    status: (trip.status === "completed" ? "ongoing" : trip.status) as TripUpdatableStatus,
+  };
+  const form = useForm<UpdateTripFormInput>({
+    resolver: zodResolver(updateTripSchema),
+    defaultValues: defaults,
+  });
+  const startDate = form.watch("start_date");
 
   const update = useUpdateTrip();
   const remove = useDeleteTrip();
 
-  const handleSave = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSave = (v: UpdateTripFormInput) => {
     update.mutate(
       {
         id: trip.id,
         input: {
-          title: title.trim(),
-          description: description.trim(),
-          start_date: startDate,
-          end_date: endDate,
-          status,
+          title: v.title.trim(),
+          description: v.description.trim(),
+          start_date: v.start_date,
+          end_date: v.end_date,
+          status: v.status,
         },
       },
       { onSuccess: () => setEditing(false) },
     );
+  };
+
+  const handleCancel = () => {
+    form.reset(defaults);
+    setEditing(false);
   };
 
   const handleDelete = () => {
@@ -59,91 +79,60 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
 
   if (editing) {
     return (
-      <form className="flex flex-col gap-4" onSubmit={handleSave}>
-        <Field label="Title">
-          <input
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className={inputClass}
-            style={inputStyle}
-          />
-        </Field>
-        <Field label="Description">
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+      <FormProvider {...form}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(handleSave)}
+          noValidate
+        >
+          <ControlledInput<UpdateTripFormInput> name="title" label="Title" />
+          <ControlledTextarea<UpdateTripFormInput>
+            name="description"
+            label="Description"
             rows={3}
-            className={`${inputClass} resize-none`}
-            style={inputStyle}
           />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Start date">
-            <input
-              required
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className={inputClass}
-              style={inputStyle}
+          <div className="grid grid-cols-2 gap-3">
+            <ControlledDatePicker<UpdateTripFormInput>
+              name="start_date"
+              label="Start date"
             />
-          </Field>
-          <Field label="End date">
-            <input
-              required
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+            <ControlledDatePicker<UpdateTripFormInput>
+              name="end_date"
+              label="End date"
               min={startDate || undefined}
-              className={inputClass}
-              style={inputStyle}
             />
-          </Field>
-        </div>
-        <Field label="Status">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as TripUpdatableStatus)}
-            className={inputClass}
-            style={inputStyle}
-          >
-            {statusOptions.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        {update.isError && (
-          <p className="text-sm" style={{ color: "#FCA5A5" }}>
-            {errorMessage(update.error)}
-          </p>
-        )}
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            disabled={update.isPending}
-            className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60"
-            style={{ color: "#8B9A8E" }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={update.isPending}
-            className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
-            style={{
-              backgroundColor: "var(--season-button)",
-              color: "#0B100D",
-            }}
-          >
-            {update.isPending && <Loader2 className="size-3.5 animate-spin" />}
-            Save
-          </button>
-        </div>
-      </form>
+          </div>
+          <ControlledSelect<UpdateTripFormInput>
+            name="status"
+            label="Status"
+            options={statusOptions}
+          />
+          {update.isError && (
+            <p className="text-sm text-[#FCA5A5]">
+              {errorMessage(update.error)}
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={update.isPending}
+              className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={update.isPending}
+              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              style={{ backgroundColor: "var(--season-button)" }}
+            >
+              {update.isPending && <Loader2 className="size-3.5 animate-spin" />}
+              Save
+            </button>
+          </div>
+        </form>
+      </FormProvider>
     );
   }
 
@@ -158,11 +147,8 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
             {trip.status}
           </p>
           <h2
-            className="text-3xl tracking-tight"
-            style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
-            }}
+            className="text-3xl tracking-tight text-[#ECEFEA]"
+            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
           >
             {trip.title}
           </h2>
@@ -172,8 +158,7 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
             <button
               type="button"
               onClick={() => setCoverOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5"
-              style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 text-[#ECEFEA] border border-[#1F2A24]"
             >
               <ImagePlus className="size-3.5" />
               Cover
@@ -181,8 +166,7 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5"
-              style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 text-[#ECEFEA] border border-[#1F2A24]"
             >
               <Pencil className="size-3.5" />
               Edit
@@ -191,8 +175,7 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
               type="button"
               onClick={handleDelete}
               disabled={remove.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
-              style={{ color: "#FCA5A5" }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60 text-[#FCA5A5]"
             >
               {remove.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -206,23 +189,12 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
       </div>
 
       <Stat label="Dates" value={formatRange(trip.start_date, trip.end_date)} />
-      <Stat
-        label="Owner"
-        value={trip.owner.name || trip.owner.email}
-      />
+      <Stat label="Owner" value={trip.owner.name || trip.owner.email} />
       <Stat label="Members" value={String(trip.member_count)} />
       {trip.description && (
         <div>
-          <p
-            className="text-xs font-medium mb-2"
-            style={{ color: "#8B9A8E" }}
-          >
-            Description
-          </p>
-          <p
-            className="text-sm leading-relaxed whitespace-pre-wrap"
-            style={{ color: "#ECEFEA" }}
-          >
+          <p className="text-xs font-medium mb-2 text-[#8B9A8E]">Description</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-[#ECEFEA]">
             {trip.description}
           </p>
         </div>
@@ -237,40 +209,11 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium" style={{ color: "#8B9A8E" }}>
-        {label}
-      </p>
-      <p className="text-sm mt-1" style={{ color: "#ECEFEA" }}>
-        {value}
-      </p>
+      <p className="text-xs font-medium text-[#8B9A8E]">{label}</p>
+      <p className="text-sm mt-1 text-[#ECEFEA]">{value}</p>
     </div>
   );
 }
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium" style={{ color: "#8B9A8E" }}>
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  "w-full px-3 py-2 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]";
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "#161E19",
-  border: "1px solid #1F2A24",
-  color: "#ECEFEA",
-};
 
 function formatRange(start: string, end: string): string {
   const fmt = new Intl.DateTimeFormat(undefined, {

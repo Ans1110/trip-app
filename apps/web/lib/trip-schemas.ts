@@ -15,6 +15,21 @@ export const createTripSchema = z
   });
 export type CreateTripFormInput = z.infer<typeof createTripSchema>;
 
+export const tripStatusEnum = z.enum(["planning", "ongoing"]);
+export const updateTripSchema = z
+  .object({
+    title: z.string().trim().min(1, "Required").max(120, "Too long"),
+    description: z.string().trim().max(1000, "Too long"),
+    start_date: z.string().min(1, "Required"),
+    end_date: z.string().min(1, "Required"),
+    status: tripStatusEnum,
+  })
+  .refine((d) => d.end_date >= d.start_date, {
+    message: "End date must be on or after start date",
+    path: ["end_date"],
+  });
+export type UpdateTripFormInput = z.infer<typeof updateTripSchema>;
+
 // ---- Room ----
 
 export const joinRoomSchema = z.object({
@@ -31,9 +46,13 @@ export type JoinRoomFormInput = z.infer<typeof joinRoomSchema>;
 
 export const createItinerarySchema = z.object({
   day: z
-    .number({ invalid_type_error: "Required" })
-    .int("Whole number")
-    .min(1, "Min 1"),
+    .string()
+    .trim()
+    .min(1, "Required")
+    .refine((v) => {
+      const n = Number(v);
+      return Number.isInteger(n) && n >= 1;
+    }, "Min 1"),
   title: z.string().trim().max(120, "Too long"),
   location: z.string().trim().max(120, "Too long"),
 });

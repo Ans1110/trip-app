@@ -5,6 +5,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 
+import { ControlledDatePicker } from "@/components/ui/controlled-date-picker";
 import { ControlledInput } from "@/components/ui/controlled-input";
 import { ControlledTextarea } from "@/components/ui/controlled-textarea";
 import { errorMessage, useCreateTrip } from "@/hooks/trip-hooks";
@@ -70,15 +71,13 @@ export function CreateTripDialog({ onClose }: { onClose: () => void }) {
           />
 
           <div className="grid grid-cols-2 gap-3">
-            <ControlledInput<CreateTripFormInput>
+            <ControlledDatePicker<CreateTripFormInput>
               name="start_date"
               label="Start date"
-              type="date"
             />
-            <ControlledInput<CreateTripFormInput>
+            <ControlledDatePicker<CreateTripFormInput>
               name="end_date"
               label="End date"
-              type="date"
               min={startDate || undefined}
             />
           </div>

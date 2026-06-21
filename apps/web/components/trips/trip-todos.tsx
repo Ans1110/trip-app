@@ -22,8 +22,16 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { ControlledInput } from "@/components/ui/controlled-input";
 import { ControlledSelect } from "@/components/ui/controlled-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   errorMessage,
   useCreateTodo,
@@ -402,17 +410,16 @@ function TodoRow({
       style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
     >
       {dragHandle}
-      <input
-        type="checkbox"
+      <Checkbox
         checked={todo.is_completed}
-        onChange={(e) =>
+        onCheckedChange={(v) =>
           update.mutate({
             id: tripId,
             todoId: todo.id,
-            input: { is_completed: e.target.checked },
+            input: { is_completed: v === true },
           })
         }
-        className="size-4 rounded accent-[color:var(--season-button)]"
+        aria-label={todo.is_completed ? "Mark incomplete" : "Mark complete"}
       />
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <p
@@ -435,33 +442,35 @@ function TodoRow({
           </div>
         )}
       </div>
-      <select
+      <Select
         value={todo.priority}
-        onChange={(e) =>
+        onValueChange={(v) =>
           update.mutate({
             id: tripId,
             todoId: todo.id,
-            input: { priority: e.target.value as TodoPriority },
+            input: { priority: v as TodoPriority },
           })
         }
-        aria-label="Change priority"
-        className="text-xs px-2 py-1 rounded-full outline-none"
-        style={{
-          backgroundColor: accent.bg,
-          color: accent.fg,
-          border: `1px solid ${accent.fg}33`,
-        }}
       >
-        {PRIORITIES.map((p) => (
-          <option
-            key={p}
-            value={p}
-            style={{ backgroundColor: "#121814", color: "#ECEFEA" }}
-          >
-            {p}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger
+          aria-label="Change priority"
+          className="w-auto h-auto gap-1 text-xs px-2 py-1 rounded-full"
+          style={{
+            backgroundColor: accent.bg,
+            color: accent.fg,
+            borderColor: `${accent.fg}33`,
+          }}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PRIORITIES.map((p) => (
+            <SelectItem key={p} value={p}>
+              {p}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <button
         type="button"
         onClick={() => remove.mutate({ id: tripId, todoId: todo.id })}

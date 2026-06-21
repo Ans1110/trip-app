@@ -74,7 +74,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
       {tab === "overview" && (
         <TripOverview trip={trip} canManage={canManage} />
       )}
-      {tab === "itinerary" && <TripItinerary tripId={trip.id} />}
+      {tab === "itinerary" && <TripItinerary trip={trip} />}
       {tab === "todos" && <TripTodos tripId={trip.id} />}
       {tab === "room" && <TripRoom tripId={trip.id} canManage={canManage} />}
     </div>
