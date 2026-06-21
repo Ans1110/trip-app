@@ -2,7 +2,6 @@ import "server-only";
 import {
   UpstreamBlockResponse,
   UpstreamFriendResponse,
-  UpstreamInviteTokenResponse,
   UpstreamItineraryResponse,
   UpstreamJoinRoomResponse,
   UpstreamJWKResponse,
@@ -202,15 +201,6 @@ export type RoomPreviewView = {
   already_joined: boolean;
 };
 
-export type InviteTokenView = {
-  token: string;
-  room_id: string;
-  expires_at: string;
-  max_uses: number;
-  used_count: number;
-  created_at: string;
-};
-
 export type JoinRoomView = {
   trip_id: string;
   room_id: string;
@@ -293,17 +283,6 @@ export const toRoomPreviewView = (
   owner: toUserSummaryView(p.owner),
   member_count: p.member_count,
   already_joined: p.already_joined,
-});
-
-export const toInviteTokenView = (
-  i: UpstreamInviteTokenResponse,
-): InviteTokenView => ({
-  token: i.token,
-  room_id: i.room_id,
-  expires_at: i.expires_at,
-  max_uses: i.max_uses,
-  used_count: i.used_count,
-  created_at: i.created_at,
 });
 
 export const toJoinRoomView = (j: UpstreamJoinRoomResponse): JoinRoomView => ({

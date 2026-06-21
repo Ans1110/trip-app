@@ -11,14 +11,12 @@ import {
 import { RequestContext } from "../request-context";
 import { ensureCsrfToken, readSessionTokens } from "../session-store";
 import {
-  InviteTokenView,
   ItineraryView,
   JoinRoomView,
   RoomPreviewView,
   RoomView,
   TodoView,
   TripView,
-  toInviteTokenView,
   toItineraryView,
   toJoinRoomView,
   toRoomPreviewView,
@@ -27,11 +25,9 @@ import {
   toTripView,
 } from "../contracts/frontend";
 import {
-  UpstreamCreateInvitePayload,
   UpstreamCreateItineraryPayload,
   UpstreamCreateTodoPayload,
   UpstreamCreateTripPayload,
-  UpstreamInviteTokenResponse,
   UpstreamItineraryResponse,
   UpstreamJoinRoomPayload,
   UpstreamJoinRoomResponse,
@@ -48,7 +44,6 @@ import {
 export type CreateTripInput = UpstreamCreateTripPayload;
 export type UpdateTripInput = UpstreamUpdateTripPayload;
 export type ListTripsQueryInput = UpstreamListTripsQuery;
-export type CreateInviteInput = UpstreamCreateInvitePayload;
 export type JoinRoomInput = UpstreamJoinRoomPayload;
 export type CreateItineraryInput = UpstreamCreateItineraryPayload;
 export type UpdateItineraryInput = UpstreamUpdateItineraryPayload;
@@ -56,7 +51,6 @@ export type CreateTodoInput = UpstreamCreateTodoPayload;
 export type UpdateTodoInput = UpstreamUpdateTodoPayload;
 
 export type {
-  InviteTokenView,
   ItineraryView,
   JoinRoomView,
   RoomPreviewView,
@@ -205,53 +199,6 @@ export class TripClient {
         this.http.post<UpstreamJoinRoomResponse>("/rooms/join", input, opts),
     );
     return mapData(res, toJoinRoomView);
-  }
-
-  // ---- Invites ----
-
-  async listInvites(
-    tripID: string,
-    auth: AuthCtx,
-  ): Promise<ApiResult<InviteTokenView[]>> {
-    const res = await this.callProtected<UpstreamInviteTokenResponse[]>(
-      auth,
-      (opts) =>
-        this.http.get<UpstreamInviteTokenResponse[]>(
-          `/trips/${encodeURIComponent(tripID)}/room/invites`,
-          opts,
-        ),
-    );
-    return mapData(res, (rows) => rows.map(toInviteTokenView));
-  }
-
-  async createInvite(
-    tripID: string,
-    input: CreateInviteInput,
-    auth: AuthCtx,
-  ): Promise<ApiResult<InviteTokenView>> {
-    const res = await this.callProtected<UpstreamInviteTokenResponse>(
-      auth,
-      (opts) =>
-        this.http.post<UpstreamInviteTokenResponse>(
-          `/trips/${encodeURIComponent(tripID)}/room/invites`,
-          input,
-          opts,
-        ),
-    );
-    return mapData(res, toInviteTokenView);
-  }
-
-  async revokeInvite(
-    tripID: string,
-    token: string,
-    auth: AuthCtx,
-  ): Promise<ApiResult<null>> {
-    return this.callProtected<null>(auth, (opts) =>
-      this.http.delete<null>(
-        `/trips/${encodeURIComponent(tripID)}/room/invites/${encodeURIComponent(token)}`,
-        opts,
-      ),
-    );
   }
 
   // ---- Itinerary ----

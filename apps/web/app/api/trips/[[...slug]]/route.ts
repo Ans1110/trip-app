@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { tripClient } from "../../_lib/clients/trip-client";
 import type {
-  CreateInviteInput,
   CreateItineraryInput,
   CreateTodoInput,
   CreateTripInput,
@@ -68,10 +67,6 @@ const matchGet = (slug: string[]): Dispatch | null => {
   if (slug.length === 2 && slug[1] === "room") {
     return (_req, auth) => tripClient.getRoom(slug[0], auth);
   }
-  // GET /trips/:id/room/invites
-  if (slug.length === 3 && slug[1] === "room" && slug[2] === "invites") {
-    return (_req, auth) => tripClient.listInvites(slug[0], auth);
-  }
   // GET /trips/:id/itinerary
   if (slug.length === 2 && slug[1] === "itinerary") {
     return (_req, auth) => tripClient.listItinerary(slug[0], auth);
@@ -99,14 +94,6 @@ const matchPost = (slug: string[]): Dispatch | null => {
   // POST /trips/:id/room/code
   if (slug.length === 3 && slug[1] === "room" && slug[2] === "code") {
     return (_req, auth) => tripClient.regenerateCode(slug[0], auth);
-  }
-  // POST /trips/:id/room/invites
-  if (slug.length === 3 && slug[1] === "room" && slug[2] === "invites") {
-    return async (req, auth) => {
-      const body = await readJson(req);
-      if (body instanceof Response) return responseToResult(body);
-      return tripClient.createInvite(slug[0], body as CreateInviteInput, auth);
-    };
   }
   // POST /trips/:id/itinerary
   if (slug.length === 2 && slug[1] === "itinerary") {
@@ -137,6 +124,11 @@ const matchPatch = (slug: string[]): Dispatch | null => {
     return async (req, auth) => {
       const body = await readJson(req);
       if (body instanceof Response) return responseToResult(body);
+      if (isCompletedStatusInPayload(body)) {
+        return badRequestResult(
+          "'completed' status is set automatically when the trip ends",
+        );
+      }
       return tripClient.updateTrip(slug[0], body as UpdateTripInput, auth);
     };
   }
@@ -181,10 +173,6 @@ const matchDelete = (slug: string[]): Dispatch | null => {
     slug[2] === "members"
   ) {
     return (_req, auth) => tripClient.removeMember(slug[0], slug[3], auth);
-  }
-  // DELETE /trips/:id/room/invites/:token
-  if (slug.length === 4 && slug[1] === "room" && slug[2] === "invites") {
-    return (_req, auth) => tripClient.revokeInvite(slug[0], slug[3], auth);
   }
   // DELETE /trips/:id/itinerary/:item_id
   if (slug.length === 3 && slug[1] === "itinerary") {
@@ -297,3 +285,25 @@ const notFound = (method: string, slug: string[]): NextResponse =>
     },
     { status: 404 },
   );
+
+const isCompletedStatusInPayload = (body: unknown): boolean => {
+  if (!body || typeof body !== "object") return false;
+  const status = (body as { status?: unknown }).status;
+  return typeof status === "string" && status.toLowerCase() === "completed";
+};
+
+const badRequestResult = (message: string): ApiResult<unknown> => ({
+  ok: false,
+  status: 400,
+  code: 400,
+  message,
+  error: {
+    category: "validation",
+    status: 400,
+    code: 400,
+    message,
+    retryable: false,
+  },
+  payload: { code: 400, message },
+  raw: "",
+});

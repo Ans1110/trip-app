@@ -195,23 +195,8 @@ export type UpstreamRoomPreview = {
   already_joined: boolean;
 };
 
-export type UpstreamCreateInvitePayload = {
-  expires_in_minutes: number;
-  max_uses: number;
-};
-
-export type UpstreamInviteTokenResponse = {
-  token: string;
-  room_id: string;
-  expires_at: string;
-  max_uses: number;
-  used_count: number;
-  created_at: string;
-};
-
 export type UpstreamJoinRoomPayload = {
-  token?: string;
-  code?: string;
+  code: string;
 };
 
 export type UpstreamJoinRoomResponse = {
