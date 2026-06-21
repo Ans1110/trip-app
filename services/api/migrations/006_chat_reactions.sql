@@ -1,3 +1,4 @@
+-- +goose Up
 -- Chat: message reactions, edit/delete, reply-to, pin
 
 ALTER TABLE chat.message

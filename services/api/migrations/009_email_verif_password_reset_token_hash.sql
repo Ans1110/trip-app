@@ -1,3 +1,4 @@
+-- +goose Up
 -- Backfill the token_hash column on auth.email_verifications and auth.password_resets
 -- for databases created before 002_auth_supplement.sql declared it. The earlier
 -- migration uses CREATE TABLE IF NOT EXISTS, so an older table will not pick the

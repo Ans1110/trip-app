@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE SCHEMA IF NOT EXISTS friend;
 
 CREATE TABLE IF NOT EXISTS friend.friends (

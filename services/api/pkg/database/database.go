@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/Ans1110/trip-app/pkg/config"
+	"github.com/pressly/goose/v3"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -37,6 +35,9 @@ func InitDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	}
 
 	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("acquire sql.DB: %w", err)
+	}
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
@@ -44,29 +45,19 @@ func InitDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	return db, nil
 }
 
+// RunMigrations applies any pending Goose migrations under migrationDir.
+// Goose tracks applied versions in the `goose_db_version` table, so unchanged
+// files are skipped on subsequent boots instead of being re-executed.
 func RunMigrations(db *gorm.DB, migrationDir string) error {
-	entries, err := os.ReadDir(migrationDir)
+	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("read migration directory: %w", err)
+		return fmt.Errorf("acquire sql.DB for migrations: %w", err)
 	}
-
-	var files []string
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
-			files = append(files, filepath.Join(migrationDir, entry.Name()))
-		}
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("set goose dialect: %w", err)
 	}
-	sort.Strings(files)
-
-	for _, f := range files {
-		data, err := os.ReadFile(f)
-		if err != nil {
-			return fmt.Errorf("read migration file %s: %w", f, err)
-		}
-
-		if err := db.Exec(string(data)).Error; err != nil {
-			return fmt.Errorf("execute migration %s: %w", f, err)
-		}
+	if err := goose.Up(sqlDB, migrationDir); err != nil {
+		return fmt.Errorf("goose up: %w", err)
 	}
 	return nil
 }

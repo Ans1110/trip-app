@@ -41,6 +41,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -58,14 +60,32 @@ func main() {
 	logger := logger.New(cfg.Server.Mode)
 	defer logger.Sync()
 
-	db, err := database.InitDB(cfg.Database)
-	if err != nil {
-		logger.Fatal("initialize postgres", zap.Error(err))
-	}
-
-	rdb, err := pkgredis.InitRedis(cfg.Redis)
-	if err != nil {
-		logger.Fatal("initialize redis", zap.Error(err))
+	// Postgres + Redis open independent connections, so fan them out in parallel
+	var (
+		db  *gorm.DB
+		rdb *redis.Client
+	)
+	{
+		g, _ := errgroup.WithContext(context.Background())
+		g.Go(func() error {
+			d, err := database.InitDB(cfg.Database)
+			if err != nil {
+				return fmt.Errorf("initialize postgres: %w", err)
+			}
+			db = d
+			return nil
+		})
+		g.Go(func() error {
+			r, err := pkgredis.InitRedis(cfg.Redis)
+			if err != nil {
+				return fmt.Errorf("initialize redis: %w", err)
+			}
+			rdb = r
+			return nil
+		})
+		if err := g.Wait(); err != nil {
+			logger.Fatal("initialize infra", zap.Error(err))
+		}
 	}
 
 	if err := database.RunMigrations(db, resolveMigrationsPath()); err != nil {

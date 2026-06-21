@@ -1,3 +1,4 @@
+-- +goose Up
 -- email verification, password reset, MFA, session
 
 ALTER TABLE auth.users

@@ -1,3 +1,4 @@
+-- +goose Up
 -- Trip Day Plan activities and Packing Lists
 
 CREATE TABLE IF NOT EXISTS trip.activities (

@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE SCHEMA IF NOT EXISTS trip;
 
 CREATE TABLE IF NOT EXISTS trip.trip (

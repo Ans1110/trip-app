@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE SCHEMA IF NOT EXISTS auth;
 
 CREATE TABLE IF NOT EXISTS auth.users (

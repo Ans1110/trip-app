@@ -1,3 +1,4 @@
+-- +goose Up
 -- Room-centric collaboration model.
 -- "Friend" and "Room" are decoupled: room membership has nothing to do with
 -- friendship. Trip ownership stays on trip.owner_id; room admin/member is a

@@ -1,3 +1,4 @@
+-- +goose Up
 -- Supplements 004_friend_schema.sql with: optional invitation message, status check,
 -- a block list, and single/multi-use invitation tokens used by add-friend QR codes
 -- and share links.
@@ -5,6 +6,7 @@
 ALTER TABLE friend.invitations
     ADD COLUMN IF NOT EXISTS message TEXT NOT NULL DEFAULT '';
 
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -17,6 +19,7 @@ BEGIN
             CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled'));
     END IF;
 END$$;
+-- +goose StatementEnd
 
 CREATE INDEX IF NOT EXISTS idx_invitations_pending
     ON friend.invitations(receiver_id, status)

@@ -1,3 +1,4 @@
+-- +goose Up
 -- Auth hardening: device fingerprint, RBAC roles, audit log
 
 ALTER TABLE auth.user_sessions

@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE SCHEMA IF NOT EXISTS chat;
 
 CREATE TABLE IF NOT EXISTS chat.room (
