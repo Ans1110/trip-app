@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { GripVertical, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
@@ -21,6 +23,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { ControlledInput } from "@/components/ui/controlled-input";
+import { ControlledTextarea } from "@/components/ui/controlled-textarea";
 import {
   errorMessage,
   useCreateItinerary,
@@ -30,6 +34,12 @@ import {
   useUpdateItinerary,
 } from "@/hooks/trip-hooks";
 import type { Itinerary } from "@/lib/trip-api";
+import {
+  createItinerarySchema,
+  updateItinerarySchema,
+  type CreateItineraryFormInput,
+  type UpdateItineraryFormInput,
+} from "@/lib/trip-schemas";
 
 const ItineraryMap = dynamic(() => import("./itinerary-map"), { ssr: false });
 
@@ -74,17 +84,13 @@ export function TripItinerary({ tripId }: { tripId: string }) {
       {mapMarkers.length > 0 && <ItineraryMap markers={mapMarkers} />}
 
       {query.isLoading && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
-          Loading…
-        </p>
+        <p className="text-sm text-[#8B9A8E]">Loading…</p>
       )}
       {query.isError && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
-          {errorMessage(query.error)}
-        </p>
+        <p className="text-sm text-[#FCA5A5]">{errorMessage(query.error)}</p>
       )}
       {!query.isLoading && !query.isError && itemCount === 0 && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm text-[#8B9A8E]">
           No itinerary items yet. Add the first stop above.
         </p>
       )}
@@ -138,7 +144,7 @@ function DayGroup({
           Day {day}
         </h3>
         {reorder.isPending && (
-          <Loader2 className="size-3.5 animate-spin" style={{ color: "#8B9A8E" }} />
+          <Loader2 className="size-3.5 animate-spin text-[#8B9A8E]" />
         )}
       </div>
       <DndContext
@@ -163,91 +169,71 @@ function DayGroup({
 
 function NewItemForm({ tripId }: { tripId: string }) {
   const create = useCreateItinerary();
-  const [day, setDay] = useState("1");
-  const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("");
+  const form = useForm<CreateItineraryFormInput>({
+    resolver: zodResolver(createItinerarySchema),
+    defaultValues: { day: 1, title: "", location: "" },
+  });
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const parsedDay = Number(day);
-    if (!Number.isFinite(parsedDay) || parsedDay < 1) return;
+  const onSubmit = (v: CreateItineraryFormInput) => {
     create.mutate(
       {
         id: tripId,
         input: {
-          day: parsedDay,
-          title: title.trim() || undefined,
-          location: location.trim() || undefined,
+          day: v.day,
+          title: v.title || undefined,
+          location: v.location || undefined,
         },
       },
       {
-        onSuccess: () => {
-          setTitle("");
-          setLocation("");
-        },
+        onSuccess: () => form.reset({ day: v.day, title: "", location: "" }),
       },
     );
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-3 p-4 rounded-xl"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
-    >
-      <div className="grid grid-cols-1 sm:grid-cols-[80px_1fr_1fr_auto] gap-2 items-end">
-        <Field label="Day">
-          <input
+    <FormProvider {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        noValidate
+        className="flex flex-col gap-3 p-4 rounded-xl bg-[#121814] border border-[#1F2A24]"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-[80px_1fr_1fr_auto] gap-2 items-end">
+          <ControlledInput<CreateItineraryFormInput>
+            name="day"
+            label="Day"
             type="number"
             min={1}
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            className={inputClass}
-            style={inputStyle}
-            required
+            valueAsNumber
           />
-        </Field>
-        <Field label="Title">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+          <ControlledInput<CreateItineraryFormInput>
+            name="title"
+            label="Title"
             placeholder="Senso-ji visit"
-            className={inputClass}
-            style={inputStyle}
           />
-        </Field>
-        <Field label="Location">
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+          <ControlledInput<CreateItineraryFormInput>
+            name="location"
+            label="Location"
             placeholder="Tokyo"
-            className={inputClass}
-            style={inputStyle}
           />
-        </Field>
-        <button
-          type="submit"
-          disabled={create.isPending}
-          className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
-          style={{
-            backgroundColor: "var(--season-button)",
-            color: "#0B100D",
-          }}
-        >
-          {create.isPending ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <Plus className="size-4" />
-          )}
-          Add
-        </button>
-      </div>
-      {create.isError && (
-        <p className="text-xs" style={{ color: "#FCA5A5" }}>
-          {errorMessage(create.error)}
-        </p>
-      )}
-    </form>
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+            style={{ backgroundColor: "var(--season-button)" }}
+          >
+            {create.isPending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Plus className="size-4" />
+            )}
+            Add
+          </button>
+        </div>
+        {create.isError && (
+          <p className="text-xs text-[#FCA5A5]">{errorMessage(create.error)}</p>
+        )}
+      </form>
+    </FormProvider>
   );
 }
 
@@ -274,8 +260,7 @@ function SortableItemRow({
           <button
             type="button"
             aria-label="Reorder"
-            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 cursor-grab active:cursor-grabbing touch-none"
-            style={{ color: "#8B9A8E" }}
+            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 cursor-grab active:cursor-grabbing touch-none text-[#8B9A8E]"
             {...attributes}
             {...listeners}
           >
@@ -297,148 +282,126 @@ function ItemRow({
   dragHandle?: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(item.title);
-  const [description, setDescription] = useState(item.description);
-  const [location, setLocation] = useState(item.location);
-  const [latitude, setLatitude] = useState<string>(
-    item.latitude !== undefined ? String(item.latitude) : "",
-  );
-  const [longitude, setLongitude] = useState<string>(
-    item.longitude !== undefined ? String(item.longitude) : "",
-  );
   const update = useUpdateItinerary();
   const remove = useDeleteItinerary();
+  const defaults: UpdateItineraryFormInput = {
+    title: item.title,
+    location: item.location,
+    description: item.description,
+    latitude: item.latitude !== undefined ? String(item.latitude) : "",
+    longitude: item.longitude !== undefined ? String(item.longitude) : "",
+  };
+  const form = useForm<UpdateItineraryFormInput>({
+    resolver: zodResolver(updateItinerarySchema),
+    defaultValues: defaults,
+  });
 
-  const handleSave = () => {
-    const lat = latitude.trim() === "" ? null : Number(latitude);
-    const lng = longitude.trim() === "" ? null : Number(longitude);
-    if (lat !== null && (!Number.isFinite(lat) || lat < -90 || lat > 90)) return;
-    if (lng !== null && (!Number.isFinite(lng) || lng < -180 || lng > 180)) return;
+  const onSave = (v: UpdateItineraryFormInput) => {
     update.mutate(
       {
         id: tripId,
         itemId: item.id,
         input: {
-          title: title.trim(),
-          description: description.trim(),
-          location: location.trim(),
-          latitude: lat,
-          longitude: lng,
+          title: v.title,
+          description: v.description,
+          location: v.location,
+          latitude: v.latitude === "" ? null : Number(v.latitude),
+          longitude: v.longitude === "" ? null : Number(v.longitude),
         },
       },
       { onSuccess: () => setEditing(false) },
     );
   };
 
+  const handleCancel = () => {
+    form.reset(defaults);
+    setEditing(false);
+  };
+
   return (
-    <div
-      className="flex items-start gap-3 px-4 py-3 rounded-lg"
-      style={{
-        backgroundColor: "#121814",
-        border: "1px solid #1F2A24",
-      }}
-    >
+    <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-[#121814] border border-[#1F2A24]">
       {dragHandle}
-      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-        {editing ? (
-          <div className="flex flex-col gap-2">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-              className={inputClass}
-              style={inputStyle}
-            />
-            <input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Location"
-              className={inputClass}
-              style={inputStyle}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                placeholder="Latitude"
-                inputMode="decimal"
-                className={inputClass}
-                style={inputStyle}
+      <FormProvider {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSave)}
+          noValidate
+          className="flex-1 min-w-0 flex flex-col gap-1.5"
+        >
+          {editing ? (
+            <div className="flex flex-col gap-2">
+              <ControlledInput<UpdateItineraryFormInput>
+                name="title"
+                placeholder="Title"
               />
-              <input
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                placeholder="Longitude"
-                inputMode="decimal"
-                className={inputClass}
-                style={inputStyle}
+              <ControlledInput<UpdateItineraryFormInput>
+                name="location"
+                placeholder="Location"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <ControlledInput<UpdateItineraryFormInput>
+                  name="latitude"
+                  placeholder="Latitude"
+                  inputMode="decimal"
+                />
+                <ControlledInput<UpdateItineraryFormInput>
+                  name="longitude"
+                  placeholder="Longitude"
+                  inputMode="decimal"
+                />
+              </div>
+              <ControlledTextarea<UpdateItineraryFormInput>
+                name="description"
+                placeholder="Description"
+                rows={2}
               />
             </div>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description"
-              rows={2}
-              className={`${inputClass} resize-none`}
-              style={inputStyle}
-            />
-          </div>
-        ) : (
-          <>
-            <p className="text-sm" style={{ color: "#ECEFEA" }}>
-              {item.title || "Untitled"}
-            </p>
-            {(item.location ||
-              (item.latitude !== undefined && item.longitude !== undefined)) && (
-              <div
-                className="flex items-center gap-1"
-                style={{ color: "#8B9A8E" }}
-              >
-                <MapPin className="size-3" />
-                <span className="text-xs">
-                  {item.location || ""}
-                  {item.location &&
-                  item.latitude !== undefined &&
-                  item.longitude !== undefined
-                    ? " · "
-                    : ""}
-                  {item.latitude !== undefined && item.longitude !== undefined
-                    ? `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}`
-                    : ""}
-                </span>
-              </div>
-            )}
-            {item.description && (
-              <p
-                className="text-xs whitespace-pre-wrap"
-                style={{ color: "#6B7A6F" }}
-              >
-                {item.description}
+          ) : (
+            <>
+              <p className="text-sm text-[#ECEFEA]">
+                {item.title || "Untitled"}
               </p>
-            )}
-          </>
-        )}
-      </div>
+              {(item.location ||
+                (item.latitude !== undefined && item.longitude !== undefined)) && (
+                <div className="flex items-center gap-1 text-[#8B9A8E]">
+                  <MapPin className="size-3" />
+                  <span className="text-xs">
+                    {item.location || ""}
+                    {item.location &&
+                    item.latitude !== undefined &&
+                    item.longitude !== undefined
+                      ? " · "
+                      : ""}
+                    {item.latitude !== undefined && item.longitude !== undefined
+                      ? `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}`
+                      : ""}
+                  </span>
+                </div>
+              )}
+              {item.description && (
+                <p className="text-xs whitespace-pre-wrap text-[#6B7A6F]">
+                  {item.description}
+                </p>
+              )}
+            </>
+          )}
+        </form>
+      </FormProvider>
       <div className="flex items-center gap-1.5 shrink-0">
         {editing ? (
           <>
             <button
               type="button"
-              onClick={() => setEditing(false)}
-              className="text-xs px-2 py-1 rounded-full hover:bg-white/5"
-              style={{ color: "#8B9A8E" }}
+              onClick={handleCancel}
+              className="text-xs px-2 py-1 rounded-full hover:bg-white/5 text-[#8B9A8E]"
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={handleSave}
+              onClick={form.handleSubmit(onSave)}
               disabled={update.isPending}
-              className="season-transition inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full disabled:opacity-60"
-              style={{
-                backgroundColor: "var(--season-button)",
-                color: "#0B100D",
-              }}
+              className="season-transition inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full disabled:opacity-60 text-[#0B100D]"
+              style={{ backgroundColor: "var(--season-button)" }}
             >
               {update.isPending && <Loader2 className="size-3 animate-spin" />}
               Save
@@ -449,8 +412,7 @@ function ItemRow({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-xs px-2 py-1 rounded-full hover:bg-white/5"
-              style={{ color: "#8B9A8E" }}
+              className="text-xs px-2 py-1 rounded-full hover:bg-white/5 text-[#8B9A8E]"
             >
               Edit
             </button>
@@ -459,8 +421,7 @@ function ItemRow({
               onClick={() => remove.mutate({ id: tripId, itemId: item.id })}
               disabled={remove.isPending}
               aria-label="Delete"
-              className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60"
-              style={{ color: "#FCA5A5" }}
+              className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60 text-[#FCA5A5]"
             >
               {remove.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -474,28 +435,3 @@ function ItemRow({
     </div>
   );
 }
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-medium" style={{ color: "#8B9A8E" }}>
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  "w-full px-3 py-2 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]";
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "#161E19",
-  border: "1px solid #1F2A24",
-  color: "#ECEFEA",
-};

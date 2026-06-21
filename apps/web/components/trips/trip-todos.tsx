@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { GripVertical, Loader2, Plus, Tag, Trash2, X } from "lucide-react";
 import {
   DndContext,
@@ -20,6 +22,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { ControlledInput } from "@/components/ui/controlled-input";
+import { ControlledSelect } from "@/components/ui/controlled-select";
 import {
   errorMessage,
   useCreateTodo,
@@ -29,6 +33,10 @@ import {
   useUpdateTodo,
 } from "@/hooks/trip-hooks";
 import type { Todo, TodoPriority } from "@/lib/trip-api";
+import {
+  createTodoSchema,
+  type CreateTodoFormInput,
+} from "@/lib/trip-schemas";
 
 const PRIORITIES: TodoPriority[] = ["low", "normal", "high"];
 
@@ -45,10 +53,21 @@ export function TripTodos({ tripId }: { tripId: string }) {
   const create = useCreateTodo();
   const reorder = useReorderTodos();
 
-  const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState<TodoPriority>("normal");
+  const form = useForm<CreateTodoFormInput>({
+    resolver: zodResolver(createTodoSchema),
+    defaultValues: { title: "", priority: "normal", tags: [] },
+  });
+  const {
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = form;
+  const tags = watch("tags");
+  const titleValue = watch("title");
+
   const [tagDraft, setTagDraft] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<TodoPriority | null>(null);
   const [orderOverride, setOrderOverride] = useState<Todo[] | null>(null);
@@ -81,25 +100,20 @@ export function TripTodos({ tripId }: { tripId: string }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmed = title.trim();
-    if (!trimmed) return;
+  const onSubmit = (v: CreateTodoFormInput) => {
     create.mutate(
       {
         id: tripId,
         input: {
-          title: trimmed,
-          priority,
-          tags: tags.length ? tags : undefined,
+          title: v.title,
+          priority: v.priority,
+          tags: v.tags.length ? v.tags : undefined,
         },
       },
       {
         onSuccess: () => {
-          setTitle("");
-          setPriority("normal");
+          reset({ title: "", priority: "normal", tags: [] });
           setTagDraft("");
-          setTags([]);
         },
       },
     );
@@ -112,8 +126,16 @@ export function TripTodos({ tripId }: { tripId: string }) {
       setTagDraft("");
       return;
     }
-    setTags([...tags, t]);
+    setValue("tags", [...tags, t], { shouldValidate: true });
     setTagDraft("");
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setValue(
+      "tags",
+      tags.filter((t) => t !== tag),
+      { shouldValidate: true },
+    );
   };
 
   const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -121,7 +143,7 @@ export function TripTodos({ tripId }: { tripId: string }) {
       e.preventDefault();
       handleAddTag();
     } else if (e.key === "Backspace" && !tagDraft && tags.length) {
-      setTags(tags.slice(0, -1));
+      setValue("tags", tags.slice(0, -1), { shouldValidate: true });
     }
   };
 
@@ -141,64 +163,65 @@ export function TripTodos({ tripId }: { tripId: string }) {
 
   return (
     <section className="flex flex-col gap-4">
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-2.5 p-4 rounded-xl"
-        style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
-      >
-        <div className="flex items-center gap-2">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Add a task…"
-            className={`flex-1 ${inputClass}`}
-            style={inputStyle}
-          />
-          <PrioritySelect value={priority} onChange={setPriority} />
-          <button
-            type="submit"
-            disabled={create.isPending || !title.trim()}
-            className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
-            style={{
-              backgroundColor: "var(--season-button)",
-              color: "#0B100D",
-            }}
-          >
-            {create.isPending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Plus className="size-4" />
-            )}
-            Add
-          </button>
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {tags.map((t) => (
-            <TagChip
-              key={t}
-              tag={t}
-              onRemove={() => setTags(tags.filter((x) => x !== t))}
+      <FormProvider {...form}>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+          className="flex flex-col gap-2.5 p-4 rounded-xl bg-[#121814] border border-[#1F2A24]"
+        >
+          <div className="flex items-end gap-2">
+            <ControlledInput<CreateTodoFormInput>
+              name="title"
+              placeholder="Add a task…"
+              containerClassName="flex-1"
             />
-          ))}
-          <div className="flex items-center gap-1">
-            <Tag className="size-3" style={{ color: "#8B9A8E" }} />
-            <input
-              value={tagDraft}
-              onChange={(e) => setTagDraft(e.target.value)}
-              onKeyDown={handleTagKeyDown}
-              onBlur={handleAddTag}
-              placeholder="add tag"
-              className="text-xs bg-transparent outline-none"
-              style={{ color: "#ECEFEA", width: 90 }}
+            <ControlledSelect<CreateTodoFormInput>
+              name="priority"
+              aria-label="Priority"
+              options={PRIORITIES.map((p) => ({ value: p, label: p }))}
+              containerClassName="w-28"
             />
+            <button
+              type="submit"
+              disabled={create.isPending || !titleValue.trim()}
+              className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              style={{ backgroundColor: "var(--season-button)" }}
+            >
+              {create.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Plus className="size-4" />
+              )}
+              Add
+            </button>
           </div>
-        </div>
-        {create.isError && (
-          <p className="text-xs" style={{ color: "#FCA5A5" }}>
-            {errorMessage(create.error)}
-          </p>
-        )}
-      </form>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {tags.map((t) => (
+              <TagChip key={t} tag={t} onRemove={() => handleRemoveTag(t)} />
+            ))}
+            <div className="flex items-center gap-1">
+              <Tag className="size-3 text-[#8B9A8E]" />
+              <input
+                value={tagDraft}
+                onChange={(e) => setTagDraft(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                onBlur={handleAddTag}
+                placeholder="add tag"
+                className="text-xs bg-transparent outline-none text-[#ECEFEA]"
+                style={{ width: 90 }}
+              />
+            </div>
+          </div>
+          {errors.tags && (
+            <span className="text-[11px] text-[#FCA5A5]">
+              {errors.tags.message}
+            </span>
+          )}
+          {create.isError && (
+            <p className="text-xs text-[#FCA5A5]">{errorMessage(create.error)}</p>
+          )}
+        </form>
+      </FormProvider>
 
       {(tagOptions.length > 0 || todos.length > 0) && (
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -279,30 +302,6 @@ export function TripTodos({ tripId }: { tripId: string }) {
         </SortableContext>
       </DndContext>
     </section>
-  );
-}
-
-function PrioritySelect({
-  value,
-  onChange,
-}: {
-  value: TodoPriority;
-  onChange: (p: TodoPriority) => void;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value as TodoPriority)}
-      className="text-sm px-2 py-2 rounded-lg outline-none"
-      style={inputStyle}
-      aria-label="Priority"
-    >
-      {PRIORITIES.map((p) => (
-        <option key={p} value={p}>
-          {p}
-        </option>
-      ))}
-    </select>
   );
 }
 
@@ -481,10 +480,3 @@ function TodoRow({
   );
 }
 
-const inputClass =
-  "px-3 py-2 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]";
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "#161E19",
-  border: "1px solid #1F2A24",
-  color: "#ECEFEA",
-};

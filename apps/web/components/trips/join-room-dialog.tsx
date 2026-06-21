@@ -1,24 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 
+import { ControlledInput } from "@/components/ui/controlled-input";
 import { errorMessage, useJoinRoom } from "@/hooks/trip-hooks";
+import { joinRoomSchema, type JoinRoomFormInput } from "@/lib/trip-schemas";
 
 import { Modal } from "./modal";
 
 export function JoinRoomDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const join = useJoinRoom();
-  const [code, setCode] = useState("");
+  const form = useForm<JoinRoomFormInput>({
+    resolver: zodResolver(joinRoomSchema),
+    defaultValues: { code: "" },
+  });
+  const code = form.watch("code");
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmed = code.trim().toUpperCase();
-    if (!trimmed) return;
+  const onSubmit = (v: JoinRoomFormInput) => {
     join.mutate(
-      { code: trimmed },
+      { code: v.code },
       {
         onSuccess: (result) => {
           onClose();
@@ -28,62 +32,55 @@ export function JoinRoomDialog({ onClose }: { onClose: () => void }) {
     );
   };
 
+  const submitError = errorMessage(join.error);
+
   return (
     <Modal title="Join a trip" onClose={onClose}>
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
-          Enter the room code shared with you, or scan a friend&rsquo;s QR code.
-        </p>
+      <FormProvider {...form}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(onSubmit)}
+          noValidate
+        >
+          <p className="text-sm text-[#8B9A8E]">
+            Enter the room code shared with you, or scan a friend&rsquo;s QR
+            code.
+          </p>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium" style={{ color: "#8B9A8E" }}>
-            Room code
-          </span>
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
+          <ControlledInput<JoinRoomFormInput>
+            name="code"
+            label="Room code"
             placeholder="ABCD1234"
             maxLength={16}
             autoFocus
-            className="w-full px-3 py-2 rounded-lg text-sm uppercase tracking-widest outline-none focus:border-[color:var(--season-button)]"
-            style={{
-              backgroundColor: "#161E19",
-              border: "1px solid #1F2A24",
-              color: "#ECEFEA",
-            }}
+            className="uppercase tracking-widest"
           />
-        </label>
 
-        {join.isError && (
-          <p className="text-sm" style={{ color: "#FCA5A5" }}>
-            {errorMessage(join.error)}
-          </p>
-        )}
+          {submitError && (
+            <p className="text-sm text-[#FCA5A5]">{submitError}</p>
+          )}
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={join.isPending}
-            className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60"
-            style={{ color: "#8B9A8E" }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={join.isPending || !code.trim()}
-            className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
-            style={{
-              backgroundColor: "var(--season-button)",
-              color: "#0B100D",
-            }}
-          >
-            {join.isPending && <Loader2 className="size-3.5 animate-spin" />}
-            Join
-          </button>
-        </div>
-      </form>
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={join.isPending}
+              className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={join.isPending || !code.trim()}
+              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              style={{ backgroundColor: "var(--season-button)" }}
+            >
+              {join.isPending && <Loader2 className="size-3.5 animate-spin" />}
+              Join
+            </button>
+          </div>
+        </form>
+      </FormProvider>
     </Modal>
   );
 }
