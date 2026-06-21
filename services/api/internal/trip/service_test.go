@@ -285,6 +285,14 @@ func (r *repoMock) ListTodos(c context.Context, tid uuid.UUID) ([]trip.Todo, err
 	return nil, nil
 }
 
+func (r *repoMock) ReorderItinerary(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
+func (r *repoMock) ReorderTodos(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
 // ---- Helpers ----
 
 func newSvc(repo trip.IRepository) trip.IService {

@@ -111,6 +111,8 @@ type CreateItineraryPayload struct {
 	StartTime   *time.Time `json:"start_time"`
 	EndTime     *time.Time `json:"end_time"`
 	Location    string     `json:"location" binding:"max=200"`
+	Latitude    *float64   `json:"latitude" binding:"omitempty,min=-90,max=90"`
+	Longitude   *float64   `json:"longitude" binding:"omitempty,min=-180,max=180"`
 	SortOrder   int        `json:"sort_order"`
 }
 
@@ -121,7 +123,13 @@ type UpdateItineraryPayload struct {
 	StartTime   *time.Time `json:"start_time"`
 	EndTime     *time.Time `json:"end_time"`
 	Location    *string    `json:"location" binding:"omitempty,max=200"`
+	Latitude    *float64   `json:"latitude" binding:"omitempty,min=-90,max=90"`
+	Longitude   *float64   `json:"longitude" binding:"omitempty,min=-180,max=180"`
 	SortOrder   *int       `json:"sort_order"`
+}
+
+type ReorderItineraryPayload struct {
+	ItemIDs []string `json:"item_ids" binding:"required,dive,uuid"`
 }
 
 type ItineraryResponse struct {
@@ -133,6 +141,8 @@ type ItineraryResponse struct {
 	StartTime   *time.Time `json:"start_time,omitempty"`
 	EndTime     *time.Time `json:"end_time,omitempty"`
 	Location    string     `json:"location"`
+	Latitude    *float64   `json:"latitude,omitempty"`
+	Longitude   *float64   `json:"longitude,omitempty"`
 	SortOrder   int        `json:"sort_order"`
 	CreatedBy   string     `json:"created_by"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -145,6 +155,8 @@ type CreateTodoPayload struct {
 	Title      string     `json:"title" binding:"required,min=1,max=200"`
 	AssigneeID *string    `json:"assignee_id" binding:"omitempty,uuid"`
 	DueDate    *time.Time `json:"due_date"`
+	Priority   *string    `json:"priority" binding:"omitempty,oneof=low normal high"`
+	Tags       []string   `json:"tags" binding:"omitempty,max=10,dive,min=1,max=30"`
 }
 
 type UpdateTodoPayload struct {
@@ -152,6 +164,13 @@ type UpdateTodoPayload struct {
 	AssigneeID  *string    `json:"assignee_id" binding:"omitempty,uuid"`
 	IsCompleted *bool      `json:"is_completed"`
 	DueDate     *time.Time `json:"due_date"`
+	Priority    *string    `json:"priority" binding:"omitempty,oneof=low normal high"`
+	Tags        *[]string  `json:"tags" binding:"omitempty,max=10,dive,min=1,max=30"`
+	SortOrder   *int       `json:"sort_order"`
+}
+
+type ReorderTodosPayload struct {
+	TodoIDs []string `json:"todo_ids" binding:"required,dive,uuid"`
 }
 
 type TodoResponse struct {
@@ -161,6 +180,9 @@ type TodoResponse struct {
 	IsCompleted bool       `json:"is_completed"`
 	AssigneeID  *string    `json:"assignee_id,omitempty"`
 	DueDate     *time.Time `json:"due_date,omitempty"`
+	Priority    string     `json:"priority"`
+	Tags        []string   `json:"tags"`
+	SortOrder   int        `json:"sort_order"`
 	CreatedBy   string     `json:"created_by"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`

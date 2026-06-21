@@ -1,8 +1,9 @@
-// @title           TripApp API
+// @title           TripCraft API
 // @version         1.0
-// @description     Multi-person collaborative travel platform (modular monolith)
+// @description     Backend for TripCraft — a multi-person collaborative trip planner. Modular monolith (auth, friend, trip/room) on Postgres + Redis. JWT auth via httpOnly cookies + CSRF. Members collaborate inside rooms joined via room code (QR or raw). Trip status is derived from end_date — `completed` is auto-only and cannot be set manually.
 // @host            localhost:8080
 // @BasePath        /api/v1
+// @schemes         http https
 // @securityDefinitions.apikey BearerAuth
 // @in              header
 // @name            Authorization

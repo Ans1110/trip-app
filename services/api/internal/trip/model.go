@@ -4,7 +4,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
+)
+
+type TodoPriority string
+
+const (
+	TodoPriorityLow    TodoPriority = "low"
+	TodoPriorityNormal TodoPriority = "normal"
+	TodoPriorityHigh   TodoPriority = "high"
 )
 
 type TripStatus string
@@ -66,6 +75,8 @@ type Itinerary struct {
 	StartTime   *time.Time     `gorm:"column:start_time"`
 	EndTime     *time.Time     `gorm:"column:end_time"`
 	Location    string         `gorm:"column:location;not null;default:''"`
+	Latitude    *float64       `gorm:"column:latitude"`
+	Longitude   *float64       `gorm:"column:longitude"`
 	SortOrder   int            `gorm:"column:sort_order;not null;default:0"`
 	CreatedBy   uuid.UUID      `gorm:"type:uuid;column:created_by"`
 	CreatedAt   time.Time      `gorm:"column:created_at"`
@@ -82,6 +93,9 @@ type Todo struct {
 	Title       string         `gorm:"column:title;not null"`
 	IsCompleted bool           `gorm:"column:is_completed;not null;default:false"`
 	DueDate     *time.Time     `gorm:"column:due_date"`
+	Priority    TodoPriority   `gorm:"column:priority;not null;default:'normal'"`
+	Tags        pq.StringArray `gorm:"column:tags;type:text[]"`
+	SortOrder   int            `gorm:"column:sort_order;not null;default:0"`
 	CreatedBy   uuid.UUID      `gorm:"type:uuid;column:created_by"`
 	CreatedAt   time.Time      `gorm:"column:created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at"`

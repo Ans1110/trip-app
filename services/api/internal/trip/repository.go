@@ -48,6 +48,7 @@ type IRepository interface {
 	UpdateItinerary(ctx context.Context, id uuid.UUID, patch map[string]any) error
 	DeleteItinerary(ctx context.Context, id uuid.UUID) error
 	ListItinerary(ctx context.Context, tripID uuid.UUID) ([]Itinerary, error)
+	ReorderItinerary(ctx context.Context, tripID uuid.UUID, itemIDs []uuid.UUID) error
 
 	// Todo
 	CreateTodo(ctx context.Context, todo *Todo) error
@@ -55,6 +56,7 @@ type IRepository interface {
 	UpdateTodo(ctx context.Context, id uuid.UUID, patch map[string]any) error
 	DeleteTodo(ctx context.Context, id uuid.UUID) error
 	ListTodos(ctx context.Context, tripID uuid.UUID) ([]Todo, error)
+	ReorderTodos(ctx context.Context, tripID uuid.UUID, todoIDs []uuid.UUID) error
 }
 
 type repository struct {
@@ -356,6 +358,24 @@ func (r *repository) ListItinerary(ctx context.Context, tripID uuid.UUID) ([]Iti
 	return rows, err
 }
 
+// The trip_id guard prevents one trip's payload from
+// touching another trip's rows even if a malicious id slips through.
+func (r *repository) ReorderItinerary(ctx context.Context, tripID uuid.UUID, itemIDs []uuid.UUID) error {
+	if len(itemIDs) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for i, id := range itemIDs {
+			if err := tx.Model(&Itinerary{}).
+				Where("id = ? AND trip_id = ?", id, tripID).
+				Update("sort_order", i).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // ---- Todo ----
 
 func (r *repository) CreateTodo(ctx context.Context, t *Todo) error {
@@ -390,7 +410,23 @@ func (r *repository) ListTodos(ctx context.Context, tripID uuid.UUID) ([]Todo, e
 	var rows []Todo
 	err := r.db.WithContext(ctx).
 		Where("trip_id = ?", tripID).
-		Order("is_completed ASC, due_date ASC NULLS LAST, created_at DESC").
+		Order("is_completed ASC, sort_order ASC, due_date ASC NULLS LAST, created_at DESC").
 		Find(&rows).Error
 	return rows, err
+}
+
+func (r *repository) ReorderTodos(ctx context.Context, tripID uuid.UUID, todoIDs []uuid.UUID) error {
+	if len(todoIDs) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for i, id := range todoIDs {
+			if err := tx.Model(&Todo{}).
+				Where("id = ? AND trip_id = ?", id, tripID).
+				Update("sort_order", i).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

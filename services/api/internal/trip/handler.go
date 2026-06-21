@@ -35,12 +35,14 @@ type IHandler interface {
 	ListItinerary(c *gin.Context)
 	UpdateItinerary(c *gin.Context)
 	DeleteItinerary(c *gin.Context)
+	ReorderItinerary(c *gin.Context)
 
 	// Todos
 	CreateTodo(c *gin.Context)
 	ListTodos(c *gin.Context)
 	UpdateTodo(c *gin.Context)
 	DeleteTodo(c *gin.Context)
+	ReorderTodos(c *gin.Context)
 }
 
 type Handler struct {
@@ -74,11 +76,13 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 
 		trips.GET("/:id/itinerary", h.ListItinerary)
 		trips.POST("/:id/itinerary", h.CreateItinerary)
+		trips.POST("/:id/itinerary/reorder", h.ReorderItinerary)
 		trips.PATCH("/:id/itinerary/:item_id", h.UpdateItinerary)
 		trips.DELETE("/:id/itinerary/:item_id", h.DeleteItinerary)
 
 		trips.GET("/:id/todos", h.ListTodos)
 		trips.POST("/:id/todos", h.CreateTodo)
+		trips.POST("/:id/todos/reorder", h.ReorderTodos)
 		trips.PATCH("/:id/todos/:todo_id", h.UpdateTodo)
 		trips.DELETE("/:id/todos/:todo_id", h.DeleteTodo)
 	}
@@ -422,6 +426,33 @@ func (h *Handler) UpdateItinerary(c *gin.Context) {
 	response.OK(c, out)
 }
 
+// ReorderItinerary godoc
+// @Summary  Reorder itinerary items within a trip (room member only)
+// @Tags     trips,itinerary
+// @Security BearerAuth
+// @Accept   json
+// @Produce  json
+// @Param    id    path  string                    true  "trip id"
+// @Param    body  body  ReorderItineraryPayload   true  "ordered item ids"
+// @Success  200   {object}  response.Response
+// @Router   /trips/{id}/itinerary/reorder [post]
+func (h *Handler) ReorderItinerary(c *gin.Context) {
+	uid, tripID, ok := h.bindUserAndTrip(c)
+	if !ok {
+		return
+	}
+	var p ReorderItineraryPayload
+	if err := c.ShouldBindJSON(&p); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if err := h.svc.ReorderItinerary(c.Request.Context(), uid, tripID, p); err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
 func (h *Handler) DeleteItinerary(c *gin.Context) {
 	uid, tripID, ok := h.bindUserAndTrip(c)
 	if !ok {
@@ -493,6 +524,33 @@ func (h *Handler) UpdateTodo(c *gin.Context) {
 		return
 	}
 	response.OK(c, out)
+}
+
+// ReorderTodos godoc
+// @Summary  Reorder todos within a trip (room member only)
+// @Tags     trips,todos
+// @Security BearerAuth
+// @Accept   json
+// @Produce  json
+// @Param    id    path  string                true  "trip id"
+// @Param    body  body  ReorderTodosPayload   true  "ordered todo ids"
+// @Success  200   {object}  response.Response
+// @Router   /trips/{id}/todos/reorder [post]
+func (h *Handler) ReorderTodos(c *gin.Context) {
+	uid, tripID, ok := h.bindUserAndTrip(c)
+	if !ok {
+		return
+	}
+	var p ReorderTodosPayload
+	if err := c.ShouldBindJSON(&p); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if err := h.svc.ReorderTodos(c.Request.Context(), uid, tripID, p); err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
 }
 
 func (h *Handler) DeleteTodo(c *gin.Context) {

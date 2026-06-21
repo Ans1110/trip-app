@@ -216,11 +216,15 @@ export type ItineraryView = {
   start_time?: string;
   end_time?: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   sort_order: number;
   created_by: string;
   created_at: string;
   updated_at: string;
 };
+
+export type TodoPriorityView = "low" | "normal" | "high";
 
 export type TodoView = {
   id: string;
@@ -229,6 +233,9 @@ export type TodoView = {
   is_completed: boolean;
   assignee_id?: string;
   due_date?: string;
+  priority: TodoPriorityView;
+  tags: string[];
+  sort_order: number;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -302,6 +309,8 @@ export const toItineraryView = (
   start_time: i.start_time,
   end_time: i.end_time,
   location: i.location,
+  latitude: i.latitude,
+  longitude: i.longitude,
   sort_order: i.sort_order,
   created_by: i.created_by,
   created_at: i.created_at,
@@ -315,6 +324,9 @@ export const toTodoView = (t: UpstreamTodoResponse): TodoView => ({
   is_completed: t.is_completed,
   assignee_id: t.assignee_id,
   due_date: t.due_date,
+  priority: t.priority ?? "normal",
+  tags: t.tags ?? [],
+  sort_order: t.sort_order ?? 0,
   created_by: t.created_by,
   created_at: t.created_at,
   updated_at: t.updated_at,

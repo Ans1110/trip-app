@@ -7,6 +7,8 @@ import type {
   CreateTodoInput,
   CreateTripInput,
   ListTripsQueryInput,
+  ReorderItineraryInput,
+  ReorderTodosInput,
   UpdateItineraryInput,
   UpdateTodoInput,
   UpdateTripInput,
@@ -107,12 +109,36 @@ const matchPost = (slug: string[]): Dispatch | null => {
       );
     };
   }
+  // POST /trips/:id/itinerary/reorder
+  if (slug.length === 3 && slug[1] === "itinerary" && slug[2] === "reorder") {
+    return async (req, auth) => {
+      const body = await readJson(req);
+      if (body instanceof Response) return responseToResult(body);
+      return tripClient.reorderItinerary(
+        slug[0],
+        body as ReorderItineraryInput,
+        auth,
+      );
+    };
+  }
   // POST /trips/:id/todos
   if (slug.length === 2 && slug[1] === "todos") {
     return async (req, auth) => {
       const body = await readJson(req);
       if (body instanceof Response) return responseToResult(body);
       return tripClient.createTodo(slug[0], body as CreateTodoInput, auth);
+    };
+  }
+  // POST /trips/:id/todos/reorder
+  if (slug.length === 3 && slug[1] === "todos" && slug[2] === "reorder") {
+    return async (req, auth) => {
+      const body = await readJson(req);
+      if (body instanceof Response) return responseToResult(body);
+      return tripClient.reorderTodos(
+        slug[0],
+        body as ReorderTodosInput,
+        auth,
+      );
     };
   }
   return null;

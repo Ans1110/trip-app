@@ -73,11 +73,15 @@ export type Itinerary = {
   start_time?: string;
   end_time?: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   sort_order: number;
   created_by: string;
   created_at: string;
   updated_at: string;
 };
+
+export type TodoPriority = "low" | "normal" | "high";
 
 export type Todo = {
   id: string;
@@ -86,6 +90,9 @@ export type Todo = {
   is_completed: boolean;
   assignee_id?: string;
   due_date?: string;
+  priority: TodoPriority;
+  tags: string[];
+  sort_order: number;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -125,6 +132,8 @@ export type CreateItineraryInput = {
   start_time?: string;
   end_time?: string;
   location?: string;
+  latitude?: number;
+  longitude?: number;
   sort_order?: number;
 };
 
@@ -135,13 +144,19 @@ export type UpdateItineraryInput = {
   start_time?: string | null;
   end_time?: string | null;
   location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   sort_order?: number;
 };
+
+export type ReorderItineraryInput = { item_ids: string[] };
 
 export type CreateTodoInput = {
   title: string;
   assignee_id?: string;
   due_date?: string;
+  priority?: TodoPriority;
+  tags?: string[];
 };
 
 export type UpdateTodoInput = {
@@ -149,7 +164,12 @@ export type UpdateTodoInput = {
   assignee_id?: string | null;
   is_completed?: boolean;
   due_date?: string | null;
+  priority?: TodoPriority;
+  tags?: string[];
+  sort_order?: number;
 };
+
+export type ReorderTodosInput = { todo_ids: string[] };
 
 type Envelope<T> = { code: number; message: string; data: T | null };
 
@@ -271,6 +291,15 @@ export const tripApi = {
       `/api/trips/${encodeURIComponent(id)}/itinerary/${encodeURIComponent(itemId)}`,
       { method: "DELETE", signal },
     ),
+  reorderItinerary: (
+    id: string,
+    input: ReorderItineraryInput,
+    signal?: AbortSignal,
+  ) =>
+    request<null>(
+      `/api/trips/${encodeURIComponent(id)}/itinerary/reorder`,
+      { method: "POST", json: input, signal },
+    ),
 
   // Todos
   listTodos: (id: string, signal?: AbortSignal) =>
@@ -295,5 +324,14 @@ export const tripApi = {
     request<null>(
       `/api/trips/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`,
       { method: "DELETE", signal },
+    ),
+  reorderTodos: (
+    id: string,
+    input: ReorderTodosInput,
+    signal?: AbortSignal,
+  ) =>
+    request<null>(
+      `/api/trips/${encodeURIComponent(id)}/todos/reorder`,
+      { method: "POST", json: input, signal },
     ),
 };

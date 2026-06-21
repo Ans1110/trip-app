@@ -55,12 +55,14 @@ type IService interface {
 	ListItinerary(ctx context.Context, userID, tripID uuid.UUID) ([]ItineraryResponse, error)
 	UpdateItinerary(ctx context.Context, userID, tripID, itemID uuid.UUID, p UpdateItineraryPayload) (*ItineraryResponse, error)
 	DeleteItinerary(ctx context.Context, userID, tripID, itemID uuid.UUID) error
+	ReorderItinerary(ctx context.Context, userID, tripID uuid.UUID, p ReorderItineraryPayload) error
 
 	// Todos
 	CreateTodo(ctx context.Context, userID, tripID uuid.UUID, p CreateTodoPayload) (*TodoResponse, error)
 	ListTodos(ctx context.Context, userID, tripID uuid.UUID) ([]TodoResponse, error)
 	UpdateTodo(ctx context.Context, userID, tripID, todoID uuid.UUID, p UpdateTodoPayload) (*TodoResponse, error)
 	DeleteTodo(ctx context.Context, userID, tripID, todoID uuid.UUID) error
+	ReorderTodos(ctx context.Context, userID, tripID uuid.UUID, p ReorderTodosPayload) error
 }
 
 type ServiceConfig struct {
@@ -604,6 +606,8 @@ func (s *service) CreateItinerary(ctx context.Context, userID, tripID uuid.UUID,
 		StartTime:   p.StartTime,
 		EndTime:     p.EndTime,
 		Location:    p.Location,
+		Latitude:    p.Latitude,
+		Longitude:   p.Longitude,
 		SortOrder:   p.SortOrder,
 		CreatedBy:   userID,
 	}
@@ -672,6 +676,12 @@ func (s *service) UpdateItinerary(ctx context.Context, userID, tripID, itemID uu
 	if p.Location != nil {
 		patch["location"] = *p.Location
 	}
+	if p.Latitude != nil {
+		patch["latitude"] = *p.Latitude
+	}
+	if p.Longitude != nil {
+		patch["longitude"] = *p.Longitude
+	}
 	if p.SortOrder != nil {
 		patch["sort_order"] = *p.SortOrder
 	}
@@ -683,6 +693,28 @@ func (s *service) UpdateItinerary(ctx context.Context, userID, tripID, itemID uu
 		return nil, err
 	}
 	return itineraryToResponse(*updated), nil
+}
+
+func (s *service) ReorderItinerary(ctx context.Context, userID, tripID uuid.UUID, p ReorderItineraryPayload) error {
+	t, err := s.repo.FindTripByID(ctx, tripID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return ErrTripNotFound
+	}
+	if _, err := s.requireRoomMember(ctx, tripID, userID, t.OwnerID); err != nil {
+		return err
+	}
+	ids := make([]uuid.UUID, 0, len(p.ItemIDs))
+	for _, raw := range p.ItemIDs {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return ErrInvalidPayload
+		}
+		ids = append(ids, id)
+	}
+	return s.repo.ReorderItinerary(ctx, tripID, ids)
 }
 
 func (s *service) DeleteItinerary(ctx context.Context, userID, tripID, itemID uuid.UUID) error {
@@ -723,7 +755,12 @@ func (s *service) CreateTodo(ctx context.Context, userID, tripID uuid.UUID, p Cr
 		TripID:    tripID,
 		Title:     strings.TrimSpace(p.Title),
 		DueDate:   p.DueDate,
+		Priority:  TodoPriorityNormal,
+		Tags:      normalizeTags(p.Tags),
 		CreatedBy: userID,
+	}
+	if p.Priority != nil {
+		td.Priority = TodoPriority(*p.Priority)
 	}
 	if p.AssigneeID != nil {
 		aid, err := uuid.Parse(*p.AssigneeID)
@@ -804,6 +841,15 @@ func (s *service) UpdateTodo(ctx context.Context, userID, tripID, todoID uuid.UU
 		}
 		patch["assignee_id"] = aid
 	}
+	if p.Priority != nil {
+		patch["priority"] = *p.Priority
+	}
+	if p.Tags != nil {
+		patch["tags"] = normalizeTags(*p.Tags)
+	}
+	if p.SortOrder != nil {
+		patch["sort_order"] = *p.SortOrder
+	}
 	if err := s.repo.UpdateTodo(ctx, todoID, patch); err != nil {
 		return nil, err
 	}
@@ -812,6 +858,28 @@ func (s *service) UpdateTodo(ctx context.Context, userID, tripID, todoID uuid.UU
 		return nil, err
 	}
 	return todoToResponse(*updated), nil
+}
+
+func (s *service) ReorderTodos(ctx context.Context, userID, tripID uuid.UUID, p ReorderTodosPayload) error {
+	t, err := s.repo.FindTripByID(ctx, tripID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return ErrTripNotFound
+	}
+	if _, err := s.requireRoomMember(ctx, tripID, userID, t.OwnerID); err != nil {
+		return err
+	}
+	ids := make([]uuid.UUID, 0, len(p.TodoIDs))
+	for _, raw := range p.TodoIDs {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return ErrInvalidPayload
+		}
+		ids = append(ids, id)
+	}
+	return s.repo.ReorderTodos(ctx, tripID, ids)
 }
 
 func (s *service) DeleteTodo(ctx context.Context, userID, tripID, todoID uuid.UUID) error {
@@ -1059,6 +1127,8 @@ func itineraryToResponse(it Itinerary) *ItineraryResponse {
 		StartTime:   it.StartTime,
 		EndTime:     it.EndTime,
 		Location:    it.Location,
+		Latitude:    it.Latitude,
+		Longitude:   it.Longitude,
 		SortOrder:   it.SortOrder,
 		CreatedBy:   it.CreatedBy.String(),
 		CreatedAt:   it.CreatedAt,
@@ -1067,12 +1137,23 @@ func itineraryToResponse(it Itinerary) *ItineraryResponse {
 }
 
 func todoToResponse(td Todo) *TodoResponse {
+	priority := string(td.Priority)
+	if priority == "" {
+		priority = string(TodoPriorityNormal)
+	}
+	tags := []string(td.Tags)
+	if tags == nil {
+		tags = []string{}
+	}
 	resp := &TodoResponse{
 		ID:          td.ID.String(),
 		TripID:      td.TripID.String(),
 		Title:       td.Title,
 		IsCompleted: td.IsCompleted,
 		DueDate:     td.DueDate,
+		Priority:    priority,
+		Tags:        tags,
+		SortOrder:   td.SortOrder,
 		CreatedBy:   td.CreatedBy.String(),
 		CreatedAt:   td.CreatedAt,
 		UpdatedAt:   td.UpdatedAt,
@@ -1082,4 +1163,27 @@ func todoToResponse(td Todo) *TodoResponse {
 		resp.AssigneeID = &s
 	}
 	return resp
+}
+
+// normalizeTags trims whitespace, drops empties, lowercases, and de-duplicates
+// while preserving first-seen order. Keeps tag storage canonical so filtering
+// in the UI is stable.
+func normalizeTags(raw []string) []string {
+	if len(raw) == 0 {
+		return []string{}
+	}
+	seen := make(map[string]struct{}, len(raw))
+	out := make([]string, 0, len(raw))
+	for _, t := range raw {
+		v := strings.ToLower(strings.TrimSpace(t))
+		if v == "" {
+			continue
+		}
+		if _, dup := seen[v]; dup {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
 }

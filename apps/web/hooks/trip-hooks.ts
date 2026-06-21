@@ -18,6 +18,8 @@ import {
   type JoinRoomInput,
   type JoinRoomResult,
   type ListTripsQuery,
+  type ReorderItineraryInput,
+  type ReorderTodosInput,
   type Room,
   type RoomPreview,
   type Todo,
@@ -250,6 +252,22 @@ export function useDeleteItinerary(
   });
 }
 
+type ReorderItineraryVars = { id: string; input: ReorderItineraryInput };
+
+export function useReorderItinerary(
+  options?: MutOpts<null, ReorderItineraryVars>,
+) {
+  const qc = useQueryClient();
+  return useMutation<null, ApiError, ReorderItineraryVars>({
+    mutationFn: ({ id, input }) => tripApi.reorderItinerary(id, input),
+    ...options,
+    onSuccess: (data, vars, ...rest) => {
+      qc.invalidateQueries({ queryKey: tripKeys.itinerary(vars.id) });
+      return options?.onSuccess?.(data, vars, ...rest);
+    },
+  });
+}
+
 // ---- Todos ----
 
 export function useTodos(
@@ -299,6 +317,20 @@ export function useDeleteTodo(options?: MutOpts<null, DeleteTodoVars>) {
   const qc = useQueryClient();
   return useMutation<null, ApiError, DeleteTodoVars>({
     mutationFn: ({ id, todoId }) => tripApi.deleteTodo(id, todoId),
+    ...options,
+    onSuccess: (data, vars, ...rest) => {
+      qc.invalidateQueries({ queryKey: tripKeys.todos(vars.id) });
+      return options?.onSuccess?.(data, vars, ...rest);
+    },
+  });
+}
+
+type ReorderTodosVars = { id: string; input: ReorderTodosInput };
+
+export function useReorderTodos(options?: MutOpts<null, ReorderTodosVars>) {
+  const qc = useQueryClient();
+  return useMutation<null, ApiError, ReorderTodosVars>({
+    mutationFn: ({ id, input }) => tripApi.reorderTodos(id, input),
     ...options,
     onSuccess: (data, vars, ...rest) => {
       qc.invalidateQueries({ queryKey: tripKeys.todos(vars.id) });

@@ -214,6 +214,8 @@ export type UpstreamItineraryResponse = {
   start_time?: string;
   end_time?: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   sort_order: number;
   created_by: string;
   created_at: string;
@@ -227,6 +229,8 @@ export type UpstreamCreateItineraryPayload = {
   start_time?: string;
   end_time?: string;
   location?: string;
+  latitude?: number;
+  longitude?: number;
   sort_order?: number;
 };
 
@@ -237,8 +241,16 @@ export type UpstreamUpdateItineraryPayload = {
   start_time?: string | null;
   end_time?: string | null;
   location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   sort_order?: number;
 };
+
+export type UpstreamReorderItineraryPayload = {
+  item_ids: string[];
+};
+
+export type UpstreamTodoPriority = "low" | "normal" | "high";
 
 export type UpstreamTodoResponse = {
   id: string;
@@ -247,6 +259,9 @@ export type UpstreamTodoResponse = {
   is_completed: boolean;
   assignee_id?: string;
   due_date?: string;
+  priority: UpstreamTodoPriority;
+  tags: string[];
+  sort_order: number;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -256,6 +271,8 @@ export type UpstreamCreateTodoPayload = {
   title: string;
   assignee_id?: string;
   due_date?: string;
+  priority?: UpstreamTodoPriority;
+  tags?: string[];
 };
 
 export type UpstreamUpdateTodoPayload = {
@@ -263,4 +280,11 @@ export type UpstreamUpdateTodoPayload = {
   assignee_id?: string | null;
   is_completed?: boolean;
   due_date?: string | null;
+  priority?: UpstreamTodoPriority;
+  tags?: string[];
+  sort_order?: number;
+};
+
+export type UpstreamReorderTodosPayload = {
+  todo_ids: string[];
 };

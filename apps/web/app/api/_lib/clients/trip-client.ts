@@ -32,6 +32,8 @@ import {
   UpstreamJoinRoomPayload,
   UpstreamJoinRoomResponse,
   UpstreamListTripsQuery,
+  UpstreamReorderItineraryPayload,
+  UpstreamReorderTodosPayload,
   UpstreamRoomPreview,
   UpstreamRoomResponse,
   UpstreamTodoResponse,
@@ -47,8 +49,10 @@ export type ListTripsQueryInput = UpstreamListTripsQuery;
 export type JoinRoomInput = UpstreamJoinRoomPayload;
 export type CreateItineraryInput = UpstreamCreateItineraryPayload;
 export type UpdateItineraryInput = UpstreamUpdateItineraryPayload;
+export type ReorderItineraryInput = UpstreamReorderItineraryPayload;
 export type CreateTodoInput = UpstreamCreateTodoPayload;
 export type UpdateTodoInput = UpstreamUpdateTodoPayload;
+export type ReorderTodosInput = UpstreamReorderTodosPayload;
 
 export type {
   ItineraryView,
@@ -266,6 +270,20 @@ export class TripClient {
     );
   }
 
+  async reorderItinerary(
+    tripID: string,
+    input: ReorderItineraryInput,
+    auth: AuthCtx,
+  ): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.post<null>(
+        `/trips/${encodeURIComponent(tripID)}/itinerary/reorder`,
+        input,
+        opts,
+      ),
+    );
+  }
+
   // ---- Todos ----
 
   async listTodos(
@@ -320,6 +338,20 @@ export class TripClient {
     return this.callProtected<null>(auth, (opts) =>
       this.http.delete<null>(
         `/trips/${encodeURIComponent(tripID)}/todos/${encodeURIComponent(todoID)}`,
+        opts,
+      ),
+    );
+  }
+
+  async reorderTodos(
+    tripID: string,
+    input: ReorderTodosInput,
+    auth: AuthCtx,
+  ): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.post<null>(
+        `/trips/${encodeURIComponent(tripID)}/todos/reorder`,
+        input,
         opts,
       ),
     );
