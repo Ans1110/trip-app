@@ -3,6 +3,7 @@
 import { Loader2, ShieldOff, Trash2, UserPlus2 } from "lucide-react";
 import { useState } from "react";
 
+import { Input } from "@/components/ui/input";
 import { useMe } from "@/hooks/auth-hooks";
 import {
   errorMessage,
@@ -71,17 +72,12 @@ function SearchPanel({
       <h3 className="text-sm font-medium" style={{ color: "#8B9A8E" }}>
         Find people
       </h3>
-      <input
+      <Input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search by name or email"
-        className="season-transition px-4 py-3 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]"
-        style={{
-          backgroundColor: "#161E19",
-          border: "1px solid #1F2A24",
-          color: "#ECEFEA",
-        }}
+        className="px-4 py-3"
       />
       {showResults && (
         <div className="flex flex-col gap-2 mt-1">

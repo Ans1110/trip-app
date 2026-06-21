@@ -16,6 +16,7 @@ type ControlledTextareaProps<T extends FieldValues> = {
   label?: string;
   hint?: string;
   containerClassName?: string;
+  labelClassName?: string;
 } & Omit<React.ComponentProps<"textarea">, "name">;
 
 function ControlledTextarea<T extends FieldValues>({
@@ -23,13 +24,18 @@ function ControlledTextarea<T extends FieldValues>({
   label,
   hint,
   containerClassName,
+  labelClassName,
   className,
   ...props
 }: ControlledTextareaProps<T>) {
   const { control } = useFormContext<T>();
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
-      {label && <Label htmlFor={name}>{label}</Label>}
+      {label && (
+        <Label htmlFor={name} className={labelClassName}>
+          {label}
+        </Label>
+      )}
       <Controller
         control={control}
         name={name}

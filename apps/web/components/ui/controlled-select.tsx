@@ -23,6 +23,7 @@ type ControlledSelectProps<T extends FieldValues> = {
   options: SelectOption[];
   placeholder?: string;
   containerClassName?: string;
+  labelClassName?: string;
 } & Omit<React.ComponentProps<"select">, "name" | "children">;
 
 function ControlledSelect<T extends FieldValues>({
@@ -32,13 +33,18 @@ function ControlledSelect<T extends FieldValues>({
   options,
   placeholder,
   containerClassName,
+  labelClassName,
   className,
   ...props
 }: ControlledSelectProps<T>) {
   const { control } = useFormContext<T>();
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
-      {label && <Label htmlFor={name}>{label}</Label>}
+      {label && (
+        <Label htmlFor={name} className={labelClassName}>
+          {label}
+        </Label>
+      )}
       <Controller
         control={control}
         name={name}

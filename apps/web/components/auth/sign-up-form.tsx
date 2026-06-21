@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, CheckCircle2, Loader2, MailCheck } from "lucide-react";
 
+import { ControlledInput } from "@/components/ui/controlled-input";
 import { signUpSchema, type SignUpInput } from "@/lib/auth-schemas";
 import {
   errorMessage,
@@ -12,13 +13,12 @@ import {
   useSignUp,
 } from "@/hooks/auth-hooks";
 
+const AUTH_LABEL = "text-[11px] tracking-[0.2em] uppercase";
+const AUTH_INPUT = "px-4 py-3";
+
 export function SignUpForm() {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SignUpInput>({
+  const form = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
@@ -38,114 +38,75 @@ export function SignUpForm() {
   const submitError = errorMessage(mutation.error);
 
   return (
-    <form
-      onSubmit={handleSubmit((v) => mutation.mutate(v))}
-      className="flex flex-col gap-5"
-      noValidate
-    >
-      <Field
-        id="name"
-        label="Name"
-        type="text"
-        autoComplete="name"
-        error={errors.name?.message}
-        {...register("name")}
-      />
-      <Field
-        id="email"
-        label="Email"
-        type="email"
-        autoComplete="email"
-        error={errors.email?.message}
-        {...register("email")}
-      />
-      <Field
-        id="password"
-        label="Password"
-        type="password"
-        autoComplete="new-password"
-        hint="At least 8 characters."
-        error={errors.password?.message}
-        {...register("password")}
-      />
-
-      {submitError && (
-        <p
-          className="text-sm rounded-lg px-3 py-2"
-          style={{
-            color: "#FCA5A5",
-            backgroundColor: "rgba(220,38,38,0.08)",
-            border: "1px solid rgba(220,38,38,0.25)",
-          }}
-          role="alert"
-        >
-          {submitError}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={mutation.isPending}
-        className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
-        style={{
-          backgroundColor: "var(--season-button)",
-          color: "#0B100D",
-          boxShadow: "0 8px 24px var(--season-button-shadow)",
-        }}
+    <FormProvider {...form}>
+      <form
+        onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
+        className="flex flex-col gap-5"
+        noValidate
       >
-        {mutation.isPending ? (
-          <>
-            <Loader2 className="size-4 animate-spin" />
-            Creating account
-          </>
-        ) : (
-          <>
-            Create account <ArrowRight className="size-4" />
-          </>
+        <ControlledInput<SignUpInput>
+          name="name"
+          label="Name"
+          type="text"
+          autoComplete="name"
+          labelClassName={AUTH_LABEL}
+          className={AUTH_INPUT}
+        />
+        <ControlledInput<SignUpInput>
+          name="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          labelClassName={AUTH_LABEL}
+          className={AUTH_INPUT}
+        />
+        <ControlledInput<SignUpInput>
+          name="password"
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          hint="At least 8 characters."
+          labelClassName={AUTH_LABEL}
+          className={AUTH_INPUT}
+        />
+
+        {submitError && (
+          <p
+            className="text-sm rounded-lg px-3 py-2"
+            style={{
+              color: "#FCA5A5",
+              backgroundColor: "rgba(220,38,38,0.08)",
+              border: "1px solid rgba(220,38,38,0.25)",
+            }}
+            role="alert"
+          >
+            {submitError}
+          </p>
         )}
-      </button>
-    </form>
-  );
-}
 
-type FieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  id: string;
-  label: string;
-  hint?: string;
-  error?: string;
-};
-
-function Field({ id, label, hint, error, ...input }: FieldProps) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={id}
-        className="text-[11px] tracking-[0.2em] uppercase font-medium"
-        style={{ color: "#8B9A8E" }}
-      >
-        {label}
-      </label>
-      <input
-        id={id}
-        {...input}
-        className="season-transition px-4 py-3 rounded-lg text-sm outline-none focus:border-[color:var(--season-button)]"
-        style={{
-          backgroundColor: "#161E19",
-          border: `1px solid ${error ? "rgba(220,38,38,0.4)" : "#1F2A24"}`,
-          color: "#ECEFEA",
-        }}
-        aria-invalid={error ? true : undefined}
-      />
-      {error ? (
-        <p className="text-[11px]" style={{ color: "#FCA5A5" }}>
-          {error}
-        </p>
-      ) : hint ? (
-        <p className="text-[11px]" style={{ color: "#6B7A6F" }}>
-          {hint}
-        </p>
-      ) : null}
-    </div>
+        <button
+          type="submit"
+          disabled={mutation.isPending}
+          className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
+          style={{
+            backgroundColor: "var(--season-button)",
+            color: "#0B100D",
+            boxShadow: "0 8px 24px var(--season-button-shadow)",
+          }}
+        >
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Creating account
+            </>
+          ) : (
+            <>
+              Create account <ArrowRight className="size-4" />
+            </>
+          )}
+        </button>
+      </form>
+    </FormProvider>
   );
 }
 

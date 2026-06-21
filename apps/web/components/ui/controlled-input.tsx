@@ -16,6 +16,8 @@ type ControlledInputProps<T extends FieldValues> = {
   label?: string;
   hint?: string;
   containerClassName?: string;
+  labelClassName?: string;
+  labelTrailing?: React.ReactNode;
   valueAsNumber?: boolean;
 } & Omit<React.ComponentProps<"input">, "name">;
 
@@ -24,6 +26,8 @@ function ControlledInput<T extends FieldValues>({
   label,
   hint,
   containerClassName,
+  labelClassName,
+  labelTrailing,
   valueAsNumber,
   className,
   type,
@@ -32,7 +36,18 @@ function ControlledInput<T extends FieldValues>({
   const { control } = useFormContext<T>();
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
-      {label && <Label htmlFor={name}>{label}</Label>}
+      {(label || labelTrailing) && (
+        <div className="flex items-center justify-between">
+          {label ? (
+            <Label htmlFor={name} className={labelClassName}>
+              {label}
+            </Label>
+          ) : (
+            <span />
+          )}
+          {labelTrailing}
+        </div>
+      )}
       <Controller
         control={control}
         name={name}
