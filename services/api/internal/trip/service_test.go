@@ -293,6 +293,34 @@ func (r *repoMock) ReorderTodos(_ context.Context, _ uuid.UUID, _ []uuid.UUID) e
 	return nil
 }
 
+func (r *repoMock) IsRoomMember(_ context.Context, _ uuid.UUID, _ uuid.UUID) (bool, error) {
+	return false, nil
+}
+
+func (r *repoMock) UpdateItineraryWithVersion(_ context.Context, _ uuid.UUID, _ int, _ map[string]any, _ *trip.EventMeta) (*trip.Itinerary, error) {
+	return nil, nil
+}
+
+func (r *repoMock) UpdateTodoWithVersion(_ context.Context, _ uuid.UUID, _ int, _ map[string]any, _ *trip.EventMeta) (*trip.Todo, error) {
+	return nil, nil
+}
+
+func (r *repoMock) EnqueueOutbox(_ context.Context, _ *trip.Outbox) error {
+	return nil
+}
+
+func (r *repoMock) ClaimOutbox(_ context.Context, _ int) ([]trip.Outbox, error) {
+	return nil, nil
+}
+
+func (r *repoMock) MarkOutboxDispatched(_ context.Context, _ []uuid.UUID) error {
+	return nil
+}
+
+func (r *repoMock) RecordOutboxFailure(_ context.Context, _ uuid.UUID, _ string) error {
+	return nil
+}
+
 // ---- Helpers ----
 
 func newSvc(repo trip.IRepository) trip.IService {

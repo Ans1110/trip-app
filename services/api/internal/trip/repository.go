@@ -2,6 +2,7 @@ package trip
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -9,7 +10,12 @@ import (
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+// ErrStaleVersion is returned by *WithVersion repo methods when the caller's
+// `expectedVersion` does not match the row's current version (LWW conflict).
+var ErrStaleVersion = errors.New("stale version")
 
 type IRepository interface {
 	WithTx(ctx context.Context, fn func(IRepository) error) error
@@ -41,11 +47,13 @@ type IRepository interface {
 	ListMembers(ctx context.Context, roomID uuid.UUID) ([]RoomMember, error)
 	FindMemberByTrip(ctx context.Context, tripID, userID uuid.UUID) (*RoomMember, error)
 	CountRoomMembers(ctx context.Context, roomID uuid.UUID) (int, error)
+	IsRoomMember(ctx context.Context, tripID, userID uuid.UUID) (bool, error)
 
 	// Itinerary
 	CreateItinerary(ctx context.Context, it *Itinerary) error
 	FindItineraryByID(ctx context.Context, id uuid.UUID) (*Itinerary, error)
 	UpdateItinerary(ctx context.Context, id uuid.UUID, patch map[string]any) error
+	UpdateItineraryWithVersion(ctx context.Context, id uuid.UUID, expectedVersion int, patch map[string]any, event *EventMeta) (*Itinerary, error)
 	DeleteItinerary(ctx context.Context, id uuid.UUID) error
 	ListItinerary(ctx context.Context, tripID uuid.UUID) ([]Itinerary, error)
 	ReorderItinerary(ctx context.Context, tripID uuid.UUID, itemIDs []uuid.UUID) error
@@ -54,9 +62,16 @@ type IRepository interface {
 	CreateTodo(ctx context.Context, todo *Todo) error
 	FindTodoByID(ctx context.Context, id uuid.UUID) (*Todo, error)
 	UpdateTodo(ctx context.Context, id uuid.UUID, patch map[string]any) error
+	UpdateTodoWithVersion(ctx context.Context, id uuid.UUID, expectedVersion int, patch map[string]any, event *EventMeta) (*Todo, error)
 	DeleteTodo(ctx context.Context, id uuid.UUID) error
 	ListTodos(ctx context.Context, tripID uuid.UUID) ([]Todo, error)
 	ReorderTodos(ctx context.Context, tripID uuid.UUID, todoIDs []uuid.UUID) error
+
+	// Outbox
+	EnqueueOutbox(ctx context.Context, entry *Outbox) error
+	ClaimOutbox(ctx context.Context, limit int) ([]Outbox, error)
+	MarkOutboxDispatched(ctx context.Context, ids []uuid.UUID) error
+	RecordOutboxFailure(ctx context.Context, id uuid.UUID, errMsg string) error
 }
 
 type repository struct {
@@ -146,9 +161,6 @@ func (r *repository) ListTrips(ctx context.Context, userID uuid.UUID, q ListTrip
 		limit = 20
 	}
 
-	// Trips where I'm the owner OR I have a room_members row.
-	// trip.owner_id covers the owner case directly; for membership we join
-	// through rooms → room_members.
 	tx := r.db.WithContext(ctx).
 		Model(&Trip{}).
 		Distinct("trip.trip.*").
@@ -320,6 +332,19 @@ func (r *repository) CountRoomMembers(ctx context.Context, roomID uuid.UUID) (in
 	return int(n), err
 }
 
+func (r *repository) IsRoomMember(ctx context.Context, tripID, userID uuid.UUID) (bool, error) {
+	var n int64
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT COUNT(*) FROM (
+			SELECT 1 FROM trip.trip WHERE id = ? AND owner_id = ? AND deleted_at IS NULL
+			UNION ALL
+			SELECT 1 FROM trip.room_members rm
+			  JOIN trip.rooms r ON r.id = rm.room_id
+			 WHERE r.trip_id = ? AND rm.user_id = ?
+		) AS x`, tripID, userID, tripID, userID).Scan(&n).Error
+	return n > 0, err
+}
+
 // ---- Itinerary ----
 
 func (r *repository) CreateItinerary(ctx context.Context, it *Itinerary) error {
@@ -344,6 +369,55 @@ func (r *repository) UpdateItinerary(ctx context.Context, id uuid.UUID, patch ma
 	}
 	patch["updated_at"] = time.Now()
 	return r.db.WithContext(ctx).Model(&Itinerary{}).Where("id = ?", id).Updates(patch).Error
+}
+
+func (r *repository) UpdateItineraryWithVersion(ctx context.Context, id uuid.UUID, expectedVersion int, patch map[string]any, event *EventMeta) (*Itinerary, error) {
+	var updated Itinerary
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		u, err := updateItineraryReturning(tx, id, expectedVersion, patch)
+		if err != nil {
+			return err
+		}
+		updated = *u
+		if event == nil {
+			return nil
+		}
+		return insertOutboxRow(tx, event, updated.TripID, updated.Version, &updated)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &updated, nil
+}
+
+func updateItineraryReturning(db *gorm.DB, id uuid.UUID, expectedVersion int, patch map[string]any) (*Itinerary, error) {
+	cp := make(map[string]any, len(patch)+2)
+	for k, v := range patch {
+		cp[k] = v
+	}
+	cp["version"] = gorm.Expr("version + 1")
+	cp["updated_at"] = time.Now()
+
+	var updated Itinerary
+	res := db.Model(&updated).
+		Clauses(clause.Returning{}).
+		Where("id = ? AND version = ?", id, expectedVersion).
+		Updates(cp)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		var probe Itinerary
+		err := db.Select("id").First(&probe, "id = ?", id).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrItineraryNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		return nil, ErrStaleVersion
+	}
+	return &updated, nil
 }
 
 func (r *repository) DeleteItinerary(ctx context.Context, id uuid.UUID) error {
@@ -400,6 +474,134 @@ func (r *repository) UpdateTodo(ctx context.Context, id uuid.UUID, patch map[str
 	}
 	patch["updated_at"] = time.Now()
 	return r.db.WithContext(ctx).Model(&Todo{}).Where("id = ?", id).Updates(patch).Error
+}
+
+func (r *repository) UpdateTodoWithVersion(ctx context.Context, id uuid.UUID, expectedVersion int, patch map[string]any, event *EventMeta) (*Todo, error) {
+	var updated Todo
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		u, err := updateTodoReturning(tx, id, expectedVersion, patch)
+		if err != nil {
+			return err
+		}
+		updated = *u
+		if event == nil {
+			return nil
+		}
+		return insertOutboxRow(tx, event, updated.TripID, updated.Version, &updated)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &updated, nil
+}
+
+// updateTodoReturning mirrors updateItineraryReturning for todos.
+func updateTodoReturning(db *gorm.DB, id uuid.UUID, expectedVersion int, patch map[string]any) (*Todo, error) {
+	cp := make(map[string]any, len(patch)+2)
+	for k, v := range patch {
+		cp[k] = v
+	}
+	cp["version"] = gorm.Expr("version + 1")
+	cp["updated_at"] = time.Now()
+
+	var updated Todo
+	res := db.Model(&updated).
+		Clauses(clause.Returning{}).
+		Where("id = ? AND version = ?", id, expectedVersion).
+		Updates(cp)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		var probe Todo
+		err := db.Select("id").First(&probe, "id = ?", id).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrTodoNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		return nil, ErrStaleVersion
+	}
+	return &updated, nil
+}
+
+func insertOutboxRow(tx *gorm.DB, event *EventMeta, tripID uuid.UUID, version int, entity any) error {
+	data, err := json.Marshal(entity)
+	if err != nil {
+		return err
+	}
+	payload, err := json.Marshal(OutboxEvent{
+		OpType:  event.OpType,
+		TripID:  tripID,
+		UserID:  event.UserID,
+		Version: version,
+		TraceID: event.TraceID,
+		Data:    data,
+	})
+	if err != nil {
+		return err
+	}
+	return tx.Create(&Outbox{
+		AggregateID: tripID,
+		Stream:      event.Stream,
+		TraceID:     event.TraceID,
+		Payload:     payload,
+	}).Error
+}
+
+// ---- Outbox ----
+
+func (r *repository) EnqueueOutbox(ctx context.Context, entry *Outbox) error {
+	if entry == nil {
+		return nil
+	}
+	if entry.ID == uuid.Nil {
+		entry.ID = uuid.New()
+	}
+	return r.db.WithContext(ctx).Create(entry).Error
+}
+
+func (r *repository) ClaimOutbox(ctx context.Context, limit int) ([]Outbox, error) {
+	if limit <= 0 {
+		limit = 32
+	}
+	var rows []Outbox
+	err := r.db.WithContext(ctx).
+		Raw(`SELECT * FROM trip.outbox
+		     WHERE dispatched_at IS NULL
+		     ORDER BY created_at ASC
+		     LIMIT ?
+		     FOR UPDATE SKIP LOCKED`, limit).
+		Scan(&rows).Error
+	return rows, err
+}
+
+func (r *repository) MarkOutboxDispatched(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	now := time.Now()
+	return r.db.WithContext(ctx).
+		Model(&Outbox{}).
+		Where("id IN ?", ids).
+		Updates(map[string]any{"dispatched_at": now}).Error
+}
+
+func (r *repository) RecordOutboxFailure(ctx context.Context, id uuid.UUID, errMsg string) error {
+	// Truncate error blob defensively — a repeated 10 MB stringified error
+	// would balloon the row.
+	const maxErrLen = 512
+	if len(errMsg) > maxErrLen {
+		errMsg = errMsg[:maxErrLen]
+	}
+	return r.db.WithContext(ctx).
+		Model(&Outbox{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"attempts":   gorm.Expr("attempts + 1"),
+			"last_error": errMsg,
+		}).Error
 }
 
 func (r *repository) DeleteTodo(ctx context.Context, id uuid.UUID) error {

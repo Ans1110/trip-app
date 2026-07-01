@@ -1,6 +1,7 @@
 package trip
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,6 +79,7 @@ type Itinerary struct {
 	Latitude    *float64       `gorm:"column:latitude"`
 	Longitude   *float64       `gorm:"column:longitude"`
 	SortOrder   int            `gorm:"column:sort_order;not null;default:0"`
+	Version     int            `gorm:"column:version;not null;default:1"`
 	CreatedBy   uuid.UUID      `gorm:"type:uuid;column:created_by"`
 	CreatedAt   time.Time      `gorm:"column:created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at"`
@@ -96,6 +98,7 @@ type Todo struct {
 	Priority    TodoPriority   `gorm:"column:priority;not null;default:'normal'"`
 	Tags        pq.StringArray `gorm:"column:tags;type:text[]"`
 	SortOrder   int            `gorm:"column:sort_order;not null;default:0"`
+	Version     int            `gorm:"column:version;not null;default:1"`
 	CreatedBy   uuid.UUID      `gorm:"type:uuid;column:created_by"`
 	CreatedAt   time.Time      `gorm:"column:created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at"`
@@ -103,3 +106,33 @@ type Todo struct {
 }
 
 func (Todo) TableName() string { return "trip.todos" }
+
+type Outbox struct {
+	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	AggregateID  uuid.UUID  `gorm:"type:uuid;column:aggregate_id"`
+	Stream       string     `gorm:"column:stream;not null"`
+	TraceID      string     `gorm:"column:trace_id;not null;default:''"`
+	Payload      []byte     `gorm:"column:payload;type:jsonb;not null"`
+	CreatedAt    time.Time  `gorm:"column:created_at"`
+	DispatchedAt *time.Time `gorm:"column:dispatched_at"`
+	Attempts     int        `gorm:"column:attempts;not null;default:0"`
+	LastError    string     `gorm:"column:last_error;not null;default:''"`
+}
+
+func (Outbox) TableName() string { return "trip.outbox" }
+
+type EventMeta struct {
+	OpType  string    // wire op type (e.g. "ITINERARY_UPDATE")
+	UserID  uuid.UUID // who performed the op
+	TraceID string    // request trace id (may be empty)
+	Stream  string    // target Redis stream
+}
+
+type OutboxEvent struct {
+	OpType  string          `json:"op_type"`
+	TripID  uuid.UUID       `json:"trip_id"`
+	UserID  uuid.UUID       `json:"user_id"`
+	Version int             `json:"version,omitempty"`
+	TraceID string          `json:"trace_id,omitempty"`
+	Data    json.RawMessage `json:"data,omitempty"`
+}

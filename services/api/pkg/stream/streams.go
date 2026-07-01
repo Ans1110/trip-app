@@ -15,4 +15,7 @@ const (
 
 	StreamRecap = "events:recap_generate"
 	GroupRecap  = "recap-generator-group"
+
+	StreamTripEvents = "events:trip"
+	GroupTripEvents  = "trip-events-group"
 )

@@ -27,6 +27,7 @@ import (
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/friend"
+	"github.com/Ans1110/trip-app/internal/realtime"
 	"github.com/Ans1110/trip-app/internal/trip"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/database"
@@ -104,7 +105,6 @@ func main() {
 	// start background services
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	// go hub.Run(ctx)
 	go func() {
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
@@ -158,9 +158,31 @@ func main() {
 	})
 	tripHandler := trip.NewHandler(tripSvc, logger)
 
+	// Realtime wiring: in-process Hub + Pub/Sub bridge for cross-instance
+	// fanout + trip.events Stream for downstream consumers (audit/recap/etc.).
+	rtHub := realtime.NewHub(logger)
+	rtSvc := realtime.NewService(realtime.ServiceConfig{
+		TripRepo: tripRepo,
+		Hub:      rtHub,
+		Redis:    rdb,
+		Logger:   logger,
+	})
+	rtHandler := realtime.NewHandler(rtSvc, rtHub, logger, realtime.HandlerConfig{
+		AllowedOrigins: cfg.Server.AllowedOrigins,
+	})
+	go rtSvc.Start(ctx)
+
+	// Outbox dispatcher
+	rtDispatcher := realtime.NewOutboxDispatcher(realtime.OutboxDispatcherConfig{
+		Repo:   tripRepo,
+		Redis:  rdb,
+		Logger: logger,
+	})
+	go rtDispatcher.Start(ctx)
+
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, authHandler, friendHandler, tripHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, authHandler, friendHandler, tripHandler, rtHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -199,6 +221,7 @@ func setupRouter(
 	authHandler auth.IHandler,
 	friendHandler friend.IHandler,
 	tripHandler trip.IHandler,
+	rtHandler realtime.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -257,6 +280,11 @@ func setupRouter(
 	authHandler.RegisterRoutes(public, protected)
 	friendHandler.RegisterRoutes(protected)
 	tripHandler.RegisterRoutes(protected)
+
+	// Realtime WS
+	ws := api.Group("/")
+	ws.Use(jwtMW, rateLimitMW)
+	rtHandler.RegisterRoutes(ws)
 
 	return r
 }
