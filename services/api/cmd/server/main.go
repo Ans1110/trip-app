@@ -36,6 +36,7 @@ import (
 	"github.com/Ans1110/trip-app/pkg/mail"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	pkgredis "github.com/Ans1110/trip-app/pkg/redis"
+	"github.com/Ans1110/trip-app/pkg/ticket"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
@@ -167,8 +168,15 @@ func main() {
 		Redis:    rdb,
 		Logger:   logger,
 	})
+
+	rtTickets := ticket.NewStore(ticket.Config{
+		Redis:  rdb,
+		Prefix: "realtime:ticket:",
+		TTL:    60 * time.Second,
+	})
 	rtHandler := realtime.NewHandler(rtSvc, rtHub, logger, realtime.HandlerConfig{
 		AllowedOrigins: cfg.Server.AllowedOrigins,
+		Tickets:        rtTickets,
 	})
 	go rtSvc.Start(ctx)
 
@@ -182,7 +190,7 @@ func main() {
 
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, authHandler, friendHandler, tripHandler, rtHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, authHandler, friendHandler, tripHandler, rtHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -218,6 +226,7 @@ func setupRouter(
 	logger *zap.Logger,
 	publicKey *rsa.PublicKey,
 	rdb *redis.Client,
+	rtTickets *ticket.Store,
 	authHandler auth.IHandler,
 	friendHandler friend.IHandler,
 	tripHandler trip.IHandler,
@@ -281,10 +290,13 @@ func setupRouter(
 	friendHandler.RegisterRoutes(protected)
 	tripHandler.RegisterRoutes(protected)
 
-	// Realtime WS
+	// Realtime: ticket issuance lives on the JWT-protected group; the WS
+	// Upgrade lives on a separate group that consumes single-use tickets
+	// via TicketAuth. No JWT is ever expected on the Upgrade — the browser
+	// never holds one.
 	ws := api.Group("/")
-	ws.Use(jwtMW, rateLimitMW)
-	rtHandler.RegisterRoutes(ws)
+	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)
+	rtHandler.RegisterRoutes(protected, ws)
 
 	return r
 }
