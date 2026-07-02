@@ -288,3 +288,8 @@ export type UpstreamUpdateTodoPayload = {
 export type UpstreamReorderTodosPayload = {
   todo_ids: string[];
 };
+
+export type UpstreamRealtimeTicketResponse = {
+  ticket: string;
+  expires_in: number;
+};

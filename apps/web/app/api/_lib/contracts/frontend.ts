@@ -5,6 +5,7 @@ import {
   UpstreamItineraryResponse,
   UpstreamJoinRoomResponse,
   UpstreamJWKResponse,
+  UpstreamRealtimeTicketResponse,
   UpstreamRequestResponse,
   UpstreamRoomBrief,
   UpstreamRoomMember,
@@ -330,4 +331,18 @@ export const toTodoView = (t: UpstreamTodoResponse): TodoView => ({
   created_by: t.created_by,
   created_at: t.created_at,
   updated_at: t.updated_at,
+});
+
+// ---- realtime ----
+
+export type RealtimeTicketView = {
+  ticket: string;
+  expires_in: number;
+};
+
+export const toRealtimeTicketView = (
+  t: UpstreamRealtimeTicketResponse,
+): RealtimeTicketView => ({
+  ticket: t.ticket,
+  expires_in: t.expires_in,
 });
