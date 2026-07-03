@@ -40,6 +40,7 @@ type Trip struct {
 	CoverImage  string         `gorm:"column:cover_image;not null;default:''"`
 	StartDate   time.Time      `gorm:"column:start_date;type:date;not null"`
 	EndDate     time.Time      `gorm:"column:end_date;type:date;not null"`
+	TimeZone    string         `gorm:"column:time_zone;not null;default:'UTC'"`
 	Status      TripStatus     `gorm:"column:status;not null;default:'planning'"`
 	CreatedAt   time.Time      `gorm:"column:created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at"`

@@ -10,6 +10,7 @@ import (
 
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
+	"github.com/Ans1110/trip-app/internal/calendar"
 	"github.com/Ans1110/trip-app/pkg/event"
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	"github.com/google/uuid"
@@ -70,6 +71,8 @@ type ServiceConfig struct {
 	Logger *zap.Logger
 	Audit  audit.Writer
 	Bus    *event.Bus
+
+	Cal calendar.TripSyncPort
 }
 
 type service struct {
@@ -77,6 +80,7 @@ type service struct {
 	logger *zap.Logger
 	audit  audit.Writer
 	bus    *event.Bus
+	cal    calendar.TripSyncPort
 }
 
 func NewService(cfg ServiceConfig) IService {
@@ -89,6 +93,7 @@ func NewService(cfg ServiceConfig) IService {
 		logger: logger.With(zap.String("layer", "trip.service")),
 		audit:  cfg.Audit,
 		bus:    cfg.Bus,
+		cal:    cfg.Cal,
 	}
 }
 
@@ -97,6 +102,10 @@ func NewService(cfg ServiceConfig) IService {
 func (s *service) CreateTrip(ctx context.Context, ownerID uuid.UUID, p CreateTripPayload) (*TripResponse, error) {
 	start, end, err := parseDateRange(p.StartDate, p.EndDate)
 	if err != nil {
+		return nil, err
+	}
+	tz := normalizeTimeZone(p.TimeZone)
+	if err := validateTimeZone(tz); err != nil {
 		return nil, err
 	}
 	owner, err := s.repo.FindUserByID(ctx, ownerID)
@@ -114,6 +123,7 @@ func (s *service) CreateTrip(ctx context.Context, ownerID uuid.UUID, p CreateTri
 		CoverImage:  p.CoverImage,
 		StartDate:   start,
 		EndDate:     end,
+		TimeZone:    tz,
 		Status:      TripPlanning,
 	}
 
@@ -132,12 +142,15 @@ func (s *service) CreateTrip(ctx context.Context, ownerID uuid.UUID, p CreateTri
 		if err := tx.CreateRoom(ctx, room); err != nil {
 			return err
 		}
-		return tx.AddMember(ctx, &RoomMember{
+		if err := tx.AddMember(ctx, &RoomMember{
 			RoomID:   room.ID,
 			UserID:   ownerID,
 			Role:     RoleAdmin,
 			JoinedAt: time.Now(),
-		})
+		}); err != nil {
+			return err
+		}
+		return s.syncTripCreated(ctx, tx, t, ownerID)
 	}); err != nil {
 		return nil, err
 	}
@@ -231,9 +244,21 @@ func (s *service) UpdateTrip(ctx context.Context, userID, tripID uuid.UUID, p Up
 		patch["start_date"] = start
 		patch["end_date"] = end
 	}
+	if p.TimeZone != nil {
+		tz := normalizeTimeZone(*p.TimeZone)
+		if err := validateTimeZone(tz); err != nil {
+			return nil, err
+		}
+		patch["time_zone"] = tz
+	}
 
 	if len(patch) > 0 {
-		if err := s.repo.UpdateTrip(ctx, tripID, patch); err != nil {
+		if err := s.repo.WithTx(ctx, func(tx IRepository) error {
+			if err := tx.UpdateTrip(ctx, tripID, patch); err != nil {
+				return err
+			}
+			return s.syncTripUpdated(ctx, tx, tripID, userID)
+		}); err != nil {
 			return nil, err
 		}
 	}
@@ -255,7 +280,15 @@ func (s *service) DeleteTrip(ctx context.Context, userID, tripID uuid.UUID) erro
 	if t.OwnerID != userID {
 		return ErrForbidden
 	}
-	if err := s.repo.DeleteTrip(ctx, tripID); err != nil {
+	if err := s.repo.WithTx(ctx, func(tx IRepository) error {
+		if err := tx.DeleteTrip(ctx, tripID); err != nil {
+			return err
+		}
+		if s.cal != nil {
+			return s.cal.OnTripDeleted(ctx, tx.Tx(), tripID, userID)
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 	s.recordAudit(ctx, AuditTripDeleted, audit.Success, userID, nil, AuditResourceTrip, tripID.String(), nil)
@@ -450,11 +483,19 @@ func (s *service) JoinRoom(ctx context.Context, userID uuid.UUID, p JoinRoomPayl
 		}, nil
 	}
 
-	if err := s.repo.AddMember(ctx, &RoomMember{
-		RoomID:   room.ID,
-		UserID:   userID,
-		Role:     RoleMember,
-		JoinedAt: time.Now(),
+	if err := s.repo.WithTx(ctx, func(tx IRepository) error {
+		if err := tx.AddMember(ctx, &RoomMember{
+			RoomID:   room.ID,
+			UserID:   userID,
+			Role:     RoleMember,
+			JoinedAt: time.Now(),
+		}); err != nil {
+			return err
+		}
+		if s.cal != nil {
+			return s.cal.OnRoomMemberAdded(ctx, tx.Tx(), room.TripID, userID)
+		}
+		return nil
 	}); err != nil {
 		return nil, err
 	}
@@ -499,7 +540,15 @@ func (s *service) LeaveRoom(ctx context.Context, userID, tripID uuid.UUID) error
 	if m == nil {
 		return ErrNotMember
 	}
-	if err := s.repo.RemoveMember(ctx, room.ID, userID); err != nil {
+	if err := s.repo.WithTx(ctx, func(tx IRepository) error {
+		if err := tx.RemoveMember(ctx, room.ID, userID); err != nil {
+			return err
+		}
+		if s.cal != nil {
+			return s.cal.OnRoomMemberRemoved(ctx, tx.Tx(), tripID, userID)
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 	s.recordAudit(ctx, AuditRoomMemberLeft, audit.Success, userID, nil, AuditResourceRoom, room.ID.String(), nil)
@@ -539,7 +588,15 @@ func (s *service) RemoveMember(ctx context.Context, actorID, tripID, targetID uu
 	if m == nil {
 		return ErrNotMember
 	}
-	if err := s.repo.RemoveMember(ctx, room.ID, targetID); err != nil {
+	if err := s.repo.WithTx(ctx, func(tx IRepository) error {
+		if err := tx.RemoveMember(ctx, room.ID, targetID); err != nil {
+			return err
+		}
+		if s.cal != nil {
+			return s.cal.OnRoomMemberRemoved(ctx, tx.Tx(), tripID, targetID)
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 	s.recordAudit(ctx, AuditRoomMemberRemoved, audit.Success, actorID, &targetID, AuditResourceRoom, room.ID.String(), nil)
@@ -978,6 +1035,7 @@ func (s *service) buildTripResponse(ctx context.Context, t Trip, room *Room, mem
 		CoverImage:  t.CoverImage,
 		StartDate:   t.StartDate.Format(dateLayout),
 		EndDate:     t.EndDate.Format(dateLayout),
+		TimeZone:    t.TimeZone,
 		Status:      string(effectiveStatus(t)),
 		MemberCount: memberCount,
 		MyRole:      role,
@@ -988,6 +1046,51 @@ func (s *service) buildTripResponse(ctx context.Context, t Trip, room *Room, mem
 		resp.Room = &RoomBrief{ID: room.ID.String(), RoomCode: room.RoomCode}
 	}
 	return resp, nil
+}
+
+// syncTripCreated fans a freshly-created trip out to the calendar module.
+// Called from within the trip creation tx so both rows commit together.
+// The owner is the sole initial member.
+func (s *service) syncTripCreated(ctx context.Context, tx IRepository, t *Trip, actorID uuid.UUID) error {
+	if s.cal == nil {
+		return nil
+	}
+	return s.cal.OnTripCreated(ctx, tx.Tx(), calendar.TripSnapshot{
+		TripID:      t.ID,
+		OwnerID:     t.OwnerID,
+		Title:       t.Title,
+		Description: t.Description,
+		StartDate:   t.StartDate,
+		EndDate:     t.EndDate,
+		TimeZone:    t.TimeZone,
+		MemberIDs:   []uuid.UUID{t.OwnerID},
+		ActorID:     actorID,
+	})
+}
+
+// syncTripUpdated re-reads the trip inside the tx so the snapshot reflects
+// post-patch values, then hands it to the calendar sync.
+func (s *service) syncTripUpdated(ctx context.Context, tx IRepository, tripID, actorID uuid.UUID) error {
+	if s.cal == nil {
+		return nil
+	}
+	t, err := tx.FindTripByID(ctx, tripID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return nil
+	}
+	return s.cal.OnTripUpdated(ctx, tx.Tx(), calendar.TripSnapshot{
+		TripID:      t.ID,
+		OwnerID:     t.OwnerID,
+		Title:       t.Title,
+		Description: t.Description,
+		StartDate:   t.StartDate,
+		EndDate:     t.EndDate,
+		TimeZone:    t.TimeZone,
+		ActorID:     actorID,
+	})
 }
 
 func (s *service) recordAudit(
@@ -1066,6 +1169,21 @@ func effectiveStatus(t Trip) TripStatus {
 		return TripCompleted
 	}
 	return t.Status
+}
+
+func normalizeTimeZone(tz string) string {
+	tz = strings.TrimSpace(tz)
+	if tz == "" {
+		return "UTC"
+	}
+	return tz
+}
+
+func validateTimeZone(tz string) error {
+	if _, err := time.LoadLocation(tz); err != nil {
+		return ErrInvalidPayload
+	}
+	return nil
 }
 
 func parseDateRange(startStr, endStr string) (time.Time, time.Time, error) {

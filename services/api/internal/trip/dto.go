@@ -17,6 +17,7 @@ type CreateTripPayload struct {
 	CoverImage  string `json:"cover_image" binding:"max=500"`
 	StartDate   string `json:"start_date" binding:"required"` // YYYY-MM-DD
 	EndDate     string `json:"end_date" binding:"required"`   // YYYY-MM-DD
+	TimeZone    string `json:"time_zone" binding:"omitempty,max=64"`
 }
 
 type UpdateTripPayload struct {
@@ -25,6 +26,7 @@ type UpdateTripPayload struct {
 	CoverImage  *string `json:"cover_image" binding:"omitempty,max=500"`
 	StartDate   *string `json:"start_date"`
 	EndDate     *string `json:"end_date"`
+	TimeZone    *string `json:"time_zone" binding:"omitempty,max=64"`
 	Status      *string `json:"status" binding:"omitempty,oneof=planning ongoing completed"`
 }
 
@@ -36,6 +38,7 @@ type TripResponse struct {
 	CoverImage  string      `json:"cover_image,omitempty"`
 	StartDate   string      `json:"start_date"`
 	EndDate     string      `json:"end_date"`
+	TimeZone    string      `json:"time_zone,omitempty"`
 	Status      string      `json:"status"`
 	MemberCount int         `json:"member_count"`
 	MyRole      string      `json:"my_role,omitempty"`
@@ -77,17 +80,17 @@ type RoomResponse struct {
 // RoomPreview is what GET /rooms/by-code returns before the user commits to
 // joining. Sensitive bits (member list, owner email) are intentionally omitted.
 type RoomPreview struct {
-	TripID      string      `json:"trip_id"`
-	RoomID      string      `json:"room_id"`
-	Title       string      `json:"title"`
-	Description string      `json:"description"`
-	CoverImage  string      `json:"cover_image,omitempty"`
-	StartDate   string      `json:"start_date"`
-	EndDate     string      `json:"end_date"`
-	Status      string      `json:"status"`
-	Owner       UserSummary `json:"owner"`
-	MemberCount int         `json:"member_count"`
-	AlreadyJoined bool      `json:"already_joined"`
+	TripID        string      `json:"trip_id"`
+	RoomID        string      `json:"room_id"`
+	Title         string      `json:"title"`
+	Description   string      `json:"description"`
+	CoverImage    string      `json:"cover_image,omitempty"`
+	StartDate     string      `json:"start_date"`
+	EndDate       string      `json:"end_date"`
+	Status        string      `json:"status"`
+	Owner         UserSummary `json:"owner"`
+	MemberCount   int         `json:"member_count"`
+	AlreadyJoined bool        `json:"already_joined"`
 }
 
 // ---- Join ----

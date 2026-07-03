@@ -19,6 +19,7 @@ var ErrStaleVersion = errors.New("stale version")
 
 type IRepository interface {
 	WithTx(ctx context.Context, fn func(IRepository) error) error
+	Tx() *gorm.DB
 
 	// Users
 	FindUserByID(ctx context.Context, id uuid.UUID) (*auth.User, error)
@@ -86,6 +87,11 @@ func (r *repository) WithTx(ctx context.Context, fn func(IRepository) error) err
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fn(&repository{db: tx})
 	})
+}
+
+// For cross-module sync layers
+func (r *repository) Tx() *gorm.DB {
+	return r.db
 }
 
 // ---- Users ----

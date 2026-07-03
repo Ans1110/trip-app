@@ -26,6 +26,7 @@ import (
 	_ "github.com/Ans1110/trip-app/docs"
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
+	"github.com/Ans1110/trip-app/internal/calendar"
 	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/Ans1110/trip-app/internal/realtime"
 	"github.com/Ans1110/trip-app/internal/trip"
@@ -149,6 +150,10 @@ func main() {
 	})
 	friendHandler := friend.NewHandler(friendSvc, logger)
 
+	// Calendar wiring
+	calendarRepo := calendar.NewRepository(db)
+	calendarSync := calendar.NewTripSync(logger)
+
 	// Trip / Room wiring
 	tripRepo := trip.NewRepository(db)
 	tripSvc := trip.NewService(trip.ServiceConfig{
@@ -156,8 +161,19 @@ func main() {
 		Logger: logger,
 		Audit:  auditRepo,
 		Bus:    bus,
+		Cal:    calendarSync,
 	})
 	tripHandler := trip.NewHandler(tripSvc, logger)
+
+	calendarSvc := calendar.NewService(calendar.ServiceConfig{
+		Repo:       calendarRepo,
+		Friends:    friendRepo,
+		RoomMember: tripRepo,
+		Logger:     logger,
+		Audit:      auditRepo,
+		Bus:        bus,
+	})
+	calendarHandler := calendar.NewHandler(calendarSvc, logger)
 
 	// Realtime wiring: in-process Hub + Pub/Sub bridge for cross-instance
 	// fanout + trip.events Stream for downstream consumers (audit/recap/etc.).
@@ -190,7 +206,7 @@ func main() {
 
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, authHandler, friendHandler, tripHandler, rtHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -230,6 +246,7 @@ func setupRouter(
 	authHandler auth.IHandler,
 	friendHandler friend.IHandler,
 	tripHandler trip.IHandler,
+	calendarHandler calendar.IHandler,
 	rtHandler realtime.IHandler,
 ) *gin.Engine {
 	r := gin.New()
@@ -289,6 +306,7 @@ func setupRouter(
 	authHandler.RegisterRoutes(public, protected)
 	friendHandler.RegisterRoutes(protected)
 	tripHandler.RegisterRoutes(protected)
+	calendarHandler.RegisterRoutes(protected)
 
 	// Realtime: ticket issuance lives on the JWT-protected group; the WS
 	// Upgrade lives on a separate group that consumes single-use tickets

@@ -18,6 +18,12 @@ const (
 	OpCalendarUpdate  OpType = "CALENDAR_UPDATE"
 	OpVoteCast        OpType = "VOTE_CAST"
 
+	// Server -> client broadcasts emitted by the calendar module.
+	// the client op for edits stays OpCalendarUpdate.
+	OpCalendarCreated OpType = "CALENDAR_CREATED"
+	OpCalendarUpdated OpType = "CALENDAR_UPDATED"
+	OpCalendarDeleted OpType = "CALENDAR_DELETED"
+
 	// Server -> client only.
 	srvAck     = "ACK"
 	srvError   = "ERROR"

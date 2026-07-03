@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 var ctx = context.Background()
@@ -61,6 +62,13 @@ func (r *repoMock) WithTx(ctx context.Context, fn func(trip.IRepository) error) 
 		return r.withTx(ctx, fn)
 	}
 	return fn(r)
+}
+
+// Tx satisfies the IRepository contract added for cross-module sync. Returning
+// nil is fine because tests don't wire a calendar sync port, so the code
+// paths that would dereference it are all gated on `s.cal != nil`.
+func (r *repoMock) Tx() *gorm.DB {
+	return nil
 }
 
 func (r *repoMock) FindUserByID(c context.Context, id uuid.UUID) (*auth.User, error) {
