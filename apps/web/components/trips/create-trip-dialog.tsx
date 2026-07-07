@@ -12,7 +12,7 @@ import { errorMessage, useCreateTrip } from "@/hooks/trip-hooks";
 import {
   createTripSchema,
   type CreateTripFormInput,
-} from "@/lib/trip-schemas";
+} from "@/lib/schemas/trip-schemas";
 
 import { Modal } from "./modal";
 

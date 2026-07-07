@@ -40,11 +40,11 @@ import {
   useTodos,
   useUpdateTodo,
 } from "@/hooks/trip-hooks";
-import type { Todo, TodoPriority } from "@/lib/trip-api";
+import type { Todo, TodoPriority } from "@/lib/apis/trip-api";
 import {
   createTodoSchema,
   type CreateTodoFormInput,
-} from "@/lib/trip-schemas";
+} from "@/lib/schemas/trip-schemas";
 
 const PRIORITIES: TodoPriority[] = ["low", "normal", "high"];
 
@@ -77,7 +77,9 @@ export function TripTodos({ tripId }: { tripId: string }) {
 
   const [tagDraft, setTagDraft] = useState("");
   const [filterTag, setFilterTag] = useState<string | null>(null);
-  const [filterPriority, setFilterPriority] = useState<TodoPriority | null>(null);
+  const [filterPriority, setFilterPriority] = useState<TodoPriority | null>(
+    null,
+  );
   const [orderOverride, setOrderOverride] = useState<Todo[] | null>(null);
 
   const todos = query.data ?? [];
@@ -105,7 +107,9 @@ export function TripTodos({ tripId }: { tripId: string }) {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const onSubmit = (v: CreateTodoFormInput) => {
@@ -226,7 +230,9 @@ export function TripTodos({ tripId }: { tripId: string }) {
             </span>
           )}
           {create.isError && (
-            <p className="text-xs text-[#FCA5A5]">{errorMessage(create.error)}</p>
+            <p className="text-xs text-[#FCA5A5]">
+              {errorMessage(create.error)}
+            </p>
           )}
         </form>
       </FormProvider>
@@ -350,10 +356,10 @@ function FilterChip({
       className="text-xs px-2 py-1 rounded-full season-transition"
       style={{
         backgroundColor: active
-          ? accent?.bg ?? "rgba(181,208,134,0.18)"
+          ? (accent?.bg ?? "rgba(181,208,134,0.18)")
           : "transparent",
-        color: active ? accent?.fg ?? "#B5D086" : "#8B9A8E",
-        border: `1px solid ${active ? accent?.fg ?? "#B5D086" : "#1F2A24"}`,
+        color: active ? (accent?.fg ?? "#B5D086") : "#8B9A8E",
+        border: `1px solid ${active ? (accent?.fg ?? "#B5D086") : "#1F2A24"}`,
       }}
     >
       {label}
@@ -362,8 +368,14 @@ function FilterChip({
 }
 
 function SortableTodoRow({ tripId, todo }: { tripId: string; todo: Todo }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: todo.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: todo.id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -488,4 +500,3 @@ function TodoRow({
     </div>
   );
 }
-

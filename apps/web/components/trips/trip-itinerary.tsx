@@ -33,13 +33,13 @@ import {
   useReorderItinerary,
   useUpdateItinerary,
 } from "@/hooks/trip-hooks";
-import type { Itinerary, Trip } from "@/lib/trip-api";
+import type { Itinerary, Trip } from "@/lib/apis/trip-api";
 import {
   createItinerarySchema,
   updateItinerarySchema,
   type CreateItineraryFormInput,
   type UpdateItineraryFormInput,
-} from "@/lib/trip-schemas";
+} from "@/lib/schemas/trip-schemas";
 
 const ItineraryMap = dynamic(() => import("./itinerary-map"), { ssr: false });
 

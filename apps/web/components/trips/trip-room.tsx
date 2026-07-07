@@ -12,7 +12,7 @@ import {
   useRemoveMember,
   useRoom,
 } from "@/hooks/trip-hooks";
-import type { RoomMember, UserSummary } from "@/lib/trip-api";
+import type { RoomMember, UserSummary } from "@/lib/apis/trip-api";
 
 import { RoomQr } from "./room-qr";
 
@@ -74,7 +74,10 @@ export function TripRoom({
       >
         <RoomQr code={room.room_code} />
         <div className="flex flex-col gap-3">
-          <p className="text-xs font-medium tracking-wider uppercase" style={{ color: "#8B9A8E" }}>
+          <p
+            className="text-xs font-medium tracking-wider uppercase"
+            style={{ color: "#8B9A8E" }}
+          >
             Room code
           </p>
           <code
@@ -201,7 +204,11 @@ function MemberRow({
           <button
             type="button"
             onClick={() => {
-              if (window.confirm(`Remove ${member.user.name || member.user.email}?`)) {
+              if (
+                window.confirm(
+                  `Remove ${member.user.name || member.user.email}?`,
+                )
+              ) {
                 onRemove();
               }
             }}

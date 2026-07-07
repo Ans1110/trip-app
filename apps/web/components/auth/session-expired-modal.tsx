@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { LogIn } from "lucide-react";
 
-import { sessionExpiredStore } from "@/lib/session-expired-store";
+import { sessionExpiredStore } from "@/store/session-expired-store";
 
 export function SessionExpiredModal() {
   const open = useSyncExternalStore(
@@ -50,9 +50,12 @@ export function SessionExpiredModal() {
         >
           Session expired
         </h2>
-        <p className="text-sm leading-relaxed mb-6" style={{ color: "#8B9A8E" }}>
-          For your security, you&rsquo;ve been signed out. Sign in again to
-          keep planning.
+        <p
+          className="text-sm leading-relaxed mb-6"
+          style={{ color: "#8B9A8E" }}
+        >
+          For your security, you&rsquo;ve been signed out. Sign in again to keep
+          planning.
         </p>
         <button
           type="button"

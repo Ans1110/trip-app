@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Plus, UserPlus2, Users } from "lucide-react";
 
 import { errorMessage, useTrips } from "@/hooks/trip-hooks";
-import type { Trip, TripStatus } from "@/lib/trip-api";
+import type { Trip, TripStatus } from "@/lib/apis/trip-api";
 
 import { CreateTripDialog } from "./create-trip-dialog";
 import { JoinRoomDialog } from "./join-room-dialog";
@@ -107,13 +107,14 @@ export function TripsList() {
           {errorMessage(query.error)}
         </p>
       )}
-      {!query.isLoading && !query.isError && trips.length === 0 && (
-        filter === "all" ? (
+      {!query.isLoading &&
+        !query.isError &&
+        trips.length === 0 &&
+        (filter === "all" ? (
           <EmptyState onCreate={() => setOpenCreate(true)} />
         ) : (
           <FilteredEmpty filter={filter} />
-        )
-      )}
+        ))}
 
       {trips.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -130,10 +131,10 @@ export function TripsList() {
 }
 
 function TripCard({ trip }: { trip: Trip }) {
-  const range = useMemo(() => formatRange(trip.start_date, trip.end_date), [
-    trip.start_date,
-    trip.end_date,
-  ]);
+  const range = useMemo(
+    () => formatRange(trip.start_date, trip.end_date),
+    [trip.start_date, trip.end_date],
+  );
   const isCompleted = trip.status === "completed";
   return (
     <Link
@@ -148,10 +149,9 @@ function TripCard({ trip }: { trip: Trip }) {
       <div
         className="h-32 w-full"
         style={{
-          background:
-            trip.cover_image
-              ? `url(${trip.cover_image}) center / cover`
-              : "linear-gradient(135deg, #1F2A24 0%, #0B100D 100%)",
+          background: trip.cover_image
+            ? `url(${trip.cover_image}) center / cover`
+            : "linear-gradient(135deg, #1F2A24 0%, #0B100D 100%)",
           filter: isCompleted ? "grayscale(0.6) brightness(0.7)" : undefined,
         }}
         aria-hidden
@@ -170,14 +170,14 @@ function TripCard({ trip }: { trip: Trip }) {
           <StatusBadge status={trip.status} />
         </div>
         {trip.description && (
-          <p
-            className="text-sm line-clamp-2"
-            style={{ color: "#8B9A8E" }}
-          >
+          <p className="text-sm line-clamp-2" style={{ color: "#8B9A8E" }}>
             {trip.description}
           </p>
         )}
-        <div className="flex items-center justify-between text-xs mt-1" style={{ color: "#6B7A6F" }}>
+        <div
+          className="flex items-center justify-between text-xs mt-1"
+          style={{ color: "#6B7A6F" }}
+        >
           <span>{range}</span>
           <span className="inline-flex items-center gap-1">
             <Users className="size-3.5" />

@@ -8,7 +8,7 @@ import {
   type UseQueryOptions,
 } from "@tanstack/react-query";
 
-import { ApiError } from "@/lib/friend-api";
+import { ApiError } from "@/lib/utils";
 import {
   tripApi,
   type CreateItineraryInput,
@@ -27,7 +27,7 @@ import {
   type UpdateItineraryInput,
   type UpdateTodoInput,
   type UpdateTripInput,
-} from "@/lib/trip-api";
+} from "@/lib/apis/trip-api";
 
 export const tripKeys = {
   list: (query: ListTripsQuery) => ["trips", "list", query] as const,
@@ -270,10 +270,7 @@ export function useReorderItinerary(
 
 // ---- Todos ----
 
-export function useTodos(
-  id: string | undefined,
-  options?: QueryOpts<Todo[]>,
-) {
+export function useTodos(id: string | undefined, options?: QueryOpts<Todo[]>) {
   return useQuery<Todo[], ApiError>({
     queryKey: tripKeys.todos(id ?? ""),
     queryFn: ({ signal }) => tripApi.listTodos(id!, signal),

@@ -1,6 +1,4 @@
-import { ApiError } from "./friend-api";
-
-type Envelope<T> = { code: number; message: string; data: T | null };
+import { ApiError, type Envelope } from "./utils";
 
 type SignaturePayload = {
   cloud_name: string;

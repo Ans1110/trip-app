@@ -7,7 +7,10 @@ import { Loader2 } from "lucide-react";
 
 import { ControlledInput } from "@/components/ui/controlled-input";
 import { errorMessage, useJoinRoom } from "@/hooks/trip-hooks";
-import { joinRoomSchema, type JoinRoomFormInput } from "@/lib/trip-schemas";
+import {
+  joinRoomSchema,
+  type JoinRoomFormInput,
+} from "@/lib/schemas/trip-schemas";
 
 import { Modal } from "./modal";
 

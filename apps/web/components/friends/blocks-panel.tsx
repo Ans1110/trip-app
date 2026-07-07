@@ -2,12 +2,8 @@
 
 import { Loader2, ShieldOff } from "lucide-react";
 
-import {
-  errorMessage,
-  useBlocks,
-  useUnblockUser,
-} from "@/hooks/friend-hooks";
-import type { FriendBlock } from "@/lib/friend-api";
+import { errorMessage, useBlocks, useUnblockUser } from "@/hooks/friend-hooks";
+import type { FriendBlock } from "@/lib/apis/friend-api";
 
 import { Avatar, Section } from "./friend-list";
 

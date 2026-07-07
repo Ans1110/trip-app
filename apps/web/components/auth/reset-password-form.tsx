@@ -9,7 +9,7 @@ import { ControlledInput } from "@/components/ui/controlled-input";
 import {
   resetPasswordSchema,
   type ResetPasswordInput,
-} from "@/lib/auth-schemas";
+} from "@/lib/schemas/auth-schemas";
 import { errorMessage, useResetPassword } from "@/hooks/auth-hooks";
 
 const AUTH_LABEL = "text-[11px] tracking-[0.2em] uppercase";

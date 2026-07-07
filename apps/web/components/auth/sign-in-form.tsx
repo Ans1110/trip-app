@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Loader2 } from "lucide-react";
 
 import { ControlledInput } from "@/components/ui/controlled-input";
-import { signInSchema, type SignInInput } from "@/lib/auth-schemas";
+import { signInSchema, type SignInInput } from "@/lib/schemas/auth-schemas";
 import { errorMessage, useSignIn } from "@/hooks/auth-hooks";
 
 const AUTH_LABEL = "text-[11px] tracking-[0.2em] uppercase";

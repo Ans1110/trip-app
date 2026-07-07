@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import type { CalendarEvent, EventType } from "@/lib/calendar-api";
+import type { CalendarEvent, EventType } from "@/lib/apis/calendar-api";
 
 const EVENT_TYPE_ACCENT: Record<EventType, string> = {
   general: "#8B9A8E",
@@ -177,7 +177,9 @@ export function EventCalendarGrid({
                       className="relative"
                       style={{
                         backgroundColor: inMonth ? "#121814" : "#0B100D",
-                        borderRight: isLastCol ? undefined : "1px solid #1F2A24",
+                        borderRight: isLastCol
+                          ? undefined
+                          : "1px solid #1F2A24",
                         opacity: inMonth ? 1 : 0.55,
                       }}
                     >
@@ -293,9 +295,7 @@ function EventBar({
         className="text-[11px] truncate flex-1 min-w-0"
         style={{ color: "#ECEFEA" }}
       >
-        {!continuesFromPrev && !event.all_day
-          ? `${formatBarTime(event)} `
-          : ""}
+        {!continuesFromPrev && !event.all_day ? `${formatBarTime(event)} ` : ""}
         {userName && !continuesFromPrev && (
           <span style={{ color: "#8B9A8E" }}>{userName} · </span>
         )}

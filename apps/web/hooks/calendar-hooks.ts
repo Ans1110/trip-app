@@ -14,8 +14,8 @@ import {
   type CreateEventInput,
   type ListEventsQuery,
   type UpdateEventInput,
-} from "@/lib/calendar-api";
-import { ApiError } from "@/lib/friend-api";
+} from "@/lib/apis/calendar-api";
+import { ApiError } from "@/lib/utils";
 
 export const calendarKeys = {
   all: ["calendar"] as const,

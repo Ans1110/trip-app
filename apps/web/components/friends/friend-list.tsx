@@ -1,6 +1,12 @@
 "use client";
 
-import { CalendarDays, Loader2, ShieldOff, Trash2, UserPlus2 } from "lucide-react";
+import {
+  CalendarDays,
+  Loader2,
+  ShieldOff,
+  Trash2,
+  UserPlus2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -21,7 +27,7 @@ import {
   useSearchUsers,
   useSendRequest,
 } from "@/hooks/friend-hooks";
-import type { Friend, UserSummary } from "@/lib/friend-api";
+import type { Friend, UserSummary } from "@/lib/apis/friend-api";
 
 export function FriendList({ onNavigate }: { onNavigate?: () => void }) {
   const [query, setQuery] = useState("");
@@ -195,9 +201,7 @@ function FriendRow({
 
   const doBlock = () => {
     if (
-      window.confirm(
-        `Block ${displayName}? They will be removed as a friend.`,
-      )
+      window.confirm(`Block ${displayName}? They will be removed as a friend.`)
     ) {
       block.mutate({ target_id: friend.user.id });
     }

@@ -8,12 +8,13 @@ import {
   type UseQueryOptions,
 } from "@tanstack/react-query";
 
-import { ApiError, authApi, type SessionView, type User } from "@/lib/auth-api";
+import { authApi, type SessionView, type User } from "@/lib/apis/auth-api";
+import { ApiError } from "@/lib/utils";
 import type {
   ForgotPasswordInput,
   SignInInput,
   SignUpInput,
-} from "@/lib/auth-schemas";
+} from "@/lib/schemas/auth-schemas";
 
 export const authKeys = {
   me: ["auth", "me"] as const,

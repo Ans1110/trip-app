@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-query";
 
 import {
-  ApiError,
   friendApi,
   type BlockUserInput,
   type Friend,
@@ -17,7 +16,8 @@ import {
   type FriendRequest,
   type SendRequestInput,
   type UserSummary,
-} from "@/lib/friend-api";
+} from "@/lib/apis/friend-api";
+import { ApiError } from "@/lib/utils";
 
 export const friendKeys = {
   list: ["friends", "list"] as const,

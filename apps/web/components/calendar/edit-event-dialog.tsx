@@ -18,11 +18,11 @@ import {
   useDeleteEvent,
   useUpdateEvent,
 } from "@/hooks/calendar-hooks";
-import type { CalendarEvent } from "@/lib/calendar-api";
+import type { CalendarEvent } from "@/lib/apis/calendar-api";
 import {
   updateEventSchema,
   type UpdateEventFormInput,
-} from "@/lib/calendar-schemas";
+} from "@/lib/schemas/calendar-schemas";
 
 const VISIBILITY_OPTIONS = [
   { value: "private", label: "Private" },
@@ -52,8 +52,7 @@ export function EditEventDialog({
       end_time: e.time,
       all_day: event.all_day,
       color: event.color ?? "",
-      visibility:
-        event.visibility === "private" ? "private" : "friends",
+      visibility: event.visibility === "private" ? "private" : "friends",
     };
   }, [event]);
 
@@ -71,10 +70,7 @@ export function EditEventDialog({
       v.start_date,
       v.all_day ? "00:00" : v.start_time,
     );
-    const endISO = combineToISO(
-      v.end_date,
-      v.all_day ? "23:59" : v.end_time,
-    );
+    const endISO = combineToISO(v.end_date, v.all_day ? "23:59" : v.end_time);
     update.mutate(
       {
         id: event.id,

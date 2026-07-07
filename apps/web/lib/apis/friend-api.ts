@@ -1,3 +1,5 @@
+import { request } from "../utils";
+
 export type UserSummary = {
   id: string;
   email: string;
@@ -28,47 +30,8 @@ export type FriendBlock = {
 export type SendRequestInput = { receiver_id: string; message?: string };
 export type BlockUserInput = { target_id: string };
 
-type Envelope<T> = { code: number; message: string; data: T | null };
-
-export class ApiError extends Error {
-  status: number;
-  code?: number;
-  constructor(message: string, status: number, code?: number) {
-    super(message);
-    this.status = status;
-    this.code = code;
-  }
-}
-
-async function request<T>(
-  path: string,
-  init: RequestInit & { json?: unknown } = {},
-): Promise<T> {
-  const { json, headers, ...rest } = init;
-  const res = await fetch(path, {
-    credentials: "include",
-    ...rest,
-    headers: {
-      ...(json !== undefined ? { "content-type": "application/json" } : {}),
-      ...headers,
-    },
-    body: json !== undefined ? JSON.stringify(json) : rest.body,
-  });
-
-  const body = (await res.json().catch(() => null)) as Envelope<T> | null;
-  if (!res.ok) {
-    throw new ApiError(
-      body?.message ?? `Request failed (${res.status})`,
-      res.status,
-      body?.code,
-    );
-  }
-  return (body?.data as T) ?? (null as T);
-}
-
 export const friendApi = {
-  list: (signal?: AbortSignal) =>
-    request<Friend[]>("/api/friends", { signal }),
+  list: (signal?: AbortSignal) => request<Friend[]>("/api/friends", { signal }),
 
   remove: (friendId: string, signal?: AbortSignal) =>
     request<null>(`/api/friends/${encodeURIComponent(friendId)}`, {

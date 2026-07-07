@@ -5,7 +5,7 @@ import { ImagePlus, Loader2, Trash2, Upload, X } from "lucide-react";
 
 import { errorMessage, useUpdateTrip } from "@/hooks/trip-hooks";
 import { uploadImage } from "@/lib/cloudinary-upload";
-import type { Trip } from "@/lib/trip-api";
+import type { Trip } from "@/lib/apis/trip-api";
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -20,7 +20,9 @@ export function CoverImageDrawer({
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(trip.cover_image ?? null);
+  const [preview, setPreview] = useState<string | null>(
+    trip.cover_image ?? null,
+  );
   const update = useUpdateTrip();
 
   useEffect(() => {

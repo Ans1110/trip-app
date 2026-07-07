@@ -10,7 +10,7 @@ import {
   useMyEvents,
 } from "@/hooks/calendar-hooks";
 import { useFriends } from "@/hooks/friend-hooks";
-import type { CalendarEvent } from "@/lib/calendar-api";
+import type { CalendarEvent } from "@/lib/apis/calendar-api";
 
 export function FriendCalendarView({ friendId }: { friendId: string }) {
   const [range, setRange] = useState<{ from: string; to: string }>({
@@ -67,8 +67,8 @@ export function FriendCalendarView({ friendId }: { friendId: string }) {
             {displayName}&rsquo;s calendar
           </h1>
           <p className="text-sm mt-1" style={{ color: "#8B9A8E" }}>
-            Your private &amp; friends events, alongside events{" "}
-            {displayName} has shared with friends.
+            Your private &amp; friends events, alongside events {displayName}{" "}
+            has shared with friends.
           </p>
         </div>
         <VisibilityToggle
@@ -81,7 +81,7 @@ export function FriendCalendarView({ friendId }: { friendId: string }) {
         events={events}
         isLoading={anyLoading}
         errorMessage={
-          firstError ? errorMessage(firstError) ?? undefined : undefined
+          firstError ? (errorMessage(firstError) ?? undefined) : undefined
         }
         onRangeChange={(from, to) =>
           setRange({ from: from.toISOString(), to: to.toISOString() })

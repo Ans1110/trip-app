@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import { useQueries } from "@tanstack/react-query";
 
 import { useMe } from "@/hooks/auth-hooks";
-import { calendarKeys, errorMessage, useMyEvents } from "@/hooks/calendar-hooks";
+import {
+  calendarKeys,
+  errorMessage,
+  useMyEvents,
+} from "@/hooks/calendar-hooks";
 import { useRoom } from "@/hooks/trip-hooks";
-import { calendarApi, type CalendarEvent } from "@/lib/calendar-api";
-import { ApiError } from "@/lib/friend-api";
+import { calendarApi, type CalendarEvent } from "@/lib/apis/calendar-api";
+import { ApiError } from "@/lib/utils";
 
 import { EventCalendarGrid } from "@/components/calendar/event-calendar-grid";
 
@@ -57,7 +61,8 @@ export function TripCalendar({ tripId }: { tripId: string }) {
     for (const ev of myEvents.data ?? []) seen.set(ev.id, ev);
     if (showAll) {
       for (const q of memberQueries) {
-        for (const ev of q.data ?? []) if (!seen.has(ev.id)) seen.set(ev.id, ev);
+        for (const ev of q.data ?? [])
+          if (!seen.has(ev.id)) seen.set(ev.id, ev);
       }
     }
     return Array.from(seen.values());
@@ -117,7 +122,9 @@ export function TripCalendar({ tripId }: { tripId: string }) {
       <EventCalendarGrid
         events={events}
         isLoading={anyLoading}
-        errorMessage={firstError ? errorMessage(firstError) ?? undefined : undefined}
+        errorMessage={
+          firstError ? (errorMessage(firstError) ?? undefined) : undefined
+        }
         onRangeChange={onRangeChange}
         onEventClick={onEventClick}
         userNamesById={userNamesById}

@@ -11,7 +11,7 @@ import {
   useIncomingRequests,
   useOutgoingRequests,
 } from "@/hooks/friend-hooks";
-import type { FriendRequest, UserSummary } from "@/lib/friend-api";
+import type { FriendRequest, UserSummary } from "@/lib/apis/friend-api";
 
 import { Avatar, Section } from "./friend-list";
 

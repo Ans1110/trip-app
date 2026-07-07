@@ -16,7 +16,7 @@ import { errorMessage, useCreateEvent } from "@/hooks/calendar-hooks";
 import {
   createEventSchema,
   type CreateEventFormInput,
-} from "@/lib/calendar-schemas";
+} from "@/lib/schemas/calendar-schemas";
 
 const VISIBILITY_OPTIONS = [
   { value: "private", label: "Private" },

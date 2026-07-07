@@ -12,15 +12,12 @@ import {
 import {
   isAuthPathname,
   sessionExpiredStore,
-} from "@/lib/session-expired-store";
+} from "@/store/session-expired-store";
 
 import { SessionExpiredModal } from "./auth/session-expired-modal";
 import { FriendsFab } from "./friends/friends-fab";
 import { SeasonProvider } from "./season-provider";
 
-// Structural check — the codebase has two separate `ApiError` classes
-// (auth-api.ts + friend-api.ts), so `instanceof` against either misses
-// half the call sites. Match any error carrying a numeric `status`.
 const is401 = (err: unknown): boolean => {
   if (typeof err !== "object" || err === null) return false;
   const status = (err as { status?: unknown }).status;

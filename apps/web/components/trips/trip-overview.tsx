@@ -10,16 +10,12 @@ import { ControlledDatePicker } from "@/components/ui/controlled-date-picker";
 import { ControlledInput } from "@/components/ui/controlled-input";
 import { ControlledSelect } from "@/components/ui/controlled-select";
 import { ControlledTextarea } from "@/components/ui/controlled-textarea";
-import {
-  errorMessage,
-  useDeleteTrip,
-  useUpdateTrip,
-} from "@/hooks/trip-hooks";
-import type { Trip, TripUpdatableStatus } from "@/lib/trip-api";
+import { errorMessage, useDeleteTrip, useUpdateTrip } from "@/hooks/trip-hooks";
+import type { Trip, TripUpdatableStatus } from "@/lib/apis/trip-api";
 import {
   updateTripSchema,
   type UpdateTripFormInput,
-} from "@/lib/trip-schemas";
+} from "@/lib/schemas/trip-schemas";
 
 import { CoverImageDrawer } from "./cover-image-drawer";
 
@@ -28,7 +24,13 @@ const statusOptions = [
   { value: "ongoing", label: "Ongoing" },
 ];
 
-export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boolean }) {
+export function TripOverview({
+  trip,
+  canManage,
+}: {
+  trip: Trip;
+  canManage: boolean;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
@@ -38,7 +40,9 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
     description: trip.description,
     start_date: trip.start_date.slice(0, 10),
     end_date: trip.end_date.slice(0, 10),
-    status: (trip.status === "completed" ? "ongoing" : trip.status) as TripUpdatableStatus,
+    status: (trip.status === "completed"
+      ? "ongoing"
+      : trip.status) as TripUpdatableStatus,
   };
   const form = useForm<UpdateTripFormInput>({
     resolver: zodResolver(updateTripSchema),
@@ -71,7 +75,8 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
   };
 
   const handleDelete = () => {
-    if (!window.confirm(`Delete "${trip.title}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete "${trip.title}"? This cannot be undone.`))
+      return;
     remove.mutate(trip.id, {
       onSuccess: () => router.replace("/trips"),
     });
@@ -127,7 +132,9 @@ export function TripOverview({ trip, canManage }: { trip: Trip; canManage: boole
               className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
               style={{ backgroundColor: "var(--season-button)" }}
             >
-              {update.isPending && <Loader2 className="size-3.5 animate-spin" />}
+              {update.isPending && (
+                <Loader2 className="size-3.5 animate-spin" />
+              )}
               Save
             </button>
           </div>

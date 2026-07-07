@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { errorMessage, useMyEvents } from "@/hooks/calendar-hooks";
-import type { CalendarEvent } from "@/lib/calendar-api";
+import type { CalendarEvent } from "@/lib/apis/calendar-api";
 
 import { CreateEventDialog } from "./create-event-dialog";
 import { EditEventDialog } from "./edit-event-dialog";
@@ -71,7 +71,9 @@ export function CalendarView() {
       <EventCalendarGrid
         events={events}
         isLoading={query.isLoading}
-        errorMessage={query.isError ? errorMessage(query.error) ?? undefined : undefined}
+        errorMessage={
+          query.isError ? (errorMessage(query.error) ?? undefined) : undefined
+        }
         onRangeChange={onRangeChange}
         onDayClick={(day) => openCreateAt(day)}
         onEventClick={onEventClick}

@@ -1,5 +1,5 @@
-import { ApiError } from "./friend-api";
 import type { UserSummary } from "./friend-api";
+import { request } from "../utils";
 
 export type { UserSummary } from "./friend-api";
 
@@ -171,34 +171,6 @@ export type UpdateTodoInput = {
 
 export type ReorderTodosInput = { todo_ids: string[] };
 
-type Envelope<T> = { code: number; message: string; data: T | null };
-
-async function request<T>(
-  path: string,
-  init: RequestInit & { json?: unknown } = {},
-): Promise<T> {
-  const { json, headers, ...rest } = init;
-  const res = await fetch(path, {
-    credentials: "include",
-    ...rest,
-    headers: {
-      ...(json !== undefined ? { "content-type": "application/json" } : {}),
-      ...headers,
-    },
-    body: json !== undefined ? JSON.stringify(json) : rest.body,
-  });
-
-  const body = (await res.json().catch(() => null)) as Envelope<T> | null;
-  if (!res.ok) {
-    throw new ApiError(
-      body?.message ?? `Request failed (${res.status})`,
-      res.status,
-      body?.code,
-    );
-  }
-  return (body?.data as T) ?? (null as T);
-}
-
 const buildListTripsQuery = (q: ListTripsQuery): string => {
   const qs = new URLSearchParams();
   if (q.status) qs.set("status", q.status);
@@ -296,10 +268,11 @@ export const tripApi = {
     input: ReorderItineraryInput,
     signal?: AbortSignal,
   ) =>
-    request<null>(
-      `/api/trips/${encodeURIComponent(id)}/itinerary/reorder`,
-      { method: "POST", json: input, signal },
-    ),
+    request<null>(`/api/trips/${encodeURIComponent(id)}/itinerary/reorder`, {
+      method: "POST",
+      json: input,
+      signal,
+    }),
 
   // Todos
   listTodos: (id: string, signal?: AbortSignal) =>
@@ -325,13 +298,10 @@ export const tripApi = {
       `/api/trips/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`,
       { method: "DELETE", signal },
     ),
-  reorderTodos: (
-    id: string,
-    input: ReorderTodosInput,
-    signal?: AbortSignal,
-  ) =>
-    request<null>(
-      `/api/trips/${encodeURIComponent(id)}/todos/reorder`,
-      { method: "POST", json: input, signal },
-    ),
+  reorderTodos: (id: string, input: ReorderTodosInput, signal?: AbortSignal) =>
+    request<null>(`/api/trips/${encodeURIComponent(id)}/todos/reorder`, {
+      method: "POST",
+      json: input,
+      signal,
+    }),
 };

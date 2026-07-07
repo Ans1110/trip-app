@@ -1,4 +1,4 @@
-import { ApiError } from "./friend-api";
+import { request } from "../utils";
 
 export type EventVisibility = "private" | "room" | "friends" | "public";
 export type EventSource = "user" | "trip";
@@ -57,34 +57,6 @@ export type ListEventsQuery = {
   from?: string;
   to?: string;
 };
-
-type Envelope<T> = { code: number; message: string; data: T | null };
-
-async function request<T>(
-  path: string,
-  init: RequestInit & { json?: unknown } = {},
-): Promise<T> {
-  const { json, headers, ...rest } = init;
-  const res = await fetch(path, {
-    credentials: "include",
-    ...rest,
-    headers: {
-      ...(json !== undefined ? { "content-type": "application/json" } : {}),
-      ...headers,
-    },
-    body: json !== undefined ? JSON.stringify(json) : rest.body,
-  });
-
-  const body = (await res.json().catch(() => null)) as Envelope<T> | null;
-  if (!res.ok) {
-    throw new ApiError(
-      body?.message ?? `Request failed (${res.status})`,
-      res.status,
-      body?.code,
-    );
-  }
-  return (body?.data as T) ?? (null as T);
-}
 
 const buildRangeQuery = (q: ListEventsQuery): string => {
   const qs = new URLSearchParams();

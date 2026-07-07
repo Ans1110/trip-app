@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, CheckCircle2, Loader2, MailCheck } from "lucide-react";
 
 import { ControlledInput } from "@/components/ui/controlled-input";
-import { signUpSchema, type SignUpInput } from "@/lib/auth-schemas";
+import { signUpSchema, type SignUpInput } from "@/lib/schemas/auth-schemas";
 import {
   errorMessage,
   useResendVerification,
