@@ -9,6 +9,8 @@ import {
   type Query,
 } from "@tanstack/react-query";
 
+import { authKeys } from "@/hooks/auth-hooks";
+import type { User } from "@/lib/apis/auth-api";
 import {
   isAuthPathname,
   sessionExpiredStore,
@@ -37,29 +39,41 @@ const shouldTriggerExpired = (
 };
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        queryCache: new QueryCache({
-          onError: (err, query) => {
-            if (shouldTriggerExpired(err, query)) sessionExpiredStore.trigger();
-          },
-        }),
-        mutationCache: new MutationCache({
-          onError: (err) => {
-            if (shouldTriggerExpired(err)) sessionExpiredStore.trigger();
-          },
-        }),
-        defaultOptions: {
-          queries: {
-            staleTime: 30_000,
-            refetchOnWindowFocus: false,
-            retry: 1,
-          },
-          mutations: { retry: 0 },
+  const [queryClient] = useState(() => {
+    // eslint-disable-next-line prefer-const
+    let client!: QueryClient;
+
+    const handleAuthExpired = () => {
+      const wasExpired = sessionExpiredStore.getSnapshot();
+      sessionExpiredStore.trigger();
+      if (wasExpired) return;
+      void client.cancelQueries();
+      client.setQueryData<User | null>(authKeys.me, null);
+    };
+
+    client = new QueryClient({
+      queryCache: new QueryCache({
+        onError: (err, query) => {
+          if (shouldTriggerExpired(err, query)) handleAuthExpired();
         },
       }),
-  );
+      mutationCache: new MutationCache({
+        onError: (err) => {
+          if (shouldTriggerExpired(err)) handleAuthExpired();
+        },
+      }),
+      defaultOptions: {
+        queries: {
+          staleTime: 30_000,
+          refetchOnWindowFocus: false,
+          retry: 1,
+        },
+        mutations: { retry: 0 },
+      },
+    });
+
+    return client;
+  });
 
   return (
     <QueryClientProvider client={queryClient}>
