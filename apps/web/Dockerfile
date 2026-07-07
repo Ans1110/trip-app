@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile
 
-FROM oven/bun:1.2-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -13,7 +13,7 @@ ARG NEXT_PUBLIC_BFF_URL=http://localhost:3000
 ARG NEXT_PUBLIC_WS_URL=ws://localhost:8080
 ENV NEXT_PUBLIC_BFF_URL=$NEXT_PUBLIC_BFF_URL
 ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
-RUN bun run build
+RUN npx --no-install next build
 
 FROM oven/bun:1.2-alpine AS runner
 WORKDIR /app

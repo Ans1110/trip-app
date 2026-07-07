@@ -3,12 +3,12 @@ WORKDIR /app
 COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile
 
-FROM oven/bun:1.2-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLE=1
-RUN bun run build
+RUN npx --no-install next build
 
 FROM oven/bun:1.2-alpine AS runner
 WORKDIR /app
@@ -28,4 +28,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-RUN ["bun", "server.js"]
+CMD ["bun", "server.js"]
