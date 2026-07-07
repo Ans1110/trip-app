@@ -72,7 +72,7 @@ export function FriendsTabs({ onClose }: { onClose?: () => void }) {
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
-        {view === "friends" && <FriendList />}
+        {view === "friends" && <FriendList onNavigate={onClose} />}
         {view === "requests" && <RequestsPanel />}
         {view === "blocks" && <BlocksPanel />}
       </div>

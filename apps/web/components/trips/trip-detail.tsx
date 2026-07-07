@@ -4,17 +4,19 @@ import { useState } from "react";
 
 import { errorMessage, useTrip } from "@/hooks/trip-hooks";
 
+import { TripCalendar } from "./trip-calendar";
 import { TripItinerary } from "./trip-itinerary";
 import { TripOverview } from "./trip-overview";
 import { TripRoom } from "./trip-room";
 import { TripTodos } from "./trip-todos";
 
-type Tab = "overview" | "itinerary" | "todos" | "room";
+type Tab = "overview" | "itinerary" | "todos" | "calendar" | "room";
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "itinerary", label: "Itinerary" },
   { value: "todos", label: "Todos" },
+  { value: "calendar", label: "Calendar" },
   { value: "room", label: "Room" },
 ];
 
@@ -76,6 +78,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
       )}
       {tab === "itinerary" && <TripItinerary trip={trip} />}
       {tab === "todos" && <TripTodos tripId={trip.id} />}
+      {tab === "calendar" && <TripCalendar tripId={trip.id} />}
       {tab === "room" && <TripRoom tripId={trip.id} canManage={canManage} />}
     </div>
   );

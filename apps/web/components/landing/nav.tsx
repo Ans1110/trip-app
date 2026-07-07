@@ -91,6 +91,13 @@ export function Nav() {
             >
               Trips
             </Link>
+            <Link
+              href="/calendar"
+              className="hidden sm:inline-flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors hover:bg-white/5"
+              style={{ color: "#ECEFEA" }}
+            >
+              Calendar
+            </Link>
             <span
               className="hidden sm:inline text-sm"
               style={{ color: "#ECEFEA" }}

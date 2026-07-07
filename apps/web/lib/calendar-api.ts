@@ -3,8 +3,6 @@ import { ApiError } from "./friend-api";
 export type EventVisibility = "private" | "room" | "friends" | "public";
 export type EventSource = "user" | "trip";
 export type EventType = "general" | "trip" | "flight" | "hotel" | "meeting";
-
-// Client-side creation is limited to visibilities the server actually accepts.
 // The room/public/trip sources come from the trip module, not this API.
 export type CreatableVisibility = "private" | "friends";
 

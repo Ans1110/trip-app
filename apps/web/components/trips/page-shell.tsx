@@ -32,10 +32,26 @@ export function PageShell({
             TripCraft
           </span>
         </Link>
+        <nav className="ml-4 hidden md:flex items-center gap-1 text-sm">
+          <Link
+            href="/trips"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
+            style={{ color: "#ECEFEA" }}
+          >
+            Trips
+          </Link>
+          <Link
+            href="/calendar"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
+            style={{ color: "#ECEFEA" }}
+          >
+            Calendar
+          </Link>
+        </nav>
         {back && (
           <Link
             href={back.href}
-            className="ml-2 inline-flex items-center gap-1 text-sm hover:bg-white/5 rounded-lg px-2 py-1"
+            className="ml-auto inline-flex items-center gap-1 text-sm hover:bg-white/5 rounded-lg px-2 py-1"
             style={{ color: "#8B9A8E" }}
           >
             <ChevronLeft className="size-4" />

@@ -33,7 +33,7 @@ function Calendar({ className, classNames, ...props }: CalendarProps) {
         day_button:
           "size-9 inline-flex items-center justify-center rounded-md hover:bg-white/5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--season-button)]/30",
         selected:
-          "[&_button]:bg-[color:var(--season-button)] [&_button]:text-[#0B100D] [&_button]:hover:bg-[color:var(--season-button)]",
+          "[&_button]:bg-[color-mix(in_srgb,var(--season-button)_22%,transparent)] [&_button]:ring-1 [&_button]:ring-inset [&_button]:ring-[color:var(--season-button)] [&_button]:font-semibold",
         today:
           "[&_button]:font-semibold [&_button]:text-[color:var(--season-button)]",
         outside: "[&_button]:text-[#3F4A43]",

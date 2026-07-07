@@ -1,8 +1,16 @@
 "use client";
 
-import { Loader2, ShieldOff, Trash2, UserPlus2 } from "lucide-react";
+import { CalendarDays, Loader2, ShieldOff, Trash2, UserPlus2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { useMe } from "@/hooks/auth-hooks";
 import {
@@ -15,7 +23,7 @@ import {
 } from "@/hooks/friend-hooks";
 import type { Friend, UserSummary } from "@/lib/friend-api";
 
-export function FriendList() {
+export function FriendList({ onNavigate }: { onNavigate?: () => void }) {
   const [query, setQuery] = useState("");
   const friendsQuery = useFriends();
 
@@ -29,7 +37,9 @@ export function FriendList() {
         loading={friendsQuery.isLoading}
         error={errorMessage(friendsQuery.error)}
         items={friendsQuery.data ?? []}
-        renderItem={(f) => <FriendRow key={f.user.id} friend={f} />}
+        renderItem={(f) => (
+          <FriendRow key={f.user.id} friend={f} onNavigate={onNavigate} />
+        )}
       />
     </div>
   );
@@ -165,60 +175,89 @@ function SearchResultRow({
   );
 }
 
-function FriendRow({ friend }: { friend: Friend }) {
+function FriendRow({
+  friend,
+  onNavigate,
+}: {
+  friend: Friend;
+  onNavigate?: () => void;
+}) {
+  const router = useRouter();
   const remove = useRemoveFriend();
   const block = useBlockUser();
   const busy = remove.isPending || block.isPending;
+  const displayName = friend.user.name || friend.user.email;
+
+  const openCalendar = () => {
+    router.push(`/friends/${friend.user.id}/calendar`);
+    onNavigate?.();
+  };
+
+  const doBlock = () => {
+    if (
+      window.confirm(
+        `Block ${displayName}? They will be removed as a friend.`,
+      )
+    ) {
+      block.mutate({ target_id: friend.user.id });
+    }
+  };
+
+  const doRemove = () => {
+    if (window.confirm(`Remove ${displayName} from your friends?`)) {
+      remove.mutate(friend.user.id);
+    }
+  };
+
   return (
-    <div
-      className="flex items-center gap-3 px-4 py-3 rounded-lg"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
-    >
-      <Avatar user={friend.user} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm truncate" style={{ color: "#ECEFEA" }}>
-          {friend.user.name || friend.user.email}
-        </p>
-        <p className="text-xs truncate" style={{ color: "#8B9A8E" }}>
-          {friend.user.email}
-        </p>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm(`Block ${friend.user.name || friend.user.email}? They will be removed as a friend.`)) {
-              block.mutate({ target_id: friend.user.id });
-            }
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-lg select-none"
+          style={{
+            backgroundColor: "#121814",
+            border: "1px solid #1F2A24",
+            opacity: busy ? 0.6 : 1,
           }}
-          disabled={busy}
-          aria-label="Block"
-          title="Block"
-          className="season-transition inline-flex items-center justify-center size-8 rounded-full hover:bg-white/5 disabled:opacity-60"
-          style={{ color: "#8B9A8E" }}
+          title="Right-click for options"
         >
-          {block.isPending ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <ShieldOff className="size-3.5" />
+          <Avatar user={friend.user} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm truncate" style={{ color: "#ECEFEA" }}>
+              {displayName}
+            </p>
+            <p className="text-xs truncate" style={{ color: "#8B9A8E" }}>
+              {friend.user.email}
+            </p>
+          </div>
+          {busy && (
+            <Loader2
+              className="size-3.5 animate-spin shrink-0"
+              style={{ color: "#8B9A8E" }}
+            />
           )}
-        </button>
-        <button
-          type="button"
-          onClick={() => remove.mutate(friend.user.id)}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onSelect={openCalendar}>
+          <CalendarDays className="size-3.5" style={{ color: "#8B9A8E" }} />
+          Calendar
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={doBlock} disabled={busy}>
+          <ShieldOff className="size-3.5" style={{ color: "#8B9A8E" }} />
+          Block
+        </ContextMenuItem>
+        <ContextMenuItem
+          onSelect={doRemove}
           disabled={busy}
-          className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
           style={{ color: "#FCA5A5" }}
         >
-          {remove.isPending ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <Trash2 className="size-3.5" />
-          )}
+          <Trash2 className="size-3.5" />
           Remove
-        </button>
-      </div>
-    </div>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
