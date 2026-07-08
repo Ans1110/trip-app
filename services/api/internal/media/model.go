@@ -30,11 +30,15 @@ func defaultRules() map[Purpose]PurposeRule {
 		"image/webp": {},
 		"image/gif":  {},
 	}
+
 	fileMimes := map[string]struct{}{
 		"image/jpeg":      {},
 		"image/png":       {},
 		"image/webp":      {},
 		"image/gif":       {},
+		"video/mp4":       {},
+		"video/webm":      {},
+		"video/quicktime": {},
 		"application/pdf": {},
 		"text/plain":      {},
 		"application/zip": {},
@@ -42,8 +46,10 @@ func defaultRules() map[Purpose]PurposeRule {
 	return map[Purpose]PurposeRule{
 		PurposeAvatar: {MaxBytes: 5 << 20, AllowedMime: imageMimes, KeyPrefix: "avatar/"},
 		PurposeCover:  {MaxBytes: 10 << 20, AllowedMime: imageMimes, KeyPrefix: "cover/"},
-		PurposeChat:   {MaxBytes: 25 << 20, AllowedMime: fileMimes, KeyPrefix: "chat/"},
-		PurposeTodo:   {MaxBytes: 25 << 20, AllowedMime: fileMimes, KeyPrefix: "todo/"},
+		// 100MB covers short clips (~1min 1080p) without exposing the bucket to
+		// abuse from arbitrarily large uploads.
+		PurposeChat: {MaxBytes: 100 << 20, AllowedMime: fileMimes, KeyPrefix: "chat/"},
+		PurposeTodo: {MaxBytes: 100 << 20, AllowedMime: fileMimes, KeyPrefix: "todo/"},
 	}
 }
 

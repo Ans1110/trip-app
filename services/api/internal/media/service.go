@@ -246,6 +246,12 @@ func extForMime(m string) string {
 		return ".webp"
 	case "image/gif":
 		return ".gif"
+	case "video/mp4":
+		return ".mp4"
+	case "video/webm":
+		return ".webm"
+	case "video/quicktime":
+		return ".mov"
 	case "application/pdf":
 		return ".pdf"
 	case "text/plain":
