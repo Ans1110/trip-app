@@ -15,6 +15,7 @@ type Config struct {
 	JWT          JWTConfig
 	OAuth        OAuthConfig
 	Cloudinary   CloudinaryConfig
+	Media        MediaConfig
 	External     ExternalConfig
 	Notification NotificationConfig `mapstructure:"notifications"`
 	Security     SecurityConfig
@@ -105,6 +106,22 @@ type CloudinaryConfig struct {
 	APIKey    string `mapstructure:"api_key"`
 	APISecret string `mapstructure:"api_secret"`
 	Folder    string `mapstructure:"folder"`
+}
+
+// MediaConfig is the MinIO / S3-compatible object store used by the Media
+// Service.
+type MediaConfig struct {
+	Endpoint         string        `mapstructure:"endpoint"`        // e.g. localhost:9000 — used by the SDK
+	PublicEndpoint   string        `mapstructure:"public_endpoint"` // optional; falls back to Endpoint
+	AccessKey        string        `mapstructure:"access_key"`
+	SecretKey        string        `mapstructure:"secret_key"`
+	Bucket           string        `mapstructure:"bucket"`
+	Region           string        `mapstructure:"region"`
+	UseSSL           bool          `mapstructure:"use_ssl"`
+	PresignPutTTL    time.Duration `mapstructure:"presign_put_ttl"`
+	PresignGetTTL    time.Duration `mapstructure:"presign_get_ttl"`
+	UploadSessionTTL time.Duration `mapstructure:"upload_session_ttl"`
+	GCInterval       time.Duration `mapstructure:"gc_interval"`
 }
 
 type ExternalConfig struct {
