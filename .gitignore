@@ -45,6 +45,7 @@ services/api/config/config.prod.yml
 *.swo
 .github/skills/
 .playwright-mcp/
+.agents/
 
 # OS
 .DS_Store
