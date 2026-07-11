@@ -20,7 +20,8 @@ var (
 
 type Payload struct {
 	UserID   uuid.UUID `json:"user_id"`
-	TripID   uuid.UUID `json:"trip_id"`
+	TripID   uuid.UUID `json:"trip_id,omitempty"`
+	RoomID   uuid.UUID `json:"room_id,omitempty"`
 	IssuedAt time.Time `json:"issued_at"`
 }
 
@@ -81,7 +82,7 @@ func (s *Store) Consume(ctx context.Context, token string) (Payload, error) {
 		return Payload{}, fmt.Errorf("ticket: unmarshal: %w", err)
 	}
 
-	if p.UserID == uuid.Nil || p.TripID == uuid.Nil {
+	if p.UserID == uuid.Nil || (p.TripID == uuid.Nil && p.RoomID == uuid.Nil) {
 		return Payload{}, ErrInvalid
 	}
 	return p, nil

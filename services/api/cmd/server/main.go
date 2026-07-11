@@ -27,7 +27,9 @@ import (
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/calendar"
+	"github.com/Ans1110/trip-app/internal/chat"
 	"github.com/Ans1110/trip-app/internal/friend"
+	"github.com/Ans1110/trip-app/internal/media"
 	"github.com/Ans1110/trip-app/internal/realtime"
 	"github.com/Ans1110/trip-app/internal/trip"
 	"github.com/Ans1110/trip-app/pkg/config"
@@ -204,9 +206,62 @@ func main() {
 	})
 	go rtDispatcher.Start(ctx)
 
+	mediaStorage, err := media.NewStorage(cfg.Media)
+	if err != nil {
+		logger.Fatal("initialize media storage", zap.Error(err))
+	}
+	if err := mediaStorage.EnsureBucket(ctx); err != nil {
+		logger.Fatal("ensure media bucket", zap.Error(err))
+	}
+	mediaRepo := media.NewRepository(db)
+	mediaSvc := media.NewService(media.ServiceConfig{
+		Repo:    mediaRepo,
+		Storage: mediaStorage,
+		Cfg:     cfg.Media,
+		Bus:     bus,
+		Logger:  logger,
+	})
+	mediaGC := media.NewGC(media.GCConfig{
+		Repo:     mediaRepo,
+		Storage:  mediaStorage,
+		Interval: cfg.Media.GCInterval,
+		Logger:   logger,
+	})
+	mediaGC.Start(ctx)
+	mediaHandler := media.NewHandler(mediaSvc, logger)
+
+	// Chat wiring: writer (bounded queue → batch INSERT) → service (persist
+	// then broadcast via hub + pub/sub).
+	chatRepo := chat.NewRepository(db)
+	chatHub := chat.NewHub(logger)
+	chatWriter := chat.NewWriter(chat.WriterConfig{
+		Repo:   chatRepo,
+		Logger: logger,
+	})
+	go chatWriter.Start(ctx)
+	chatSvc := chat.NewService(chat.ServiceConfig{
+		Repo:       chatRepo,
+		TripRepo:   tripRepo,
+		MediaAuthz: mediaSvc,
+		Hub:        chatHub,
+		Redis:      rdb,
+		Writer:     chatWriter,
+		Logger:     logger,
+	})
+	go chatSvc.Start(ctx)
+	chatTickets := ticket.NewStore(ticket.Config{
+		Redis:  rdb,
+		Prefix: "chat:ticket:",
+		TTL:    60 * time.Second,
+	})
+	chatHandler := chat.NewHandler(chatSvc, chatHub, logger, chat.HandlerConfig{
+		AllowedOrigins: cfg.Server.AllowedOrigins,
+		Tickets:        chatTickets,
+	})
+
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -243,11 +298,14 @@ func setupRouter(
 	publicKey *rsa.PublicKey,
 	rdb *redis.Client,
 	rtTickets *ticket.Store,
+	chatTickets *ticket.Store,
 	authHandler auth.IHandler,
 	friendHandler friend.IHandler,
 	tripHandler trip.IHandler,
 	calendarHandler calendar.IHandler,
 	rtHandler realtime.IHandler,
+	chatHandler chat.IHandler,
+	mediaHandler media.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -307,14 +365,21 @@ func setupRouter(
 	friendHandler.RegisterRoutes(protected)
 	tripHandler.RegisterRoutes(protected)
 	calendarHandler.RegisterRoutes(protected)
+	mediaHandler.RegisterRoutes(protected)
 
 	// Realtime: ticket issuance lives on the JWT-protected group; the WS
 	// Upgrade lives on a separate group that consumes single-use tickets
-	// via TicketAuth. No JWT is ever expected on the Upgrade — the browser
-	// never holds one.
+	// via TicketAuth.
 	ws := api.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)
 	rtHandler.RegisterRoutes(protected, ws)
+
+	// Chat WS uses its own ticket store (different Redis key prefix) so a
+	// realtime ticket cannot be replayed against the chat endpoint. HTTP
+	// endpoints share the JWT-protected group.
+	chatWS := api.Group("/")
+	chatWS.Use(middleware.TicketAuth(chatTickets, logger), rateLimitMW)
+	chatHandler.RegisterRoutes(protected, chatWS)
 
 	return r
 }
