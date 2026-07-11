@@ -1,23 +1,39 @@
 # Run from repo root:
 #   docker compose -f infra/docker/docker-compose.yml up --build
+#
 # Paths are relative to this file's directory (infra/docker/).
+
+x-default-service: &default-service
+  restart: unless-stopped
+  networks:
+    - tripapp
 
 services:
   api:
+    <<: *default-service
     build:
       context: ../../services/api
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
-      CONFIG_PATH: /app/config/config.yaml
+      # Config file path — the yml (not yaml) shipped in services/api/config.
+      CONFIG_PATH: /app/config/config.yml
+
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_USER: postgres
       DATABASE_PASSWORD: postgres
-      DATABASE_DBNAME: tripapp_db
+      DATABASE_NAME: tripapp_db
       DATABASE_SSLMODE: disable
       REDIS_ADDR: redis:6379
+
+      MEDIA_ENDPOINT: minio:9000
+      MEDIA_PUBLIC_ENDPOINT: localhost:9000
+      MEDIA_ACCESS_KEY: minioadmin
+      MEDIA_SECRET_KEY: minioadmin
+      MEDIA_BUCKET: tripapp
+      MEDIA_USE_SSL: "false"
     volumes:
       - ../../services/api/config:/app/config:ro
       - ../../services/api/keys:/app/keys:ro
@@ -26,15 +42,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 15s
-    restart: unless-stopped
 
   bff:
+    <<: *default-service
     build:
       context: ../../services/app-bff
       dockerfile: Dockerfile
@@ -50,24 +68,24 @@ services:
     depends_on:
       api:
         condition: service_healthy
-    restart: unless-stopped
 
   web:
+    <<: *default-service
     build:
       context: ../../apps/web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_BFF_URL: http://bff:3000
-        NEXT_PUBLIC_WS_URL: ws://api:8080
+        NEXT_PUBLIC_BFF_URL: http://localhost:3000
+        NEXT_PUBLIC_WS_URL: ws://localhost:8080
     ports:
       - "3002:3002"
     depends_on:
       - bff
-    restart: unless-stopped
 
   # apps/mobile (React Native / Expo) runs natively in dev — not containerized.
 
   postgres:
+    <<: *default-service
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: tripapp_db
@@ -78,12 +96,13 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tripapp_db"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
+    <<: *default-service
     image: redis:7-alpine
     ports:
       - "6379:6379"
@@ -93,32 +112,27 @@ services:
       timeout: 3s
       retries: 5
 
-  nginx:
-    image: nginx:1.27-alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/proxy_params:/etc/nginx/proxy_params:ro
-    depends_on:
-      - api
-      - bff
-      - web
-    restart: unless-stopped
-
   minio:
+    <<: *default-service
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web console
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
       - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   pgbouncer:
+    <<: *default-service
     image: edoburu/pgbouncer:latest
     environment:
       DATABASE_URL: "postgres://postgres:postgres@postgres:5432/tripapp_db"
@@ -132,7 +146,22 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
+
+  nginx:
+    <<: *default-service
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - bff
+      - web
+
+networks:
+  tripapp:
+    driver: bridge
 
 volumes:
   pgdata:
