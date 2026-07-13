@@ -5,13 +5,14 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 import { realtimeApi } from "@/lib/apis/realtime-api";
 import { RealtimeClient, type RealtimeState } from "@/lib/realtime/client";
-import type {
-  AckEvent,
-  ClientMsg,
-  CursorMoveEvent,
-  ErrorEvent,
-  ServerMsg,
-  WelcomeEvent,
+import {
+  isServerMsg,
+  type AckEvent,
+  type ClientMsg,
+  type CursorMoveEvent,
+  type ErrorEvent,
+  type ServerMsg,
+  type WelcomeEvent,
 } from "@/lib/realtime/protocol";
 
 import { calendarKeys } from "./calendar-hooks";
@@ -38,7 +39,7 @@ export function useTripRealtime(
 ): UseTripRealtimeResult {
   const qc = useQueryClient();
   const [state, setState] = useState<RealtimeState>("idle");
-  const clientRef = useRef<RealtimeClient | null>(null);
+  const clientRef = useRef<RealtimeClient<ClientMsg, ServerMsg> | null>(null);
 
   // Keep callbacks fresh without rebuilding the WS client on every render.
   const optsRef = useRef(options);
@@ -51,12 +52,13 @@ export function useTripRealtime(
   useEffect(() => {
     if (!enabled || !tripId) return;
 
-    const client = new RealtimeClient({
+    const client = new RealtimeClient<ClientMsg, ServerMsg>({
       wsUrl: buildTripWsUrl(tripId),
       fetchTicket: async (signal) => {
         const res = await realtimeApi.issueTripTicket(tripId, signal);
         return res.ticket;
       },
+      parseMessage: (raw) => (isServerMsg(raw) ? raw : null),
       onMessage: (msg) => dispatchServerMsg(qc, tripId, msg, optsRef.current),
       onStateChange: setState,
       onError: (err) => {

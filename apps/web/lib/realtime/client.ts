@@ -1,5 +1,3 @@
-import { isServerMsg, type ClientMsg, type ServerMsg } from "./protocol";
-
 export type RealtimeState =
   | "idle"
   | "connecting"
@@ -7,19 +5,23 @@ export type RealtimeState =
   | "reconnecting"
   | "closed";
 
-export type RealtimeClientConfig = {
+export type RealtimeClientConfig<CMsg, SMsg> = {
   wsUrl: string;
 
   // Called every time open a socket. Tickets are single-use
   // so this MUST return a fresh ticket per connect attempt — never cache.
   fetchTicket: (signal: AbortSignal) => Promise<string>;
 
-  onMessage: (msg: ServerMsg) => void;
+  onMessage: (msg: SMsg) => void;
+  parseMessage: (raw: unknown) => SMsg | null;
   onStateChange?: (state: RealtimeState) => void;
   onError?: (err: unknown) => void;
 
   // If false, skip the document.visibilityState auto-pause. Default: true.
   pauseOnHidden?: boolean;
+
+  // Keep the type parameter reachable so callers can pin `CMsg`.
+  _client?: CMsg;
 };
 
 const BACKOFF_BASE_MS = 500;
@@ -32,7 +34,7 @@ const BACKOFF_JITTER = 0.3;
 //
 // While document.visibilityState === "hidden", drop the socket (React Query
 // will re-hydrate on focus anyway) and re-establish on visible.
-export class RealtimeClient {
+export class RealtimeClient<CMsg, SMsg> {
   private ws: WebSocket | null = null;
   private state: RealtimeState = "idle";
   private shouldRun = false;
@@ -42,7 +44,7 @@ export class RealtimeClient {
   private ticketAbort: AbortController | null = null;
   private visibilityHandler: (() => void) | null = null;
 
-  constructor(private readonly cfg: RealtimeClientConfig) {}
+  constructor(private readonly cfg: RealtimeClientConfig<CMsg, SMsg>) {}
 
   getState(): RealtimeState {
     return this.state;
@@ -73,7 +75,7 @@ export class RealtimeClient {
     this.setState("closed");
   }
 
-  send(msg: ClientMsg): boolean {
+  send(msg: CMsg): boolean {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
     try {
       this.ws.send(JSON.stringify(msg));
@@ -130,7 +132,8 @@ export class RealtimeClient {
         this.cfg.onError?.(err);
         return;
       }
-      if (isServerMsg(parsed)) this.cfg.onMessage(parsed);
+      const msg = this.cfg.parseMessage(parsed);
+      if (msg !== null) this.cfg.onMessage(msg);
     };
 
     ws.onerror = (ev) => {

@@ -17,6 +17,7 @@ import {
 } from "@/store/session-expired-store";
 
 import { SessionExpiredModal } from "./auth/session-expired-modal";
+import { ChatFab } from "./chat/chat-fab";
 import { FriendsFab } from "./friends/friends-fab";
 import { SeasonProvider } from "./season-provider";
 
@@ -79,6 +80,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <SeasonProvider>
         {children}
+        <ChatFab />
         <FriendsFab />
         <SessionExpiredModal />
       </SeasonProvider>

@@ -3,12 +3,15 @@
 import {
   CalendarDays,
   Loader2,
+  MessageCircle,
   ShieldOff,
   Trash2,
   UserPlus2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { useChatWindowStore } from "@/store/chat-window-store";
 
 import {
   ContextMenu,
@@ -191,11 +194,17 @@ function FriendRow({
   const router = useRouter();
   const remove = useRemoveFriend();
   const block = useBlockUser();
+  const openChat = useChatWindowStore((s) => s.openWithPeer);
   const busy = remove.isPending || block.isPending;
   const displayName = friend.user.name || friend.user.email;
 
   const openCalendar = () => {
     router.push(`/friends/${friend.user.id}/calendar`);
+    onNavigate?.();
+  };
+
+  const doChat = () => {
+    openChat(friend.user.id);
     onNavigate?.();
   };
 
@@ -243,6 +252,10 @@ function FriendRow({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onSelect={doChat}>
+          <MessageCircle className="size-3.5" style={{ color: "#8B9A8E" }} />
+          Chat
+        </ContextMenuItem>
         <ContextMenuItem onSelect={openCalendar}>
           <CalendarDays className="size-3.5" style={{ color: "#8B9A8E" }} />
           Calendar

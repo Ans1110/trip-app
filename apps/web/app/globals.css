@@ -144,3 +144,48 @@
       box-shadow 600ms ease;
   }
 }
+
+/* Chat scroll surface. Uses @utility (Tailwind v4) so the rules are always
+   emitted regardless of layer order — some containers (message list, rooms
+   list) render on macOS overlay scrollbars that only show custom styling
+   when the width/thumb are explicitly set. */
+@utility chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 154, 142, 0.55) rgba(31, 42, 36, 0.6);
+  scrollbar-gutter: stable;
+  /* Force a real (non-overlay) scrollbar so our WebKit rules apply on macOS. */
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(31, 42, 36, 0.5);
+    border-radius: 9999px;
+    margin: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(139, 154, 142, 0.6);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    min-height: 32px;
+    transition: background-color 180ms ease;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(139, 154, 142, 0.85);
+  }
+  &::-webkit-scrollbar-thumb:hover,
+  &::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(
+      in srgb,
+      var(--season-button) 70%,
+      rgba(236, 239, 234, 0.5)
+    );
+  }
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
