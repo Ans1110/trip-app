@@ -210,7 +210,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("initialize media storage", zap.Error(err))
 	}
-	if err := mediaStorage.EnsureBucket(ctx); err != nil {
+	// Bound the boot-time bucket check
+	ensureCtx, ensureCancel := context.WithTimeout(ctx, 5*time.Second)
+	err = mediaStorage.EnsureBucket(ensureCtx)
+	ensureCancel()
+	if err != nil {
 		logger.Fatal("ensure media bucket", zap.Error(err))
 	}
 	mediaRepo := media.NewRepository(db)
@@ -369,15 +373,16 @@ func setupRouter(
 
 	// Realtime: ticket issuance lives on the JWT-protected group; the WS
 	// Upgrade lives on a separate group that consumes single-use tickets
-	// via TicketAuth.
-	ws := api.Group("/")
+	// via TicketAuth. WS routes are mounted at the router root (not under
+	// /api/v1)
+	ws := r.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)
 	rtHandler.RegisterRoutes(protected, ws)
 
 	// Chat WS uses its own ticket store (different Redis key prefix) so a
 	// realtime ticket cannot be replayed against the chat endpoint. HTTP
 	// endpoints share the JWT-protected group.
-	chatWS := api.Group("/")
+	chatWS := r.Group("/")
 	chatWS.Use(middleware.TicketAuth(chatTickets, logger), rateLimitMW)
 	chatHandler.RegisterRoutes(protected, chatWS)
 

@@ -14,11 +14,14 @@ import (
 )
 
 type OutboxDispatcher struct {
-	repo      trip.IRepository
-	rdb       *redis.Client
-	logger    *zap.Logger
-	batchSize int
-	interval  time.Duration
+	repo         trip.IRepository
+	rdb          *redis.Client
+	logger       *zap.Logger
+	batchSize    int
+	interval     time.Duration
+	gcInterval   time.Duration
+	gcRetention  time.Duration
+	gcBatchLimit int
 }
 
 type OutboxDispatcherConfig struct {
@@ -27,6 +30,10 @@ type OutboxDispatcherConfig struct {
 	Logger    *zap.Logger
 	BatchSize int
 	Interval  time.Duration
+
+	GCInterval   time.Duration
+	GCRetention  time.Duration
+	GCBatchLimit int
 }
 
 func NewOutboxDispatcher(cfg OutboxDispatcherConfig) *OutboxDispatcher {
@@ -40,20 +47,37 @@ func NewOutboxDispatcher(cfg OutboxDispatcherConfig) *OutboxDispatcher {
 	}
 	interval := cfg.Interval
 	if interval <= 0 {
-		interval = 200 * time.Millisecond
+		interval = time.Second
+	}
+	gcInterval := cfg.GCInterval
+	if gcInterval <= 0 {
+		gcInterval = 5 * time.Minute
+	}
+	gcRetention := cfg.GCRetention
+	if gcRetention <= 0 {
+		gcRetention = 24 * time.Hour
+	}
+	gcBatch := cfg.GCBatchLimit
+	if gcBatch <= 0 {
+		gcBatch = 1000
 	}
 	return &OutboxDispatcher{
-		repo:      cfg.Repo,
-		rdb:       cfg.Redis,
-		logger:    logger.With(zap.String("layer", "realtime.outbox")),
-		batchSize: batch,
-		interval:  interval,
+		repo:         cfg.Repo,
+		rdb:          cfg.Redis,
+		logger:       logger.With(zap.String("layer", "realtime.outbox")),
+		batchSize:    batch,
+		interval:     interval,
+		gcInterval:   gcInterval,
+		gcRetention:  gcRetention,
+		gcBatchLimit: gcBatch,
 	}
 }
 
 // Start blocks until ctx is cancelled. Errors on individual ticks are logged
 // but don't kill the loop.
 func (d *OutboxDispatcher) Start(ctx context.Context) {
+	go d.gcLoop(ctx)
+
 	t := time.NewTicker(d.interval)
 	defer t.Stop()
 	for {
@@ -73,6 +97,31 @@ func (d *OutboxDispatcher) Start(ctx context.Context) {
 				if n < d.batchSize {
 					break
 				}
+			}
+		}
+	}
+}
+
+// gcLoop periodically deletes dispatched rows older than the retention window.
+// Without this, the base table (and by extension the partial index for pending
+// rows) grows unbounded and the pending-poll query slows down as dead tuples
+// accumulate between autovacuum runs.
+func (d *OutboxDispatcher) gcLoop(ctx context.Context) {
+	t := time.NewTicker(d.gcInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			cutoff := time.Now().UTC().Add(-d.gcRetention)
+			n, err := d.repo.PruneDispatchedOutbox(ctx, cutoff, d.gcBatchLimit)
+			if err != nil {
+				d.logger.Warn("outbox gc failed", zap.Error(err))
+				continue
+			}
+			if n > 0 {
+				d.logger.Info("outbox gc pruned rows", zap.Int64("count", n))
 			}
 		}
 	}

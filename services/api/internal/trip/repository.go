@@ -73,6 +73,7 @@ type IRepository interface {
 	ClaimOutbox(ctx context.Context, limit int) ([]Outbox, error)
 	MarkOutboxDispatched(ctx context.Context, ids []uuid.UUID) error
 	RecordOutboxFailure(ctx context.Context, id uuid.UUID, errMsg string) error
+	PruneDispatchedOutbox(ctx context.Context, olderThan time.Time, limit int) (int64, error)
 }
 
 type repository struct {
@@ -592,6 +593,26 @@ func (r *repository) MarkOutboxDispatched(ctx context.Context, ids []uuid.UUID) 
 		Model(&Outbox{}).
 		Where("id IN ?", ids).
 		Updates(map[string]any{"dispatched_at": now}).Error
+}
+
+// PruneDispatchedOutbox deletes fully-dispatched rows older than `olderThan`.
+// Bounded by `limit` so a large backlog doesn't lock the table in one shot.
+// Returns the number of rows deleted.
+func (r *repository) PruneDispatchedOutbox(ctx context.Context, olderThan time.Time, limit int) (int64, error) {
+	if limit <= 0 {
+		limit = 1000
+	}
+	res := r.db.WithContext(ctx).Exec(
+		`DELETE FROM trip.outbox
+		 WHERE id IN (
+		     SELECT id FROM trip.outbox
+		     WHERE dispatched_at IS NOT NULL AND dispatched_at < ?
+		     ORDER BY dispatched_at ASC
+		     LIMIT ?
+		 )`,
+		olderThan, limit,
+	)
+	return res.RowsAffected, res.Error
 }
 
 func (r *repository) RecordOutboxFailure(ctx context.Context, id uuid.UUID, errMsg string) error {

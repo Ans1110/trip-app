@@ -329,6 +329,10 @@ func (r *repoMock) RecordOutboxFailure(_ context.Context, _ uuid.UUID, _ string)
 	return nil
 }
 
+func (r *repoMock) PruneDispatchedOutbox(_ context.Context, _ time.Time, _ int) (int64, error) {
+	return 0, nil
+}
+
 // ---- Helpers ----
 
 func newSvc(repo trip.IRepository) trip.IService {
