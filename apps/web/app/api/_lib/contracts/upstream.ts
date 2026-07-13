@@ -415,6 +415,7 @@ export type UpstreamChatMessage = {
   media_id?: string;
   media_mime?: string;
   media_bytes?: number;
+  media_filename?: string;
   client_msg_id?: string;
   is_edited: boolean;
   is_deleted: boolean;
@@ -422,11 +423,19 @@ export type UpstreamChatMessage = {
   created_at: string;
 };
 
+export type UpstreamChatPeer = {
+  id: string;
+  name: string;
+  email?: string;
+  avatar_url?: string;
+};
+
 export type UpstreamChatRoom = {
   id: string;
   trip_id?: string;
   name: string;
   type: UpstreamChatRoomType;
+  peer?: UpstreamChatPeer;
   last_message?: UpstreamChatMessage;
   unread_count: number;
   created_at: string;

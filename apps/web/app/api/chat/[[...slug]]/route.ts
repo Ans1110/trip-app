@@ -30,6 +30,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   return toResponse(await dispatch(req, auth));
 }
 
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  const slug = (await params).slug ?? [];
+  const auth = buildAuth(req);
+  const dispatch = matchDelete(slug);
+  if (!dispatch) return notFound(req.method, slug);
+  return toResponse(await dispatch(req, auth));
+}
+
 const matchGet = (slug: string[]): Dispatch | null => {
   // GET /chat/rooms
   if (slug.length === 1 && slug[0] === "rooms") {
@@ -74,6 +82,14 @@ const matchPost = (slug: string[]): Dispatch | null => {
   // POST /chat/rooms/{id}/ticket
   if (slug.length === 3 && slug[0] === "rooms" && slug[2] === "ticket") {
     return (_req, auth) => chatClient.issueRoomTicket(slug[1], auth);
+  }
+  return null;
+};
+
+const matchDelete = (slug: string[]): Dispatch | null => {
+  // DELETE /chat/rooms/{id}
+  if (slug.length === 2 && slug[0] === "rooms") {
+    return (_req, auth) => chatClient.hideRoom(slug[1], auth);
   }
   return null;
 };

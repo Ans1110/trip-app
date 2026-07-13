@@ -138,6 +138,18 @@ export class ChatClient {
     return mapData(res, toChatReadReceiptView);
   }
 
+  async hideRoom(
+    roomID: string,
+    auth: AuthCtx,
+  ): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.delete<null>(
+        `/chat/rooms/${encodeURIComponent(roomID)}`,
+        opts,
+      ),
+    );
+  }
+
   async issueRoomTicket(
     roomID: string,
     auth: AuthCtx,

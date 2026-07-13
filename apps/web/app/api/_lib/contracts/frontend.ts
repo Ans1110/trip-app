@@ -478,6 +478,7 @@ export type ChatMessageView = {
   media_id?: string;
   media_mime?: string;
   media_bytes?: number;
+  media_filename?: string;
   client_msg_id?: string;
   is_edited: boolean;
   is_deleted: boolean;
@@ -485,11 +486,19 @@ export type ChatMessageView = {
   created_at: string;
 };
 
+export type ChatPeerView = {
+  id: string;
+  name: string;
+  email?: string;
+  avatar_url?: string;
+};
+
 export type ChatRoomView = {
   id: string;
   trip_id?: string;
   name: string;
   type: ChatRoomTypeView;
+  peer?: ChatPeerView;
   last_message?: ChatMessageView;
   unread_count: number;
   created_at: string;
@@ -517,6 +526,7 @@ export const toChatMessageView = (m: UpstreamChatMessage): ChatMessageView => ({
   media_id: m.media_id,
   media_mime: m.media_mime,
   media_bytes: m.media_bytes,
+  media_filename: m.media_filename,
   client_msg_id: m.client_msg_id,
   is_edited: m.is_edited,
   is_deleted: m.is_deleted,
@@ -529,6 +539,14 @@ export const toChatRoomView = (r: UpstreamChatRoom): ChatRoomView => ({
   trip_id: r.trip_id,
   name: r.name,
   type: r.type,
+  peer: r.peer
+    ? {
+        id: r.peer.id,
+        name: r.peer.name,
+        email: r.peer.email,
+        avatar_url: r.peer.avatar_url,
+      }
+    : undefined,
   last_message: r.last_message ? toChatMessageView(r.last_message) : undefined,
   unread_count: r.unread_count ?? 0,
   created_at: r.created_at,
