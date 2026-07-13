@@ -72,6 +72,7 @@ func (h *Handler) RegisterRoutes(protected, ws *gin.RouterGroup) {
 		g.GET("/rooms/:id/receipts", h.listReceipts)
 		g.POST("/rooms/:id/read", h.markRead)
 		g.POST("/rooms/:id/ticket", h.issueTicket)
+		g.DELETE("/rooms/:id", h.hideRoom)
 	}
 	ws.GET("/ws/chat/rooms/:id", h.upgrade)
 }
@@ -161,19 +162,13 @@ func (h *Handler) ensureDM(c *gin.Context) {
 		response.BadRequest(c, "invalid peer id")
 		return
 	}
-	room, err := h.svc.EnsureDM(c.Request.Context(), uid, peer)
+	dto, err := h.svc.EnsureDM(c.Request.Context(), uid, peer)
 	if err != nil {
 		h.logger.Error("chat: ensure dm", zap.Error(err))
 		response.InternalError(c, "ensure dm failed")
 		return
 	}
-	response.OK(c, RoomDTO{
-		ID:        room.ID,
-		TripID:    room.TripID,
-		Name:      room.Name,
-		Type:      room.Type,
-		CreatedAt: room.CreatedAt,
-	})
+	response.OK(c, dto)
 }
 
 // listMessages godoc
@@ -298,6 +293,44 @@ func (h *Handler) issueTicket(c *gin.Context) {
 		Ticket:    token,
 		ExpiresIn: int(h.tickets.TTL().Seconds()),
 	})
+}
+
+// hideRoom godoc
+// @Summary  Soft-hide a chat from the caller's list (DM only)
+// @Description Messages and the room itself are preserved. Sending a new
+// @Description message or re-opening the DM (EnsureDM) restores it.
+// @Tags     chat
+// @Security BearerAuth
+// @Produce  json
+// @Param    id   path      string  true  "room id"
+// @Success  200  {object}  response.Response
+// @Router   /chat/rooms/{id} [delete]
+func (h *Handler) hideRoom(c *gin.Context) {
+	uid := middleware.GetUserID(c)
+	if uid == uuid.Nil {
+		response.Unauthorized(c)
+		return
+	}
+	roomID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "invalid room id")
+		return
+	}
+	if err := h.svc.HideRoom(c.Request.Context(), roomID, uid); err != nil {
+		switch err {
+		case ErrForbidden:
+			response.Forbidden(c)
+		case ErrHideNotAllowed:
+			response.BadRequest(c, "room type does not support hide")
+		case ErrRoomNotFound:
+			response.NotFound(c, "room not found")
+		default:
+			h.logger.Error("chat: hide room", zap.Error(err))
+			response.InternalError(c, "hide room failed")
+		}
+		return
+	}
+	response.OK(c, nil)
 }
 
 // upgrade godoc

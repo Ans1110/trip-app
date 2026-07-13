@@ -62,13 +62,14 @@ type ServerMsg struct {
 // SendMessageData: what the client can *choose*. sender_id/created_at/id are
 // server-assigned and appear on the broadcast, not here.
 //
-// MediaID is the ONLY media-related field the client supplies.
+// MediaID is the primary media handle. MediaFilename is an OPTIONAL display
 type SendMessageData struct {
-	Content     string      `json:"content"`
-	Type        MessageType `json:"type,omitempty"`
-	ReplyTo     *uuid.UUID  `json:"reply_to,omitempty"`
-	ClientMsgID string      `json:"client_msg_id,omitempty"`
-	MediaID     *uuid.UUID  `json:"media_id,omitempty"`
+	Content       string      `json:"content"`
+	Type          MessageType `json:"type,omitempty"`
+	ReplyTo       *uuid.UUID  `json:"reply_to,omitempty"`
+	ClientMsgID   string      `json:"client_msg_id,omitempty"`
+	MediaID       *uuid.UUID  `json:"media_id,omitempty"`
+	MediaFilename string      `json:"media_filename,omitempty"`
 }
 
 type MarkReadData struct {
@@ -91,43 +92,54 @@ type MessageDTO struct {
 	Type     MessageType `json:"type"`
 	ReplyTo  *uuid.UUID  `json:"reply_to,omitempty"`
 	// MediaID is the FK into media.assets.
-	MediaID     *uuid.UUID `json:"media_id,omitempty"`
-	MediaMime   *string    `json:"media_mime,omitempty"`
-	MediaBytes  *int64     `json:"media_bytes,omitempty"`
-	ClientMsgID *string    `json:"client_msg_id,omitempty"`
-	IsEdited    bool       `json:"is_edited"`
-	IsDeleted   bool       `json:"is_deleted"`
-	IsPinned    bool       `json:"is_pinned"`
-	CreatedAt   time.Time  `json:"created_at"`
+	MediaID       *uuid.UUID `json:"media_id,omitempty"`
+	MediaMime     *string    `json:"media_mime,omitempty"`
+	MediaBytes    *int64     `json:"media_bytes,omitempty"`
+	MediaFilename *string    `json:"media_filename,omitempty"`
+	ClientMsgID   *string    `json:"client_msg_id,omitempty"`
+	IsEdited      bool       `json:"is_edited"`
+	IsDeleted     bool       `json:"is_deleted"`
+	IsPinned      bool       `json:"is_pinned"`
+	CreatedAt     time.Time  `json:"created_at"`
 }
 
 func MessageToDTO(m *Message) MessageDTO {
 	return MessageDTO{
-		ID:          m.ID,
-		RoomID:      m.RoomID,
-		SenderID:    m.SenderID,
-		Content:     m.Content,
-		Type:        m.Type,
-		ReplyTo:     m.ReplyTo,
-		MediaID:     m.MediaID,
-		MediaMime:   m.MediaMime,
-		MediaBytes:  m.MediaBytes,
-		ClientMsgID: m.ClientMsgID,
-		IsEdited:    m.IsEdited,
-		IsDeleted:   m.IsDeleted,
-		IsPinned:    m.IsPinned,
-		CreatedAt:   m.CreatedAt,
+		ID:            m.ID,
+		RoomID:        m.RoomID,
+		SenderID:      m.SenderID,
+		Content:       m.Content,
+		Type:          m.Type,
+		ReplyTo:       m.ReplyTo,
+		MediaID:       m.MediaID,
+		MediaMime:     m.MediaMime,
+		MediaBytes:    m.MediaBytes,
+		MediaFilename: m.MediaFilename,
+		ClientMsgID:   m.ClientMsgID,
+		IsEdited:      m.IsEdited,
+		IsDeleted:     m.IsDeleted,
+		IsPinned:      m.IsPinned,
+		CreatedAt:     m.CreatedAt,
 	}
 }
 
 type RoomDTO struct {
-	ID          uuid.UUID   `json:"id"`
-	TripID      *uuid.UUID  `json:"trip_id,omitempty"`
-	Name        string      `json:"name"`
-	Type        RoomType    `json:"type"`
+	ID     uuid.UUID  `json:"id"`
+	TripID *uuid.UUID `json:"trip_id,omitempty"`
+	Name   string     `json:"name"`
+	Type   RoomType   `json:"type"`
+	// Peer is set only for DM rooms and describes the other participant.
+	Peer        *PeerDTO    `json:"peer,omitempty"`
 	LastMessage *MessageDTO `json:"last_message,omitempty"`
 	UnreadCount int         `json:"unread_count"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type PeerDTO struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email,omitempty"`
+	AvatarURL string    `json:"avatar_url,omitempty"`
 }
 
 type ReadReceiptDTO struct {

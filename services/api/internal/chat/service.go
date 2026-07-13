@@ -94,11 +94,33 @@ func (s *Service) EnsureTripRoom(ctx context.Context, tripID uuid.UUID, userID u
 
 var ErrForbidden = errors.New("chat: forbidden")
 
-func (s *Service) EnsureDM(ctx context.Context, me, peer uuid.UUID) (*Room, error) {
+func (s *Service) EnsureDM(ctx context.Context, me, peer uuid.UUID) (*RoomDTO, error) {
 	if me == peer {
 		return nil, errors.New("chat: cannot DM yourself")
 	}
-	return s.repo.FindOrCreateDMRoom(ctx, me, peer)
+	room, err := s.repo.FindOrCreateDMRoom(ctx, me, peer)
+	if err != nil {
+		return nil, err
+	}
+	// If the caller previously hid this DM, re-opening it should bring the
+	// chat back to their sidebar.
+	if err := s.repo.UnhideRoomForUser(ctx, room.ID, me); err != nil {
+		s.logger.Warn("chat: unhide on ensure dm", zap.Error(err))
+	}
+	dto := RoomDTO{
+		ID:        room.ID,
+		TripID:    room.TripID,
+		Name:      room.Name,
+		Type:      room.Type,
+		CreatedAt: room.CreatedAt,
+	}
+	peers, err := s.resolveDMPeers(ctx, []uuid.UUID{room.ID}, me)
+	if err != nil {
+		s.logger.Warn("chat: resolve dm peer", zap.Error(err))
+	} else if p, ok := peers[room.ID]; ok {
+		dto.Peer = p
+	}
+	return &dto, nil
 }
 
 func (s *Service) ListRooms(ctx context.Context, userID uuid.UUID) ([]RoomDTO, error) {
@@ -110,12 +132,21 @@ func (s *Service) ListRooms(ctx context.Context, userID uuid.UUID) ([]RoomDTO, e
 		return []RoomDTO{}, nil
 	}
 	ids := make([]uuid.UUID, 0, len(rooms))
+	dmIDs := make([]uuid.UUID, 0, len(rooms))
 	for _, r := range rooms {
 		ids = append(ids, r.ID)
+		if r.Type == RoomDM {
+			dmIDs = append(dmIDs, r.ID)
+		}
 	}
 	lastByRoom, err := s.repo.LastMessages(ctx, ids)
 	if err != nil {
 		return nil, err
+	}
+	peerByRoom, err := s.resolveDMPeers(ctx, dmIDs, userID)
+	if err != nil {
+		s.logger.Warn("chat: resolve dm peers", zap.Error(err))
+		peerByRoom = nil
 	}
 	out := make([]RoomDTO, 0, len(rooms))
 	for _, r := range rooms {
@@ -125,6 +156,9 @@ func (s *Service) ListRooms(ctx context.Context, userID uuid.UUID) ([]RoomDTO, e
 			Name:      r.Name,
 			Type:      r.Type,
 			CreatedAt: r.CreatedAt,
+		}
+		if p, ok := peerByRoom[r.ID]; ok {
+			dto.Peer = p
 		}
 		if lm, ok := lastByRoom[r.ID]; ok {
 			m := MessageToDTO(&lm)
@@ -136,6 +170,57 @@ func (s *Service) ListRooms(ctx context.Context, userID uuid.UUID) ([]RoomDTO, e
 		out = append(out, dto)
 	}
 	return out, nil
+}
+
+// resolveDMPeers looks up peer user rows for the given DM room ids. Returns an
+// empty map (never nil) when roomIDs is empty so callers can safely index.
+func (s *Service) resolveDMPeers(ctx context.Context, roomIDs []uuid.UUID, viewerID uuid.UUID) (map[uuid.UUID]*PeerDTO, error) {
+	if len(roomIDs) == 0 || s.tripRepo == nil {
+		return map[uuid.UUID]*PeerDTO{}, nil
+	}
+	peers, err := s.repo.ListDMPeers(ctx, roomIDs, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	if len(peers) == 0 {
+		return map[uuid.UUID]*PeerDTO{}, nil
+	}
+	userIDs := make([]uuid.UUID, 0, len(peers))
+	for _, uid := range peers {
+		userIDs = append(userIDs, uid)
+	}
+	users, err := s.tripRepo.FindUsersByIDs(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[uuid.UUID]*PeerDTO, len(peers))
+	for roomID, uid := range peers {
+		u, ok := users[uid]
+		if !ok {
+			continue
+		}
+		out[roomID] = &PeerDTO{
+			ID:        u.ID,
+			Name:      u.Name,
+			Email:     u.Email,
+			AvatarURL: u.AvatarURL,
+		}
+	}
+	return out, nil
+}
+
+// HideRoom soft-hides a room from the caller's list without deleting any
+// messages. Only DM rooms are hideable today; group rooms return
+// ErrHideNotAllowed. Non-members get ErrForbidden.
+func (s *Service) HideRoom(ctx context.Context, roomID, userID uuid.UUID) error {
+	ok, err := s.repo.IsRoomMember(ctx, roomID, userID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrForbidden
+	}
+	return s.repo.HideDMForUser(ctx, roomID, userID)
 }
 
 func (s *Service) ListMessages(ctx context.Context, roomID uuid.UUID, before *time.Time, limit int) ([]MessageDTO, error) {
@@ -271,6 +356,16 @@ func (s *Service) handleSendMessage(ctx context.Context, c *Client, msg *ClientM
 		MediaID:    data.MediaID,
 		MediaMime:  mediaMime,
 		MediaBytes: mediaBytes,
+	}
+
+	if data.MediaID != nil {
+		name := strings.TrimSpace(data.MediaFilename)
+		if len(name) > 255 {
+			name = name[:255]
+		}
+		if name != "" {
+			row.MediaFilename = &name
+		}
 	}
 	if data.ClientMsgID != "" {
 		id := data.ClientMsgID

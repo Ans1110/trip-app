@@ -35,9 +35,10 @@ type Room struct {
 func (Room) TableName() string { return "chat.room" }
 
 type RoomMember struct {
-	RoomID   uuid.UUID `gorm:"type:uuid;primaryKey;column:room_id"`
-	UserID   uuid.UUID `gorm:"type:uuid;primaryKey;column:user_id"`
-	JoinedAt time.Time `gorm:"column:joined_at"`
+	RoomID   uuid.UUID  `gorm:"type:uuid;primaryKey;column:room_id"`
+	UserID   uuid.UUID  `gorm:"type:uuid;primaryKey;column:user_id"`
+	JoinedAt time.Time  `gorm:"column:joined_at"`
+	HiddenAt *time.Time `gorm:"column:hidden_at"`
 }
 
 func (RoomMember) TableName() string { return "chat.room_members" }
@@ -53,6 +54,7 @@ type Message struct {
 	MediaID        *uuid.UUID  `gorm:"type:uuid;column:media_id"`
 	MediaMime      *string     `gorm:"column:media_mime"`
 	MediaBytes     *int64      `gorm:"column:media_bytes"`
+	MediaFilename  *string     `gorm:"column:media_filename"`
 	ClientMsgID    *string     `gorm:"column:client_msg_id"`
 	IsEdited       bool        `gorm:"column:is_edited;not null;default:false"`
 	EditedAt       *time.Time  `gorm:"column:edited_at"`

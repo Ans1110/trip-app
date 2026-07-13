@@ -13,6 +13,7 @@ import (
 )
 
 var ErrRoomNotFound = errors.New("chat: room not found")
+var ErrHideNotAllowed = errors.New("chat: room type does not support hide")
 
 type IRepository interface {
 	FindRoomByID(ctx context.Context, id uuid.UUID) (*Room, error)
@@ -24,6 +25,10 @@ type IRepository interface {
 	ListRoomMemberIDs(ctx context.Context, roomID uuid.UUID) ([]uuid.UUID, error)
 
 	ListRoomsForUser(ctx context.Context, userID uuid.UUID) ([]Room, error)
+	ListDMPeers(ctx context.Context, roomIDs []uuid.UUID, viewerID uuid.UUID) (map[uuid.UUID]uuid.UUID, error)
+	HideDMForUser(ctx context.Context, roomID, userID uuid.UUID) error
+	UnhideRoomForUser(ctx context.Context, roomID, userID uuid.UUID) error
+	UnhideRooms(ctx context.Context, roomIDs []uuid.UUID) error
 	InsertMessages(ctx context.Context, msgs []*Message) error
 	ListMessages(ctx context.Context, roomID uuid.UUID, before *time.Time, limit int) ([]Message, error)
 	LastMessages(ctx context.Context, roomIDs []uuid.UUID) (map[uuid.UUID]Message, error)
@@ -137,7 +142,11 @@ func (r *repository) FindOrCreateDMRoom(ctx context.Context, a, b uuid.UUID) (*R
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		room := &Room{Type: RoomDM, DMPairKey: &key}
 		if err := tx.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "dm_pair_key"}},
+			Columns: []clause.Column{{Name: "dm_pair_key"}},
+			TargetWhere: clause.Where{Exprs: []clause.Expression{
+				clause.Eq{Column: "type", Value: string(RoomDM)},
+				clause.Expr{SQL: `"dm_pair_key" IS NOT NULL`},
+			}},
 			DoNothing: true,
 		}).Create(room).Error; err != nil {
 			return err
@@ -235,13 +244,90 @@ func (r *repository) ListRoomsForUser(ctx context.Context, userID uuid.UUID) ([]
 		    ON cr.type = 'group' AND cr.trip_id = tr.trip_id
 		  LEFT JOIN trip.room_members trm
 		    ON tr.id = trm.room_id AND trm.user_id = ?
-		 WHERE crm.user_id IS NOT NULL
+		 WHERE (crm.user_id IS NOT NULL AND crm.hidden_at IS NULL)
 		    OR t.owner_id = ?
 		    OR trm.user_id IS NOT NULL
 		 ORDER BY cr.created_at DESC`,
 		userID, userID, userID,
 	).Scan(&rooms).Error
 	return rooms, err
+}
+
+func (r *repository) ListDMPeers(ctx context.Context, roomIDs []uuid.UUID, viewerID uuid.UUID) (map[uuid.UUID]uuid.UUID, error) {
+	out := make(map[uuid.UUID]uuid.UUID, len(roomIDs))
+	if len(roomIDs) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		RoomID uuid.UUID `gorm:"column:room_id"`
+		UserID uuid.UUID `gorm:"column:user_id"`
+	}
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT crm.room_id, crm.user_id
+		  FROM chat.room_members crm
+		  JOIN chat.room cr ON cr.id = crm.room_id
+		 WHERE crm.room_id IN ?
+		   AND crm.user_id <> ?
+		   AND cr.type = 'dm'`,
+		roomIDs, viewerID,
+	).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		out[row.RoomID] = row.UserID
+	}
+	return out, nil
+}
+
+func (r *repository) HideDMForUser(ctx context.Context, roomID, userID uuid.UUID) error {
+	res := r.db.WithContext(ctx).Exec(`
+		UPDATE chat.room_members
+		   SET hidden_at = now()
+		 WHERE room_id = ?
+		   AND user_id = ?
+		   AND EXISTS (
+		     SELECT 1 FROM chat.room WHERE id = ? AND type = 'dm'
+		   )`,
+		roomID, userID, roomID,
+	)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		var room Room
+		if err := r.db.WithContext(ctx).Where("id = ?", roomID).First(&room).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrRoomNotFound
+			}
+			return err
+		}
+		if room.Type != RoomDM {
+			return ErrHideNotAllowed
+		}
+	}
+	return nil
+}
+
+func (r *repository) UnhideRoomForUser(ctx context.Context, roomID, userID uuid.UUID) error {
+	return r.db.WithContext(ctx).Exec(`
+		UPDATE chat.room_members
+		   SET hidden_at = NULL
+		 WHERE room_id = ? AND user_id = ? AND hidden_at IS NOT NULL`,
+		roomID, userID,
+	).Error
+}
+
+func (r *repository) UnhideRooms(ctx context.Context, roomIDs []uuid.UUID) error {
+	if len(roomIDs) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Exec(`
+		UPDATE chat.room_members
+		   SET hidden_at = NULL
+		 WHERE room_id IN ? AND hidden_at IS NOT NULL`,
+		roomIDs,
+	).Error
 }
 
 // ---- Messages ----
@@ -252,7 +338,10 @@ func (r *repository) InsertMessages(ctx context.Context, msgs []*Message) error 
 	}
 	return r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "room_id"}, {Name: "sender_id"}, {Name: "client_msg_id"}},
+			Columns: []clause.Column{{Name: "room_id"}, {Name: "sender_id"}, {Name: "client_msg_id"}},
+			TargetWhere: clause.Where{Exprs: []clause.Expression{
+				clause.Expr{SQL: `"client_msg_id" IS NOT NULL`},
+			}},
 			DoNothing: true,
 		}).
 		Create(&msgs).Error

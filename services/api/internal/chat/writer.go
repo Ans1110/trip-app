@@ -154,6 +154,20 @@ func (w *Writer) flush(ctx context.Context, batch []*pendingMessage) {
 		return
 	}
 
+	// If either side had hidden this DM, a fresh message should bring it back
+	// to their sidebar.
+	roomSet := make(map[uuid.UUID]struct{}, len(rows))
+	for _, m := range rows {
+		roomSet[m.RoomID] = struct{}{}
+	}
+	roomIDs := make([]uuid.UUID, 0, len(roomSet))
+	for id := range roomSet {
+		roomIDs = append(roomIDs, id)
+	}
+	if err := w.repo.UnhideRooms(writeCtx, roomIDs); err != nil {
+		w.logger.Warn("chat: unhide on flush", zap.Error(err))
+	}
+
 	for _, p := range batch {
 		if p.msg.ID == uuid.Nil {
 			p.done <- writerResult{dropped: true}
