@@ -9,14 +9,16 @@ import { TripItinerary } from "./trip-itinerary";
 import { TripOverview } from "./trip-overview";
 import { TripRoom } from "./trip-room";
 import { TripTodos } from "./trip-todos";
+import { TripVote } from "./trip-vote";
 
-type Tab = "overview" | "itinerary" | "todos" | "calendar" | "room";
+type Tab = "overview" | "itinerary" | "todos" | "calendar" | "vote" | "room";
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "itinerary", label: "Itinerary" },
   { value: "todos", label: "Todos" },
   { value: "calendar", label: "Calendar" },
+  { value: "vote", label: "Vote" },
   { value: "room", label: "Room" },
 ];
 
@@ -79,6 +81,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
       {tab === "itinerary" && <TripItinerary trip={trip} />}
       {tab === "todos" && <TripTodos tripId={trip.id} />}
       {tab === "calendar" && <TripCalendar tripId={trip.id} />}
+      {tab === "vote" && <TripVote tripId={trip.id} />}
       {tab === "room" && <TripRoom tripId={trip.id} canManage={canManage} />}
     </div>
   );

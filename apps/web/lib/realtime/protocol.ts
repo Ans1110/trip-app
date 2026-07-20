@@ -142,6 +142,28 @@ export type CalendarDeletedEvent = {
   version?: number;
 };
 
+// Vote events piggyback on the trip realtime channel. `poll` carries the full
+// PollDTO JSON envelope from the Go vote service; the hook layer refetches
+// rather than trusting the frame directly (visibility is per-viewer).
+export type VoteBroadcastType =
+  | "VOTE_POLL_CREATED"
+  | "VOTE_POLL_UPDATED"
+  | "VOTE_POLL_CLOSED"
+  | "VOTE_OPTION_ADDED"
+  | "VOTE_CAST";
+
+export type VoteBroadcastEvent = {
+  type: VoteBroadcastType;
+  trip_id: string;
+  poll: { id: string } & Record<string, unknown>;
+};
+
+export type VotePollDeletedEvent = {
+  type: "VOTE_POLL_DELETED";
+  trip_id: string;
+  poll_id: string;
+};
+
 export type ServerMsg =
   | WelcomeEvent
   | AckEvent
@@ -151,7 +173,9 @@ export type ServerMsg =
   | TodoUpdatedEvent
   | CalendarCreatedEvent
   | CalendarUpdatedEvent
-  | CalendarDeletedEvent;
+  | CalendarDeletedEvent
+  | VoteBroadcastEvent
+  | VotePollDeletedEvent;
 
 export function isServerMsg(v: unknown): v is ServerMsg {
   return (

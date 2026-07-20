@@ -17,6 +17,7 @@ import {
 
 import { calendarKeys } from "./calendar-hooks";
 import { tripKeys } from "./trip-hooks";
+import { voteKeys } from "./vote-hooks";
 
 const DEFAULT_WS_URL = "ws://localhost:8080";
 
@@ -122,6 +123,18 @@ function dispatchServerMsg(
       // The calendar event may belong to any list (mine/trip/friend), so
       // invalidate the whole calendar namespace and let the observers refetch.
       void qc.invalidateQueries({ queryKey: calendarKeys.all });
+      return;
+    case "VOTE_POLL_CREATED":
+    case "VOTE_POLL_UPDATED":
+    case "VOTE_POLL_CLOSED":
+    case "VOTE_OPTION_ADDED":
+    case "VOTE_CAST":
+      void qc.invalidateQueries({ queryKey: voteKeys.polls(tripId) });
+      void qc.invalidateQueries({ queryKey: voteKeys.poll(msg.poll.id) });
+      return;
+    case "VOTE_POLL_DELETED":
+      void qc.invalidateQueries({ queryKey: voteKeys.polls(tripId) });
+      qc.removeQueries({ queryKey: voteKeys.poll(msg.poll_id) });
       return;
   }
 }
