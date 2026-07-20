@@ -32,6 +32,7 @@ import (
 	"github.com/Ans1110/trip-app/internal/media"
 	"github.com/Ans1110/trip-app/internal/realtime"
 	"github.com/Ans1110/trip-app/internal/trip"
+	"github.com/Ans1110/trip-app/internal/vote"
 	"github.com/Ans1110/trip-app/pkg/config"
 	"github.com/Ans1110/trip-app/pkg/database"
 	"github.com/Ans1110/trip-app/pkg/event"
@@ -206,6 +207,23 @@ func main() {
 	})
 	go rtDispatcher.Start(ctx)
 
+	// Vote wiring — piggy-backs on the trip realtime hub for WS fanout so
+	// members get poll updates on the same socket that carries itinerary/
+	// todo edits.
+	voteRepo := vote.NewRepository(db)
+	voteSvc := vote.NewService(vote.ServiceConfig{
+		Repo:        voteRepo,
+		TripAuth:    tripRepo,
+		Broadcaster: rtSvc,
+		Logger:      logger,
+	})
+	voteHandler := vote.NewHandler(voteSvc, logger)
+	voteScheduler := vote.NewScheduler(vote.SchedulerConfig{
+		Service: voteSvc,
+		Logger:  logger,
+	})
+	go voteScheduler.Start(ctx)
+
 	mediaStorage, err := media.NewStorage(cfg.Media)
 	if err != nil {
 		logger.Fatal("initialize media storage", zap.Error(err))
@@ -265,7 +283,7 @@ func main() {
 
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler, voteHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -310,6 +328,7 @@ func setupRouter(
 	rtHandler realtime.IHandler,
 	chatHandler chat.IHandler,
 	mediaHandler media.IHandler,
+	voteHandler vote.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -370,6 +389,7 @@ func setupRouter(
 	tripHandler.RegisterRoutes(protected)
 	calendarHandler.RegisterRoutes(protected)
 	mediaHandler.RegisterRoutes(protected)
+	voteHandler.RegisterRoutes(protected)
 
 	// Realtime: ticket issuance lives on the JWT-protected group; the WS
 	// Upgrade lives on a separate group that consumes single-use tickets

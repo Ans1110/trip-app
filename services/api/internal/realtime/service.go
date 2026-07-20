@@ -149,6 +149,21 @@ func (s *Service) fanout(ctx context.Context, sender *Client, m *ServerMsg) {
 	}
 }
 
+// PublishTripEvent broadcasts an already-marshalled JSON frame to every WS
+// client subscribed to the trip room, and pushes it onto the cross-instance
+// pub/sub channel so remote clients see it too. Intended for other modules
+// that want to piggy-back on the trip realtime channel without
+// standing up their own hub.
+func (s *Service) PublishTripEvent(ctx context.Context, tripID uuid.UUID, payload []byte) {
+	s.hub.BroadcastLocal(tripID, payload, nil)
+	if err := s.pubsub.Publish(ctx, tripID, payload); err != nil {
+		s.logger.Warn("realtime: publish trip event",
+			zap.String("trip_id", tripID.String()),
+			zap.Error(err),
+		)
+	}
+}
+
 // Welcome sends an initial WELCOME envelope after the client is registered.
 // It carries the current room sequence so the client can detect gaps on
 // future messages.

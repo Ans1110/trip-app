@@ -588,11 +588,9 @@ func (r *repository) MarkOutboxDispatched(ctx context.Context, ids []uuid.UUID) 
 	if len(ids) == 0 {
 		return nil
 	}
-	now := time.Now()
 	return r.db.WithContext(ctx).
-		Model(&Outbox{}).
 		Where("id IN ?", ids).
-		Updates(map[string]any{"dispatched_at": now}).Error
+		Delete(&Outbox{}).Error
 }
 
 // PruneDispatchedOutbox deletes fully-dispatched rows older than `olderThan`.
