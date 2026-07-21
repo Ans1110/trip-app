@@ -33,18 +33,19 @@ const (
 )
 
 type Trip struct {
-	ID          uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OwnerID     uuid.UUID      `gorm:"type:uuid;column:owner_id;not null;index"`
-	Title       string         `gorm:"column:title;not null"`
-	Description string         `gorm:"column:description;not null;default:''"`
-	CoverImage  string         `gorm:"column:cover_image;not null;default:''"`
-	StartDate   time.Time      `gorm:"column:start_date;type:date;not null"`
-	EndDate     time.Time      `gorm:"column:end_date;type:date;not null"`
-	TimeZone    string         `gorm:"column:time_zone;not null;default:'UTC'"`
-	Status      TripStatus     `gorm:"column:status;not null;default:'planning'"`
-	CreatedAt   time.Time      `gorm:"column:created_at"`
-	UpdatedAt   time.Time      `gorm:"column:updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index"`
+	ID           uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OwnerID      uuid.UUID      `gorm:"type:uuid;column:owner_id;not null;index"`
+	Title        string         `gorm:"column:title;not null"`
+	Description  string         `gorm:"column:description;not null;default:''"`
+	CoverImage   string         `gorm:"column:cover_image;not null;default:''"`
+	StartDate    time.Time      `gorm:"column:start_date;type:date;not null"`
+	EndDate      time.Time      `gorm:"column:end_date;type:date;not null"`
+	TimeZone     string         `gorm:"column:time_zone;not null;default:'UTC'"`
+	BaseCurrency string         `gorm:"column:base_currency;type:char(3);not null;default:'USD'"`
+	Status       TripStatus     `gorm:"column:status;not null;default:'planning'"`
+	CreatedAt    time.Time      `gorm:"column:created_at"`
+	UpdatedAt    time.Time      `gorm:"column:updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at;index"`
 }
 
 func (Trip) TableName() string { return "trip.trip" }
