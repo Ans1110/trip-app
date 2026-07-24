@@ -28,6 +28,7 @@ import (
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/calendar"
 	"github.com/Ans1110/trip-app/internal/chat"
+	"github.com/Ans1110/trip-app/internal/finance"
 	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/Ans1110/trip-app/internal/media"
 	"github.com/Ans1110/trip-app/internal/realtime"
@@ -252,6 +253,16 @@ func main() {
 	mediaGC.Start(ctx)
 	mediaHandler := media.NewHandler(mediaSvc, logger)
 
+	financeRepo := finance.NewRepository(db)
+	financeSvc := finance.NewService(finance.ServiceConfig{
+		Repo:        financeRepo,
+		TripAuth:    tripRepo,
+		MediaAuthz:  mediaSvc,
+		Broadcaster: rtSvc,
+		Logger:      logger,
+	})
+	financeHandler := finance.NewHandler(financeSvc, logger)
+
 	// Chat wiring: writer (bounded queue → batch INSERT) → service (persist
 	// then broadcast via hub + pub/sub).
 	chatRepo := chat.NewRepository(db)
@@ -283,7 +294,7 @@ func main() {
 
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler, voteHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler, voteHandler, financeHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -329,6 +340,7 @@ func setupRouter(
 	chatHandler chat.IHandler,
 	mediaHandler media.IHandler,
 	voteHandler vote.IHandler,
+	financeHandler finance.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -390,6 +402,7 @@ func setupRouter(
 	calendarHandler.RegisterRoutes(protected)
 	mediaHandler.RegisterRoutes(protected)
 	voteHandler.RegisterRoutes(protected)
+	financeHandler.RegisterRoutes(protected)
 
 	// Realtime: ticket issuance lives on the JWT-protected group; the WS
 	// Upgrade lives on a separate group that consumes single-use tickets
