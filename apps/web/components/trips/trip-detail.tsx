@@ -5,13 +5,21 @@ import { useState } from "react";
 import { errorMessage, useTrip } from "@/hooks/trip-hooks";
 
 import { TripCalendar } from "./trip-calendar";
+import { TripFinance } from "./trip-finance";
 import { TripItinerary } from "./trip-itinerary";
 import { TripOverview } from "./trip-overview";
 import { TripRoom } from "./trip-room";
 import { TripTodos } from "./trip-todos";
 import { TripVote } from "./trip-vote";
 
-type Tab = "overview" | "itinerary" | "todos" | "calendar" | "vote" | "room";
+type Tab =
+  | "overview"
+  | "itinerary"
+  | "todos"
+  | "calendar"
+  | "vote"
+  | "finance"
+  | "room";
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
@@ -19,6 +27,7 @@ const tabs: { value: Tab; label: string }[] = [
   { value: "todos", label: "Todos" },
   { value: "calendar", label: "Calendar" },
   { value: "vote", label: "Vote" },
+  { value: "finance", label: "Finance" },
   { value: "room", label: "Room" },
 ];
 
@@ -75,13 +84,12 @@ export function TripDetail({ tripId }: { tripId: string }) {
         })}
       </nav>
 
-      {tab === "overview" && (
-        <TripOverview trip={trip} canManage={canManage} />
-      )}
+      {tab === "overview" && <TripOverview trip={trip} canManage={canManage} />}
       {tab === "itinerary" && <TripItinerary trip={trip} />}
       {tab === "todos" && <TripTodos tripId={trip.id} />}
       {tab === "calendar" && <TripCalendar tripId={trip.id} />}
       {tab === "vote" && <TripVote tripId={trip.id} />}
+      {tab === "finance" && <TripFinance tripId={trip.id} />}
       {tab === "room" && <TripRoom tripId={trip.id} canManage={canManage} />}
     </div>
   );
