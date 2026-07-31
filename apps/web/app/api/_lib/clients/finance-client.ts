@@ -34,6 +34,7 @@ import {
   UpstreamListFxRatesQuery,
   UpstreamPersonalStats,
   UpstreamProposeSettlementPayload,
+  UpstreamSetSharePaidPayload,
   UpstreamSettlement,
   UpstreamTripBalance,
   UpstreamUpdateExpensePayload,
@@ -47,6 +48,7 @@ export type UpsertBudgetInput = UpstreamUpsertBudgetPayload;
 export type UpsertFxRateInput = UpstreamUpsertFxRatePayload;
 export type ConfirmSettlementInput = UpstreamConfirmSettlementPayload;
 export type ProposeSettlementInput = UpstreamProposeSettlementPayload;
+export type SetSharePaidInput = UpstreamSetSharePaidPayload;
 export type ListFxRatesQuery = UpstreamListFxRatesQuery;
 export type ExportCsvQuery = UpstreamExportCsvQuery;
 
@@ -148,6 +150,22 @@ export class FinanceClient {
         opts,
       ),
     );
+  }
+
+  async setSharePaid(
+    expenseID: string,
+    userID: string,
+    input: SetSharePaidInput,
+    auth: AuthCtx,
+  ): Promise<ApiResult<ExpenseView>> {
+    const res = await this.callProtected<UpstreamExpense>(auth, (opts) =>
+      this.http.post<UpstreamExpense>(
+        `/finance/expenses/${encodeURIComponent(expenseID)}/shares/${encodeURIComponent(userID)}/paid`,
+        input,
+        opts,
+      ),
+    );
+    return mapData(res, toExpenseView);
   }
 
   // ---- budgets ----
@@ -312,9 +330,7 @@ export class FinanceClient {
     query: ListFxRatesQuery,
     auth: AuthCtx,
   ): Promise<ApiResult<FxRateView[]>> {
-    const suffix = query.base
-      ? `?base=${encodeURIComponent(query.base)}`
-      : "";
+    const suffix = query.base ? `?base=${encodeURIComponent(query.base)}` : "";
     const res = await this.callProtected<UpstreamFxRate[]>(auth, (opts) =>
       this.http.get<UpstreamFxRate[]>(`/finance/fx${suffix}`, opts),
     );

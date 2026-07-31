@@ -664,6 +664,7 @@ export type ExpenseShareView = {
   amount: string;
   amount_base: string;
   share_pct?: string;
+  paid_at?: string;
 };
 
 export type ExpenseView = {
@@ -753,6 +754,7 @@ export const toExpenseShareView = (
   amount: s.amount,
   amount_base: s.amount_base,
   share_pct: s.share_pct,
+  paid_at: s.paid_at,
 });
 
 export const toExpenseView = (e: UpstreamExpense): ExpenseView => ({

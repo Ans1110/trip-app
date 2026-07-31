@@ -608,6 +608,11 @@ export type UpstreamExpenseShare = {
   amount: string;
   amount_base: string;
   share_pct?: string;
+  paid_at?: string;
+};
+
+export type UpstreamSetSharePaidPayload = {
+  paid: boolean;
 };
 
 export type UpstreamExpense = {

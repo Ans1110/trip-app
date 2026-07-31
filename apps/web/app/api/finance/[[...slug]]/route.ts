@@ -5,6 +5,7 @@ import type {
   ConfirmSettlementInput,
   CreateExpenseInput,
   ProposeSettlementInput,
+  SetSharePaidInput,
   UpdateExpenseInput,
   UpsertBudgetInput,
   UpsertFxRateInput,
@@ -150,11 +151,7 @@ const matchPost = (slug: string[]): Dispatch | null => {
     };
   }
   // POST /finance/settlements/:settlementID/confirm
-  if (
-    slug.length === 3 &&
-    slug[0] === "settlements" &&
-    slug[2] === "confirm"
-  ) {
+  if (slug.length === 3 && slug[0] === "settlements" && slug[2] === "confirm") {
     return async (req, auth) => {
       const body = await readJson(req);
       if (body instanceof NextResponse) return body;
@@ -171,6 +168,26 @@ const matchPost = (slug: string[]): Dispatch | null => {
   if (slug.length === 3 && slug[0] === "settlements" && slug[2] === "cancel") {
     return async (_req, auth) =>
       toResponse(await financeClient.cancelSettlement(slug[1], auth));
+  }
+  // POST /finance/expenses/:expenseID/shares/:userID/paid
+  if (
+    slug.length === 5 &&
+    slug[0] === "expenses" &&
+    slug[2] === "shares" &&
+    slug[4] === "paid"
+  ) {
+    return async (req, auth) => {
+      const body = await readJson(req);
+      if (body instanceof NextResponse) return body;
+      return toResponse(
+        await financeClient.setSharePaid(
+          slug[1],
+          slug[3],
+          body as SetSharePaidInput,
+          auth,
+        ),
+      );
+    };
   }
   // POST /finance/fx
   if (slug.length === 1 && slug[0] === "fx") {
@@ -210,11 +227,7 @@ const matchDelete = (slug: string[]): Dispatch | null => {
       toResponse(await financeClient.deleteExpense(slug[1], auth));
   }
   // DELETE /finance/trips/:tripID/budgets/:budgetID
-  if (
-    slug.length === 4 &&
-    slug[0] === "trips" &&
-    slug[2] === "budgets"
-  ) {
+  if (slug.length === 4 && slug[0] === "trips" && slug[2] === "budgets") {
     return async (_req, auth) =>
       toResponse(await financeClient.deleteBudget(slug[1], slug[3], auth));
   }
