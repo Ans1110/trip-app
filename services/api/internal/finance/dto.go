@@ -63,6 +63,10 @@ type ConfirmSettlementPayload struct {
 	Note string `json:"note,omitempty"`
 }
 
+type SetSharePaidPayload struct {
+	Paid bool `json:"paid"`
+}
+
 type ProposeSettlementPayload struct {
 	// When true, service runs the min-cashflow reducer over the trip's net
 	// balances and creates the proposed transfers. When false, caller may
@@ -85,6 +89,7 @@ type ExpenseShareDTO struct {
 	Amount     decimal.Decimal  `json:"amount"`
 	AmountBase decimal.Decimal  `json:"amount_base"`
 	SharePct   *decimal.Decimal `json:"share_pct,omitempty"`
+	PaidAt     *time.Time       `json:"paid_at,omitempty"`
 }
 
 type ExpenseDTO struct {
@@ -215,6 +220,7 @@ func expenseToDTO(e *Expense, shares []ExpenseShare, baseCurrency string) Expens
 			UserID:     s.UserID,
 			Amount:     s.Amount,
 			AmountBase: s.AmountBase,
+			PaidAt:     s.PaidAt,
 		}
 		if s.SharePct.Valid {
 			p := s.SharePct.Decimal

@@ -121,6 +121,21 @@ func (r *repoMock) ListSharesByExpenses(ctx context.Context, ids []uuid.UUID) (m
 	}
 	return out, nil
 }
+func (r *repoMock) SetSharePaid(ctx context.Context, expenseID, userID uuid.UUID, paidAt *time.Time) (*finance.ExpenseShare, error) {
+	shares, ok := r.shares[expenseID]
+	if !ok {
+		return nil, finance.ErrExpenseNotFound
+	}
+	for i := range shares {
+		if shares[i].UserID == userID {
+			shares[i].PaidAt = paidAt
+			r.shares[expenseID] = shares
+			cp := shares[i]
+			return &cp, nil
+		}
+	}
+	return nil, finance.ErrExpenseNotFound
+}
 func (r *repoMock) UpsertBudget(ctx context.Context, b *finance.Budget) error {
 	if b.ID == uuid.Nil {
 		b.ID = uuid.New()

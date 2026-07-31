@@ -57,6 +57,7 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 		exp.GET("", h.GetExpense)
 		exp.PATCH("", h.UpdateExpense)
 		exp.DELETE("", h.DeleteExpense)
+		exp.POST("/shares/:user_id/paid", h.SetSharePaid)
 	}
 	settle := protected.Group("/finance/settlements/:settlement_id")
 	{
@@ -204,6 +205,46 @@ func (h *Handler) DeleteExpense(c *gin.Context) {
 		return
 	}
 	response.OK(c, nil)
+}
+
+// SetSharePaid godoc
+// @Summary  Toggle a participant's paid flag on an expense (creator only)
+// @Description Only the expense creator may flip the flag. The payer's own
+// @Description share is implicitly settled and cannot be toggled — attempts
+// @Description return 400. Emits FINANCE_EXPENSE_UPDATED to the trip.
+// @Tags     finance
+// @Security BearerAuth
+// @Accept   json
+// @Produce  json
+// @Param    expense_id  path      string               true  "expense id"
+// @Param    user_id     path      string               true  "participant user id"
+// @Param    body        body      SetSharePaidPayload  true  "flag"
+// @Success  200         {object}  response.Response{data=ExpenseDTO}
+// @Router   /finance/expenses/{expense_id}/shares/{user_id}/paid [post]
+func (h *Handler) SetSharePaid(c *gin.Context) {
+	uid, ok := requireUser(c)
+	if !ok {
+		return
+	}
+	expID, ok := parseUUID(c, "expense_id", "invalid expense id")
+	if !ok {
+		return
+	}
+	targetID, ok := parseUUID(c, "user_id", "invalid user id")
+	if !ok {
+		return
+	}
+	var p SetSharePaidPayload
+	if err := c.ShouldBindJSON(&p); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	out, err := h.svc.SetSharePaid(c.Request.Context(), uid, expID, targetID, p.Paid)
+	if err != nil {
+		h.respondErr(c, err)
+		return
+	}
+	response.OK(c, out)
 }
 
 // ---- Budgets ----

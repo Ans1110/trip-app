@@ -41,7 +41,7 @@ type Trip struct {
 	StartDate    time.Time      `gorm:"column:start_date;type:date;not null"`
 	EndDate      time.Time      `gorm:"column:end_date;type:date;not null"`
 	TimeZone     string         `gorm:"column:time_zone;not null;default:'UTC'"`
-	BaseCurrency string         `gorm:"column:base_currency;type:char(3);not null;default:'USD'"`
+	BaseCurrency string         `gorm:"column:base_currency;type:char(3);not null;default:'TWD'"`
 	Status       TripStatus     `gorm:"column:status;not null;default:'planning'"`
 	CreatedAt    time.Time      `gorm:"column:created_at"`
 	UpdatedAt    time.Time      `gorm:"column:updated_at"`

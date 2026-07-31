@@ -37,6 +37,7 @@ type IService interface {
 	DeleteExpense(ctx context.Context, userID, expenseID uuid.UUID) error
 	GetExpense(ctx context.Context, userID, expenseID uuid.UUID) (*ExpenseDTO, error)
 	ListExpenses(ctx context.Context, userID, tripID uuid.UUID) ([]ExpenseDTO, error)
+	SetSharePaid(ctx context.Context, userID, expenseID, targetUserID uuid.UUID, paid bool) (*ExpenseDTO, error)
 
 	// Budget
 	UpsertBudget(ctx context.Context, userID, tripID uuid.UUID, p UpsertBudgetPayload) (*BudgetDTO, error)
@@ -122,7 +123,7 @@ func (s *service) CreateExpense(ctx context.Context, userID, tripID uuid.UUID, p
 	}
 	baseCurrency := normalizeCurrency(trip.BaseCurrency)
 	if baseCurrency == "" {
-		baseCurrency = "USD"
+		baseCurrency = "TWD"
 	}
 
 	if err := s.validateCreatePayload(&p); err != nil {
@@ -335,6 +336,43 @@ func (s *service) DeleteExpense(ctx context.Context, userID, expenseID uuid.UUID
 		s.bcast.PublishTripEvent(ctx, e.TripID, payload)
 	}
 	return nil
+}
+
+func (s *service) SetSharePaid(ctx context.Context, userID, expenseID, targetUserID uuid.UUID, paid bool) (*ExpenseDTO, error) {
+	e, err := s.repo.FindExpense(ctx, expenseID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.mustBeMember(ctx, e.TripID, userID); err != nil {
+		return nil, err
+	}
+	if e.CreatedBy != userID {
+		return nil, ErrForbidden
+	}
+	if targetUserID == e.PaidBy {
+		return nil, ErrInvalidPayload
+	}
+
+	var paidAt *time.Time
+	if paid {
+		now := time.Now().UTC()
+		paidAt = &now
+	}
+	if _, err := s.repo.SetSharePaid(ctx, expenseID, targetUserID, paidAt); err != nil {
+		return nil, err
+	}
+
+	trip, err := s.auth.FindTripByID(ctx, e.TripID)
+	if err != nil {
+		return nil, err
+	}
+	shares, err := s.repo.ListSharesByExpense(ctx, expenseID)
+	if err != nil {
+		return nil, err
+	}
+	dto := expenseToDTO(e, shares, normalizeCurrency(trip.BaseCurrency))
+	s.broadcast(ctx, e.TripID, BroadcastExpenseUpdated, dto)
+	return &dto, nil
 }
 
 // ---- Expense read ----

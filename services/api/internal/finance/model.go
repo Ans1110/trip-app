@@ -51,7 +51,8 @@ type ExpenseShare struct {
 	Amount     decimal.Decimal     `gorm:"column:amount;type:numeric(18,4);not null"`
 	AmountBase decimal.Decimal     `gorm:"column:amount_base;type:numeric(18,4);not null"`
 	SharePct   decimal.NullDecimal `gorm:"column:share_pct;type:numeric(9,6)"`
-	CreatedAt  time.Time           `gorm:"column:created_at"`
+	PaidAt    *time.Time `gorm:"column:paid_at"`
+	CreatedAt time.Time  `gorm:"column:created_at"`
 }
 
 func (ExpenseShare) TableName() string { return "finance.expense_share" }

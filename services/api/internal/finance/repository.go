@@ -37,6 +37,7 @@ type IRepository interface {
 	ReplaceShares(ctx context.Context, expenseID uuid.UUID, shares []ExpenseShare) error
 	ListSharesByExpense(ctx context.Context, expenseID uuid.UUID) ([]ExpenseShare, error)
 	ListSharesByExpenses(ctx context.Context, expenseIDs []uuid.UUID) (map[uuid.UUID][]ExpenseShare, error)
+	SetSharePaid(ctx context.Context, expenseID, userID uuid.UUID, paidAt *time.Time) (*ExpenseShare, error)
 
 	// Budget
 	UpsertBudget(ctx context.Context, b *Budget) error
@@ -144,14 +145,51 @@ func (r *repository) ListExpensesForExport(ctx context.Context, tripID uuid.UUID
 
 func (r *repository) ReplaceShares(ctx context.Context, expenseID uuid.UUID, shares []ExpenseShare) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Preserve paid_at across edits — surviving participants keep their
+		// prior settlement tick when the creator touches unrelated fields.
+		var prior []ExpenseShare
+		if err := tx.Where("expense_id = ?", expenseID).Find(&prior).Error; err != nil {
+			return err
+		}
+		priorPaid := make(map[uuid.UUID]*time.Time, len(prior))
+		for i := range prior {
+			priorPaid[prior[i].UserID] = prior[i].PaidAt
+		}
 		if err := tx.Where("expense_id = ?", expenseID).Delete(&ExpenseShare{}).Error; err != nil {
 			return err
 		}
 		if len(shares) == 0 {
 			return nil
 		}
+		for i := range shares {
+			if shares[i].PaidAt == nil {
+				if p, ok := priorPaid[shares[i].UserID]; ok {
+					shares[i].PaidAt = p
+				}
+			}
+		}
 		return tx.Create(&shares).Error
 	})
+}
+
+func (r *repository) SetSharePaid(ctx context.Context, expenseID, userID uuid.UUID, paidAt *time.Time) (*ExpenseShare, error) {
+	res := r.db.WithContext(ctx).
+		Model(&ExpenseShare{}).
+		Where("expense_id = ? AND user_id = ?", expenseID, userID).
+		Update("paid_at", paidAt)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, ErrExpenseNotFound
+	}
+	var out ExpenseShare
+	if err := r.db.WithContext(ctx).
+		Where("expense_id = ? AND user_id = ?", expenseID, userID).
+		First(&out).Error; err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (r *repository) ListSharesByExpense(ctx context.Context, expenseID uuid.UUID) ([]ExpenseShare, error) {
@@ -340,6 +378,9 @@ func (r *repository) DeleteProposedSettlements(ctx context.Context, tripID uuid.
 // per-trip expense counts scale to hundreds, and pulling every row + shares
 // into memory to sum in Go would waste bandwidth as the trip ages.
 
+// SumPaidByUser returns each user's out-of-pocket total net of settled shares.
+// When another participant marks their share paid, that amount reduces the
+// payer's outstanding — otherwise the net_balance never moves after settlement.
 func (r *repository) SumPaidByUser(ctx context.Context, tripID uuid.UUID) (map[uuid.UUID]decimal.Decimal, error) {
 	type row struct {
 		PaidBy uuid.UUID
@@ -347,10 +388,24 @@ func (r *repository) SumPaidByUser(ctx context.Context, tripID uuid.UUID) (map[u
 	}
 	var rows []row
 	err := r.db.WithContext(ctx).
-		Raw(`SELECT paid_by, COALESCE(SUM(amount_base), 0) AS total
-		     FROM finance.expense
-		     WHERE trip_id = ? AND deleted_at IS NULL
-		     GROUP BY paid_by`, tripID).
+		Raw(`WITH gross AS (
+		         SELECT paid_by, COALESCE(SUM(amount_base), 0) AS s
+		         FROM finance.expense
+		         WHERE trip_id = ? AND deleted_at IS NULL
+		         GROUP BY paid_by
+		     ),
+		     reimbursed AS (
+		         SELECT e.paid_by, COALESCE(SUM(sh.amount_base), 0) AS s
+		         FROM finance.expense_share sh
+		         JOIN finance.expense e ON e.id = sh.expense_id
+		         WHERE e.trip_id = ? AND e.deleted_at IS NULL
+		           AND sh.paid_at IS NOT NULL
+		           AND sh.user_id <> e.paid_by
+		         GROUP BY e.paid_by
+		     )
+		     SELECT g.paid_by, g.s - COALESCE(r.s, 0) AS total
+		     FROM gross g
+		     LEFT JOIN reimbursed r ON r.paid_by = g.paid_by`, tripID, tripID).
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err
@@ -362,6 +417,9 @@ func (r *repository) SumPaidByUser(ctx context.Context, tripID uuid.UUID) (map[u
 	return out, nil
 }
 
+// SumOwedByUser skips shares whose paid_at is set — a settled share means the
+// participant has already reimbursed the payer, so they no longer owe anything
+// for that expense.
 func (r *repository) SumOwedByUser(ctx context.Context, tripID uuid.UUID) (map[uuid.UUID]decimal.Decimal, error) {
 	type row struct {
 		UserID uuid.UUID
@@ -373,6 +431,7 @@ func (r *repository) SumOwedByUser(ctx context.Context, tripID uuid.UUID) (map[u
 		     FROM finance.expense_share s
 		     JOIN finance.expense e ON e.id = s.expense_id
 		     WHERE e.trip_id = ? AND e.deleted_at IS NULL
+		       AND s.paid_at IS NULL
 		     GROUP BY s.user_id`, tripID).
 		Scan(&rows).Error
 	if err != nil {
