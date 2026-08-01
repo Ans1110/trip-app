@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { errorMessage, useTrip } from "@/hooks/trip-hooks";
 
+import { AlbumPanel } from "./album/album-panel";
 import { TripCalendar } from "./trip-calendar";
 import { TripFinance } from "./trip-finance";
 import { TripItinerary } from "./trip-itinerary";
@@ -19,6 +20,7 @@ type Tab =
   | "calendar"
   | "vote"
   | "finance"
+  | "album"
   | "room";
 
 const tabs: { value: Tab; label: string }[] = [
@@ -28,6 +30,7 @@ const tabs: { value: Tab; label: string }[] = [
   { value: "calendar", label: "Calendar" },
   { value: "vote", label: "Vote" },
   { value: "finance", label: "Finance" },
+  { value: "album", label: "Album" },
   { value: "room", label: "Room" },
 ];
 
@@ -90,6 +93,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
       {tab === "calendar" && <TripCalendar tripId={trip.id} />}
       {tab === "vote" && <TripVote tripId={trip.id} />}
       {tab === "finance" && <TripFinance tripId={trip.id} />}
+      {tab === "album" && <AlbumPanel tripId={trip.id} />}
       {tab === "room" && <TripRoom tripId={trip.id} canManage={canManage} />}
     </div>
   );
