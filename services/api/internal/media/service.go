@@ -32,6 +32,9 @@ type IService interface {
 	GetAsset(ctx context.Context, userID uuid.UUID, assetID uuid.UUID) (*AssetDTO, error)
 
 	AuthorizeAssetForOwner(ctx context.Context, userID, assetID uuid.UUID) (*Asset, error)
+
+	FetchAssetBytes(ctx context.Context, assetID uuid.UUID) ([]byte, *Asset, error)
+	CreateInternalAsset(ctx context.Context, ownerID uuid.UUID, purpose Purpose, mime string, data []byte) (*Asset, error)
 }
 
 type ServiceConfig struct {
@@ -220,6 +223,53 @@ func (s *service) SoftDelete(ctx context.Context, userID uuid.UUID, assetID uuid
 		return ErrForbidden
 	}
 	return s.repo.SoftDeleteAsset(ctx, assetID)
+}
+
+func (s *service) FetchAssetBytes(ctx context.Context, assetID uuid.UUID) ([]byte, *Asset, error) {
+	a, err := s.repo.FindAsset(ctx, assetID)
+	if err != nil {
+		return nil, nil, err
+	}
+	data, _, err := s.storage.GetObject(ctx, a.ObjectKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	return data, a, nil
+}
+
+func (s *service) CreateInternalAsset(ctx context.Context, ownerID uuid.UUID, purpose Purpose, mime string, data []byte) (*Asset, error) {
+	rule, ok := s.rules[purpose]
+	if !ok {
+		return nil, ErrInvalidPurpose
+	}
+	mime = strings.ToLower(strings.TrimSpace(mime))
+	if _, ok := rule.AllowedMime[mime]; !ok {
+		return nil, ErrMimeNotAllowed
+	}
+	size := int64(len(data))
+	if size <= 0 || size > rule.MaxBytes {
+		return nil, ErrTooLarge
+	}
+
+	key := s.storage.GenerateKey(rule.KeyPrefix, extForMime(mime))
+	stat, err := s.storage.PutObject(ctx, key, mime, data)
+	if err != nil {
+		return nil, err
+	}
+
+	asset := &Asset{
+		OwnerID:   ownerID,
+		Purpose:   purpose,
+		Bucket:    s.storage.Bucket(),
+		ObjectKey: key,
+		Mime:      mime,
+		Bytes:     stat.Size,
+		ETag:      strings.Trim(stat.ETag, `"`),
+	}
+	if err := s.repo.CreateAsset(ctx, asset); err != nil {
+		return nil, fmt.Errorf("media: create internal asset: %w", err)
+	}
+	return asset, nil
 }
 
 func (s *service) AuthorizeAssetForOwner(ctx context.Context, userID, assetID uuid.UUID) (*Asset, error) {

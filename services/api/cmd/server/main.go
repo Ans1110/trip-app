@@ -24,6 +24,7 @@ import (
 	"time"
 
 	_ "github.com/Ans1110/trip-app/docs"
+	"github.com/Ans1110/trip-app/internal/album"
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/calendar"
@@ -263,6 +264,18 @@ func main() {
 	})
 	financeHandler := finance.NewHandler(financeSvc, logger)
 
+	albumRepo := album.NewRepository(db)
+	albumSvc := album.NewService(album.ServiceConfig{
+		Repo:        albumRepo,
+		TripAuth:    tripRepo,
+		Media:       mediaSvc,
+		Broadcaster: rtSvc,
+		Thumbnailer: album.NewThumbnailGenerator(),
+		Exif:        album.NewExifExtractor(),
+		Logger:      logger,
+	})
+	albumHandler := album.NewHandler(albumSvc, logger)
+
 	// Chat wiring: writer (bounded queue → batch INSERT) → service (persist
 	// then broadcast via hub + pub/sub).
 	chatRepo := chat.NewRepository(db)
@@ -294,7 +307,7 @@ func main() {
 
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler, voteHandler, financeHandler)
+	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler, voteHandler, financeHandler, albumHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -341,6 +354,7 @@ func setupRouter(
 	mediaHandler media.IHandler,
 	voteHandler vote.IHandler,
 	financeHandler finance.IHandler,
+	albumHandler album.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -403,18 +417,12 @@ func setupRouter(
 	mediaHandler.RegisterRoutes(protected)
 	voteHandler.RegisterRoutes(protected)
 	financeHandler.RegisterRoutes(protected)
+	albumHandler.RegisterRoutes(public, protected)
 
-	// Realtime: ticket issuance lives on the JWT-protected group; the WS
-	// Upgrade lives on a separate group that consumes single-use tickets
-	// via TicketAuth. WS routes are mounted at the router root (not under
-	// /api/v1)
 	ws := r.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)
 	rtHandler.RegisterRoutes(protected, ws)
 
-	// Chat WS uses its own ticket store (different Redis key prefix) so a
-	// realtime ticket cannot be replayed against the chat endpoint. HTTP
-	// endpoints share the JWT-protected group.
 	chatWS := r.Group("/")
 	chatWS.Use(middleware.TicketAuth(chatTickets, logger), rateLimitMW)
 	chatHandler.RegisterRoutes(protected, chatWS)

@@ -102,6 +102,8 @@ type storageMock struct {
 	presignGet    func(context.Context, string, time.Duration) (*url.URL, error)
 	statObject    func(context.Context, string) (*media.ObjectStat, error)
 	removeObject  func(context.Context, string) error
+	putObject     func(context.Context, string, string, []byte) (*media.ObjectStat, error)
+	getObject     func(context.Context, string) ([]byte, string, error)
 	generateKey   func(string, string) string
 	generatedKeys []string
 }
@@ -148,6 +150,20 @@ func (s *storageMock) RemoveObject(c context.Context, key string) error {
 		return s.removeObject(c, key)
 	}
 	return nil
+}
+
+func (s *storageMock) PutObject(c context.Context, key, mime string, data []byte) (*media.ObjectStat, error) {
+	if s.putObject != nil {
+		return s.putObject(c, key, mime, data)
+	}
+	return &media.ObjectStat{Size: int64(len(data)), Mime: mime}, nil
+}
+
+func (s *storageMock) GetObject(c context.Context, key string) ([]byte, string, error) {
+	if s.getObject != nil {
+		return s.getObject(c, key)
+	}
+	return nil, "", errors.New("storageMock: GetObject not implemented")
 }
 
 func (s *storageMock) GenerateKey(prefix, ext string) string {

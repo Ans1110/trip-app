@@ -11,10 +11,12 @@ import (
 type Purpose string
 
 const (
-	PurposeChat   Purpose = "chat"
-	PurposeAvatar Purpose = "avatar"
-	PurposeCover  Purpose = "cover"
-	PurposeTodo   Purpose = "todo"
+	PurposeChat       Purpose = "chat"
+	PurposeAvatar     Purpose = "avatar"
+	PurposeCover      Purpose = "cover"
+	PurposeTodo       Purpose = "todo"
+	PurposeAlbum      Purpose = "album"
+	PurposeAlbumThumb Purpose = "album_thumb"
 )
 
 type PurposeRule struct {
@@ -50,6 +52,9 @@ func defaultRules() map[Purpose]PurposeRule {
 		// abuse from arbitrarily large uploads.
 		PurposeChat: {MaxBytes: 100 << 20, AllowedMime: fileMimes, KeyPrefix: "chat/"},
 		PurposeTodo: {MaxBytes: 100 << 20, AllowedMime: fileMimes, KeyPrefix: "todo/"},
+
+		PurposeAlbum:      {MaxBytes: 50 << 20, AllowedMime: imageMimes, KeyPrefix: "album/"},
+		PurposeAlbumThumb: {MaxBytes: 2 << 20, AllowedMime: imageMimes, KeyPrefix: "album_thumb/"},
 	}
 }
 

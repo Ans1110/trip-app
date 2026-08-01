@@ -1,9 +1,11 @@
 package media
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -29,6 +31,8 @@ type Storage interface {
 	PresignGet(ctx context.Context, key string, ttl time.Duration) (*url.URL, error)
 	StatObject(ctx context.Context, key string) (*ObjectStat, error)
 	RemoveObject(ctx context.Context, key string) error
+	PutObject(ctx context.Context, key, mime string, data []byte) (*ObjectStat, error)
+	GetObject(ctx context.Context, key string) ([]byte, string, error)
 	Bucket() string
 	// GenerateKey produces a server-side object key. Client-supplied names are
 	// never used — this is what stops path traversal and cross-purpose writes.
@@ -144,6 +148,35 @@ func (s *minioStorage) StatObject(ctx context.Context, key string) (*ObjectStat,
 		Mime: info.ContentType,
 		ETag: info.ETag,
 	}, nil
+}
+
+func (s *minioStorage) PutObject(ctx context.Context, key, mime string, data []byte) (*ObjectStat, error) {
+	info, err := s.client.PutObject(ctx, s.bucket, key, bytes.NewReader(data), int64(len(data)),
+		minio.PutObjectOptions{ContentType: mime})
+	if err != nil {
+		return nil, fmt.Errorf("media: put: %w", err)
+	}
+	return &ObjectStat{Size: info.Size, Mime: mime, ETag: info.ETag}, nil
+}
+
+func (s *minioStorage) GetObject(ctx context.Context, key string) ([]byte, string, error) {
+	obj, err := s.client.GetObject(ctx, s.bucket, key, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, "", fmt.Errorf("media: get: %w", err)
+	}
+	defer obj.Close()
+	info, err := obj.Stat()
+	if err != nil {
+		if isNotExist(err) {
+			return nil, "", ErrObjectNotFound
+		}
+		return nil, "", fmt.Errorf("media: get stat: %w", err)
+	}
+	data, err := io.ReadAll(obj)
+	if err != nil {
+		return nil, "", fmt.Errorf("media: get read: %w", err)
+	}
+	return data, info.ContentType, nil
 }
 
 func (s *minioStorage) RemoveObject(ctx context.Context, key string) error {
