@@ -32,6 +32,7 @@ import (
 	"github.com/Ans1110/trip-app/internal/finance"
 	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/Ans1110/trip-app/internal/media"
+	"github.com/Ans1110/trip-app/internal/outbox"
 	"github.com/Ans1110/trip-app/internal/realtime"
 	"github.com/Ans1110/trip-app/internal/trip"
 	"github.com/Ans1110/trip-app/internal/vote"
@@ -202,8 +203,9 @@ func main() {
 	go rtSvc.Start(ctx)
 
 	// Outbox dispatcher
+	outboxRepo := outbox.NewRepository(db)
 	rtDispatcher := realtime.NewOutboxDispatcher(realtime.OutboxDispatcherConfig{
-		Repo:   tripRepo,
+		Repo:   outboxRepo,
 		Redis:  rdb,
 		Logger: logger,
 	})

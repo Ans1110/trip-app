@@ -130,27 +130,5 @@ CREATE TABLE IF NOT EXISTS trip.room_members (
 
 CREATE INDEX IF NOT EXISTS idx_room_members_user_id ON trip.room_members(user_id);
 
--- Transactional outbox for realtime LWW ops: writer inserts here in the same
--- tx as the row mutation, dispatcher XADDs to Redis Stream. Closes the
--- "wrote to Postgres but crashed before publish" hole.
-CREATE TABLE IF NOT EXISTS trip.outbox (
-    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    aggregate_id  UUID,
-    stream        TEXT        NOT NULL,
-    trace_id      TEXT        NOT NULL DEFAULT '',
-    payload       JSONB       NOT NULL,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    dispatched_at TIMESTAMPTZ,
-    attempts      INTEGER     NOT NULL DEFAULT 0,
-    last_error    TEXT        NOT NULL DEFAULT ''
-);
-
-CREATE INDEX IF NOT EXISTS idx_trip_outbox_pending
-    ON trip.outbox (created_at)
-    WHERE dispatched_at IS NULL;
-
-CREATE INDEX IF NOT EXISTS idx_trip_outbox_aggregate
-    ON trip.outbox (aggregate_id);
-
 -- +goose Down
 DROP SCHEMA IF EXISTS trip CASCADE;

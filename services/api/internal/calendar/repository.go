@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Ans1110/trip-app/internal/outbox"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -38,7 +39,7 @@ type IRepository interface {
 	IsEventMember(ctx context.Context, eventID, userID uuid.UUID) (bool, error)
 
 	// Outbox
-	EnqueueOutbox(ctx context.Context, tripID uuid.UUID, payload []byte, traceID, stream string) error
+	EnqueueOutbox(ctx context.Context, meta *OutboxMeta, payload []byte) error
 }
 
 type repository struct {
@@ -265,11 +266,16 @@ func (r *repository) IsEventMember(ctx context.Context, eventID, userID uuid.UUI
 
 // ---- Outbox ----
 
-func (r *repository) EnqueueOutbox(ctx context.Context, tripID uuid.UUID, payload []byte, traceID, stream string) error {
-	return r.db.WithContext(ctx).Exec(`
-		INSERT INTO trip.outbox (id, aggregate_id, stream, trace_id, payload, created_at, attempts, last_error)
-		VALUES (?, ?, ?, ?, ?, now(), 0, '')
-	`, uuid.New(), tripID, stream, traceID, payload).Error
+func (r *repository) EnqueueOutbox(ctx context.Context, meta *OutboxMeta, payload []byte) error {
+	return r.db.WithContext(ctx).Create(&outbox.Outbox{
+		AggregateType: "trip",
+		AggregateID:   meta.TripID,
+		OpType:        meta.OpType,
+		Stream:        meta.Stream,
+		ActorID:       outbox.ActorPtr(meta.UserID),
+		TraceID:       meta.TraceID,
+		Payload:       payload,
+	}).Error
 }
 
 // insertCalendarOutboxRow marshals the outbox event and writes it inside the
@@ -290,8 +296,13 @@ func insertCalendarOutboxRow(tx *gorm.DB, meta *OutboxMeta, e *Event) error {
 	if err != nil {
 		return err
 	}
-	return tx.Exec(`
-		INSERT INTO trip.outbox (id, aggregate_id, stream, trace_id, payload, created_at, attempts, last_error)
-		VALUES (?, ?, ?, ?, ?, now(), 0, '')
-	`, uuid.New(), meta.TripID, meta.Stream, meta.TraceID, payload).Error
+	return tx.Create(&outbox.Outbox{
+		AggregateType: "trip",
+		AggregateID:   meta.TripID,
+		OpType:        meta.OpType,
+		Stream:        meta.Stream,
+		ActorID:       outbox.ActorPtr(meta.UserID),
+		TraceID:       meta.TraceID,
+		Payload:       payload,
+	}).Error
 }

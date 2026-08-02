@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Ans1110/trip-app/internal/trip"
+	"github.com/Ans1110/trip-app/internal/outbox"
 	"github.com/Ans1110/trip-app/pkg/stream"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -14,7 +14,7 @@ import (
 )
 
 type OutboxDispatcher struct {
-	repo         trip.IRepository
+	repo         outbox.IRepository
 	rdb          *redis.Client
 	logger       *zap.Logger
 	batchSize    int
@@ -25,7 +25,7 @@ type OutboxDispatcher struct {
 }
 
 type OutboxDispatcherConfig struct {
-	Repo      trip.IRepository
+	Repo      outbox.IRepository
 	Redis     *redis.Client
 	Logger    *zap.Logger
 	BatchSize int
@@ -115,7 +115,7 @@ func (d *OutboxDispatcher) gcLoop(ctx context.Context) {
 			return
 		case <-t.C:
 			cutoff := time.Now().UTC().Add(-d.gcRetention)
-			n, err := d.repo.PruneDispatchedOutbox(ctx, cutoff, d.gcBatchLimit)
+			n, err := d.repo.PruneDispatched(ctx, cutoff, d.gcBatchLimit)
 			if err != nil {
 				d.logger.Warn("outbox gc failed", zap.Error(err))
 				continue
@@ -131,8 +131,8 @@ func (d *OutboxDispatcher) gcLoop(ctx context.Context) {
 // number of rows processed.
 func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 	var processed int
-	err := d.repo.WithTx(ctx, func(txRepo trip.IRepository) error {
-		rows, err := txRepo.ClaimOutbox(ctx, d.batchSize)
+	err := d.repo.WithTx(ctx, func(txRepo outbox.IRepository) error {
+		rows, err := txRepo.Claim(ctx, d.batchSize)
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 			values, verr := outboxRowToValues(row)
 			if verr != nil {
 				// Bad payload — record failure for this row but keep going.
-				if ferr := d.repo.RecordOutboxFailure(ctx, row.ID, verr.Error()); ferr != nil {
+				if ferr := d.repo.RecordFailure(ctx, row.ID, verr.Error()); ferr != nil {
 					d.logger.Warn("record outbox failure", zap.Error(ferr))
 				}
 				continue
@@ -175,7 +175,7 @@ func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 				continue // skipped bad row above
 			}
 			if err := cmd.Err(); err != nil {
-				if ferr := d.repo.RecordOutboxFailure(ctx, rows[i].ID, err.Error()); ferr != nil {
+				if ferr := d.repo.RecordFailure(ctx, rows[i].ID, err.Error()); ferr != nil {
 					d.logger.Warn("record outbox failure", zap.Error(ferr))
 				}
 				continue
@@ -183,7 +183,7 @@ func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 			dispatched = append(dispatched, rows[i].ID)
 		}
 		if len(dispatched) > 0 {
-			if err := txRepo.MarkOutboxDispatched(ctx, dispatched); err != nil {
+			if err := txRepo.MarkDispatched(ctx, dispatched); err != nil {
 				return err
 			}
 		}
@@ -193,8 +193,8 @@ func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 	return processed, err
 }
 
-func outboxRowToValues(row trip.Outbox) (map[string]any, error) {
-	var ev trip.OutboxEvent
+func outboxRowToValues(row outbox.Outbox) (map[string]any, error) {
+	var ev outboxPayload
 	if err := json.Unmarshal(row.Payload, &ev); err != nil {
 		return nil, err
 	}

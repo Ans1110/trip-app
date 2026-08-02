@@ -37,7 +37,7 @@ type repoMock struct {
 	listEventMembers     func(context.Context, uuid.UUID) ([]calendar.EventMember, error)
 	isEventMember        func(context.Context, uuid.UUID, uuid.UUID) (bool, error)
 
-	enqueueOutbox func(context.Context, uuid.UUID, []byte, string, string) error
+	enqueueOutbox func(context.Context, *calendar.OutboxMeta, []byte) error
 }
 
 func (r *repoMock) WithTx(c context.Context, fn func(calendar.IRepository) error) error {
@@ -155,9 +155,9 @@ func (r *repoMock) IsEventMember(c context.Context, eid, uid uuid.UUID) (bool, e
 	return false, nil
 }
 
-func (r *repoMock) EnqueueOutbox(c context.Context, tid uuid.UUID, payload []byte, traceID, stream string) error {
+func (r *repoMock) EnqueueOutbox(c context.Context, meta *calendar.OutboxMeta, payload []byte) error {
 	if r.enqueueOutbox != nil {
-		return r.enqueueOutbox(c, tid, payload, traceID, stream)
+		return r.enqueueOutbox(c, meta, payload)
 	}
 	return nil
 }

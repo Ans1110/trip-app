@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Ans1110/trip-app/internal/auth"
+	"github.com/Ans1110/trip-app/internal/outbox"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -67,13 +68,6 @@ type IRepository interface {
 	DeleteTodo(ctx context.Context, id uuid.UUID) error
 	ListTodos(ctx context.Context, tripID uuid.UUID) ([]Todo, error)
 	ReorderTodos(ctx context.Context, tripID uuid.UUID, todoIDs []uuid.UUID) error
-
-	// Outbox
-	EnqueueOutbox(ctx context.Context, entry *Outbox) error
-	ClaimOutbox(ctx context.Context, limit int) ([]Outbox, error)
-	MarkOutboxDispatched(ctx context.Context, ids []uuid.UUID) error
-	RecordOutboxFailure(ctx context.Context, id uuid.UUID, errMsg string) error
-	PruneDispatchedOutbox(ctx context.Context, olderThan time.Time, limit int) (int64, error)
 }
 
 type repository struct {
@@ -549,84 +543,15 @@ func insertOutboxRow(tx *gorm.DB, event *EventMeta, tripID uuid.UUID, version in
 	if err != nil {
 		return err
 	}
-	return tx.Create(&Outbox{
-		AggregateID: tripID,
-		Stream:      event.Stream,
-		TraceID:     event.TraceID,
-		Payload:     payload,
+	return tx.Create(&outbox.Outbox{
+		AggregateType: "trip",
+		AggregateID:   tripID,
+		OpType:        event.OpType,
+		Stream:        event.Stream,
+		ActorID:       outbox.ActorPtr(event.UserID),
+		TraceID:       event.TraceID,
+		Payload:       payload,
 	}).Error
-}
-
-// ---- Outbox ----
-
-func (r *repository) EnqueueOutbox(ctx context.Context, entry *Outbox) error {
-	if entry == nil {
-		return nil
-	}
-	if entry.ID == uuid.Nil {
-		entry.ID = uuid.New()
-	}
-	return r.db.WithContext(ctx).Create(entry).Error
-}
-
-func (r *repository) ClaimOutbox(ctx context.Context, limit int) ([]Outbox, error) {
-	if limit <= 0 {
-		limit = 32
-	}
-	var rows []Outbox
-	err := r.db.WithContext(ctx).
-		Raw(`SELECT * FROM trip.outbox
-		     WHERE dispatched_at IS NULL
-		     ORDER BY created_at ASC
-		     LIMIT ?
-		     FOR UPDATE SKIP LOCKED`, limit).
-		Scan(&rows).Error
-	return rows, err
-}
-
-func (r *repository) MarkOutboxDispatched(ctx context.Context, ids []uuid.UUID) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	return r.db.WithContext(ctx).
-		Where("id IN ?", ids).
-		Delete(&Outbox{}).Error
-}
-
-// PruneDispatchedOutbox deletes fully-dispatched rows older than `olderThan`.
-// Bounded by `limit` so a large backlog doesn't lock the table in one shot.
-// Returns the number of rows deleted.
-func (r *repository) PruneDispatchedOutbox(ctx context.Context, olderThan time.Time, limit int) (int64, error) {
-	if limit <= 0 {
-		limit = 1000
-	}
-	res := r.db.WithContext(ctx).Exec(
-		`DELETE FROM trip.outbox
-		 WHERE id IN (
-		     SELECT id FROM trip.outbox
-		     WHERE dispatched_at IS NOT NULL AND dispatched_at < ?
-		     ORDER BY dispatched_at ASC
-		     LIMIT ?
-		 )`,
-		olderThan, limit,
-	)
-	return res.RowsAffected, res.Error
-}
-
-func (r *repository) RecordOutboxFailure(ctx context.Context, id uuid.UUID, errMsg string) error {
-	// Truncate error blob defensively — a repeated 10 MB stringified error
-	// would balloon the row.
-	const maxErrLen = 512
-	if len(errMsg) > maxErrLen {
-		errMsg = errMsg[:maxErrLen]
-	}
-	return r.db.WithContext(ctx).
-		Model(&Outbox{}).
-		Where("id = ?", id).
-		Updates(map[string]any{
-			"attempts":   gorm.Expr("attempts + 1"),
-			"last_error": errMsg,
-		}).Error
 }
 
 func (r *repository) DeleteTodo(ctx context.Context, id uuid.UUID) error {

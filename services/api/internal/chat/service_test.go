@@ -277,16 +277,6 @@ func (r *tripRepoStub) ReorderTodos(_ context.Context, _ uuid.UUID, _ []uuid.UUI
 	return nil
 }
 
-func (r *tripRepoStub) EnqueueOutbox(_ context.Context, _ *trip.Outbox) error         { return nil }
-func (r *tripRepoStub) ClaimOutbox(_ context.Context, _ int) ([]trip.Outbox, error)   { return nil, nil }
-func (r *tripRepoStub) MarkOutboxDispatched(_ context.Context, _ []uuid.UUID) error   { return nil }
-func (r *tripRepoStub) RecordOutboxFailure(_ context.Context, _ uuid.UUID, _ string) error {
-	return nil
-}
-func (r *tripRepoStub) PruneDispatchedOutbox(_ context.Context, _ time.Time, _ int) (int64, error) {
-	return 0, nil
-}
-
 // ---- mediaAuthzMock ----
 
 type mediaAuthzMock struct {

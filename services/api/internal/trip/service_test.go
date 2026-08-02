@@ -313,26 +313,6 @@ func (r *repoMock) UpdateTodoWithVersion(_ context.Context, _ uuid.UUID, _ int, 
 	return nil, nil
 }
 
-func (r *repoMock) EnqueueOutbox(_ context.Context, _ *trip.Outbox) error {
-	return nil
-}
-
-func (r *repoMock) ClaimOutbox(_ context.Context, _ int) ([]trip.Outbox, error) {
-	return nil, nil
-}
-
-func (r *repoMock) MarkOutboxDispatched(_ context.Context, _ []uuid.UUID) error {
-	return nil
-}
-
-func (r *repoMock) RecordOutboxFailure(_ context.Context, _ uuid.UUID, _ string) error {
-	return nil
-}
-
-func (r *repoMock) PruneDispatchedOutbox(_ context.Context, _ time.Time, _ int) (int64, error) {
-	return 0, nil
-}
-
 // ---- Helpers ----
 
 func newSvc(repo trip.IRepository) trip.IService {

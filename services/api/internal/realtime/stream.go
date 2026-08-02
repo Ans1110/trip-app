@@ -1,12 +1,22 @@
 package realtime
 
 import (
+	"encoding/json"
 	"time"
 
-	"github.com/Ans1110/trip-app/internal/trip"
+	"github.com/google/uuid"
 )
 
-func outboxEventValues(ev *trip.OutboxEvent) map[string]any {
+type outboxPayload struct {
+	OpType  string          `json:"op_type"`
+	TripID  uuid.UUID       `json:"trip_id,omitempty"`
+	UserID  uuid.UUID       `json:"user_id"`
+	Version int             `json:"version,omitempty"`
+	TraceID string          `json:"trace_id,omitempty"`
+	Data    json.RawMessage `json:"data,omitempty"`
+}
+
+func outboxEventValues(ev *outboxPayload) map[string]any {
 	values := map[string]any{
 		"op_type": ev.OpType,
 		"trip_id": ev.TripID.String(),

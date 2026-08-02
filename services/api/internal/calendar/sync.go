@@ -168,18 +168,25 @@ func (s *TripSync) enqueue(ctx context.Context, repo IRepository, e *Event, acto
 	if opType == "CALENDAR_DELETED" {
 		data = nil
 	}
+	traceID := middleware.GetTraceID(ctx)
 	payload, err := json.Marshal(outboxEvent{
 		OpType:  opType,
 		TripID:  tripID,
 		UserID:  actorID,
 		Version: e.Version,
-		TraceID: middleware.GetTraceID(ctx),
+		TraceID: traceID,
 		Data:    data,
 	})
 	if err != nil {
 		return err
 	}
-	return repo.EnqueueOutbox(ctx, tripID, payload, middleware.GetTraceID(ctx), stream.StreamTripEvents)
+	return repo.EnqueueOutbox(ctx, &OutboxMeta{
+		OpType:  opType,
+		UserID:  actorID,
+		TraceID: traceID,
+		Stream:  stream.StreamTripEvents,
+		TripID:  tripID,
+	}, payload)
 }
 
 // buildMemberRows builds the initial event_members set.

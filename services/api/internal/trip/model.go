@@ -109,20 +109,6 @@ type Todo struct {
 
 func (Todo) TableName() string { return "trip.todos" }
 
-type Outbox struct {
-	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	AggregateID  uuid.UUID  `gorm:"type:uuid;column:aggregate_id"`
-	Stream       string     `gorm:"column:stream;not null"`
-	TraceID      string     `gorm:"column:trace_id;not null;default:''"`
-	Payload      []byte     `gorm:"column:payload;type:jsonb;not null"`
-	CreatedAt    time.Time  `gorm:"column:created_at"`
-	DispatchedAt *time.Time `gorm:"column:dispatched_at"`
-	Attempts     int        `gorm:"column:attempts;not null;default:0"`
-	LastError    string     `gorm:"column:last_error;not null;default:''"`
-}
-
-func (Outbox) TableName() string { return "trip.outbox" }
-
 type EventMeta struct {
 	OpType  string    // wire op type (e.g. "ITINERARY_UPDATE")
 	UserID  uuid.UUID // who performed the op
