@@ -2,13 +2,23 @@
 
 import { useCallback, useReducer } from "react";
 import {
+  useMutation,
   useQuery,
   useQueryClient,
   type QueryClient,
+  type UseMutationOptions,
   type UseQueryOptions,
 } from "@tanstack/react-query";
 
-import { albumApi, type AlbumPhoto } from "@/lib/apis/album-api";
+import {
+  albumApi,
+  type AlbumCreateShareInput,
+  type AlbumCreateShareResponse,
+  type AlbumPhoto,
+  type AlbumPublicResponse,
+  type AlbumShareToken,
+  type AlbumUpdatePhotoInput,
+} from "@/lib/apis/album-api";
 import { putBinaryXhr } from "@/lib/album/put-xhr";
 import {
   runUploadBatch,
@@ -27,15 +37,26 @@ export { errorMessage } from "@/hooks/trip-hooks";
 export const albumKeys = {
   all: ["album"] as const,
   photos: (tripId: string) => ["album", "photos", tripId] as const,
+  shares: (tripId: string) => ["album", "shares", tripId] as const,
+  public: (token: string) => ["album", "public", token] as const,
 };
 
-// invalidateAlbumForTrip is exported so realtime-hooks can trigger a refetch
-// without importing TanStack types directly.
 export function invalidateAlbumForTrip(qc: QueryClient, tripId: string): void {
   void qc.invalidateQueries({ queryKey: albumKeys.photos(tripId) });
 }
 
+export function invalidateAlbumSharesForTrip(
+  qc: QueryClient,
+  tripId: string,
+): void {
+  void qc.invalidateQueries({ queryKey: albumKeys.shares(tripId) });
+}
+
 type QueryOpts<T> = Omit<UseQueryOptions<T, ApiError>, "queryKey" | "queryFn">;
+type MutOpts<TData, TInput> = Omit<
+  UseMutationOptions<TData, ApiError, TInput>,
+  "mutationFn"
+>;
 
 export function useAlbumPhotos(
   tripId: string | undefined,
@@ -45,6 +66,109 @@ export function useAlbumPhotos(
     queryKey: albumKeys.photos(tripId ?? ""),
     queryFn: ({ signal }) => albumApi.listPhotos(tripId!, signal),
     enabled: !!tripId,
+    ...options,
+  });
+}
+
+type UpdatePhotoVars = {
+  photoId: string;
+  tripId: string;
+  input: AlbumUpdatePhotoInput;
+};
+
+export function useUpdatePhotoCaption(
+  options?: MutOpts<AlbumPhoto, UpdatePhotoVars>,
+) {
+  const qc = useQueryClient();
+  return useMutation<AlbumPhoto, ApiError, UpdatePhotoVars>({
+    mutationFn: ({ photoId, input }) => albumApi.updatePhoto(photoId, input),
+    ...options,
+    onSuccess: (data, vars, ...rest) => {
+      invalidateAlbumForTrip(qc, vars.tripId);
+      return options?.onSuccess?.(data, vars, ...rest);
+    },
+  });
+}
+
+type DeletePhotoVars = { photoId: string; tripId: string };
+
+export function useDeletePhoto(options?: MutOpts<null, DeletePhotoVars>) {
+  const qc = useQueryClient();
+  return useMutation<null, ApiError, DeletePhotoVars>({
+    mutationFn: ({ photoId }) => albumApi.deletePhoto(photoId),
+    ...options,
+    onSuccess: (data, vars, ...rest) => {
+      invalidateAlbumForTrip(qc, vars.tripId);
+      return options?.onSuccess?.(data, vars, ...rest);
+    },
+  });
+}
+
+export function useAlbumShares(
+  tripId: string | undefined,
+  options?: QueryOpts<AlbumShareToken[]>,
+) {
+  return useQuery<AlbumShareToken[], ApiError>({
+    queryKey: albumKeys.shares(tripId ?? ""),
+    queryFn: ({ signal }) => albumApi.listShareTokens(tripId!, signal),
+    enabled: !!tripId,
+    ...options,
+  });
+}
+
+type CreateShareVars = { tripId: string; input?: AlbumCreateShareInput };
+
+export function useCreateAlbumShare(
+  options?: MutOpts<AlbumCreateShareResponse, CreateShareVars>,
+) {
+  const qc = useQueryClient();
+  return useMutation<AlbumCreateShareResponse, ApiError, CreateShareVars>({
+    mutationFn: ({ tripId, input }) =>
+      albumApi.createShareToken(tripId, input ?? null),
+    ...options,
+    onSuccess: (data, vars, ...rest) => {
+      invalidateAlbumSharesForTrip(qc, vars.tripId);
+      return options?.onSuccess?.(data, vars, ...rest);
+    },
+  });
+}
+
+type RevokeShareVars = { tokenId: string; tripId: string };
+
+export function useRevokeAlbumShare(options?: MutOpts<null, RevokeShareVars>) {
+  const qc = useQueryClient();
+  return useMutation<null, ApiError, RevokeShareVars>({
+    mutationFn: ({ tokenId }) => albumApi.revokeShareToken(tokenId),
+    ...options,
+    onSuccess: (data, vars, ...rest) => {
+      invalidateAlbumSharesForTrip(qc, vars.tripId);
+      return options?.onSuccess?.(data, vars, ...rest);
+    },
+  });
+}
+
+export type PublicAlbumErrorKind = "invalid" | "gone" | "error";
+
+// Backend collapses revoked + expired to 400 with a shared message, so we
+// don't try to split them at the FE.
+export function classifyPublicAlbumError(err: ApiError): PublicAlbumErrorKind {
+  if (err.status === 404) return "invalid";
+  if (err.status === 400) return "gone";
+  return "error";
+}
+
+export function useAlbumPublic(
+  token: string | undefined,
+  options?: QueryOpts<AlbumPublicResponse>,
+) {
+  return useQuery<AlbumPublicResponse, ApiError>({
+    queryKey: albumKeys.public(token ?? ""),
+    queryFn: ({ signal }) => albumApi.resolvePublicAlbum(token!, signal),
+    enabled: !!token,
+    retry: (failureCount, err) => {
+      if (err.status === 404 || err.status === 400) return false;
+      return failureCount < 1;
+    },
     ...options,
   });
 }

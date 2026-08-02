@@ -15,7 +15,10 @@ import {
   type WelcomeEvent,
 } from "@/lib/realtime/protocol";
 
-import { invalidateAlbumForTrip } from "./album-hooks";
+import {
+  invalidateAlbumForTrip,
+  invalidateAlbumSharesForTrip,
+} from "./album-hooks";
 import { calendarKeys } from "./calendar-hooks";
 import { tripKeys } from "./trip-hooks";
 import { voteKeys } from "./vote-hooks";
@@ -139,10 +142,12 @@ function dispatchServerMsg(
     case "ALBUM_PHOTO_UPLOADED":
     case "ALBUM_PHOTO_UPDATED":
     case "ALBUM_PHOTO_DELETED":
-    case "ALBUM_SHARE_CREATED":
-    case "ALBUM_SHARE_REVOKED":
       // Frame `data` is PascalCase; refetch instead of merging directly.
       invalidateAlbumForTrip(qc, msg.trip_id ?? tripId);
+      return;
+    case "ALBUM_SHARE_CREATED":
+    case "ALBUM_SHARE_REVOKED":
+      invalidateAlbumSharesForTrip(qc, msg.trip_id ?? tripId);
       return;
   }
 }

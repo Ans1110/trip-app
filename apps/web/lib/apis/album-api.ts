@@ -26,6 +26,10 @@ export type AlbumCompletePhotoInput = {
   caption?: string;
 };
 
+export type AlbumUpdatePhotoInput = {
+  caption?: string;
+};
+
 export type AlbumPhoto = {
   id: string;
   trip_id: string;
@@ -41,6 +45,31 @@ export type AlbumPhoto = {
   original_url: string;
   thumb_small_url?: string;
   thumb_medium_url?: string;
+};
+
+export type AlbumShareToken = {
+  id: string;
+  trip_id: string;
+  created_by: string;
+  expires_at?: string;
+  revoked_at?: string;
+  revoked_by?: string;
+  last_accessed_at?: string;
+  created_at: string;
+};
+
+export type AlbumCreateShareInput = {
+  expires_at?: string;
+};
+
+export type AlbumCreateShareResponse = {
+  token: string;
+  share: AlbumShareToken;
+};
+
+export type AlbumPublicResponse = {
+  photos: AlbumPhoto[];
+  share: AlbumShareToken;
 };
 
 const path = (parts: string[]) => `/api/album/${parts.join("/")}`;
@@ -67,8 +96,53 @@ export const albumApi = {
     input: AlbumCompletePhotoInput,
     signal?: AbortSignal,
   ) =>
-    request<AlbumPhoto>(
-      path(["trips", encodeURIComponent(tripId), "photos"]),
-      { method: "POST", json: input, signal },
+    request<AlbumPhoto>(path(["trips", encodeURIComponent(tripId), "photos"]), {
+      method: "POST",
+      json: input,
+      signal,
+    }),
+
+  updatePhoto: (
+    photoId: string,
+    input: AlbumUpdatePhotoInput,
+    signal?: AbortSignal,
+  ) =>
+    request<AlbumPhoto>(path(["photos", encodeURIComponent(photoId)]), {
+      method: "PATCH",
+      json: input,
+      signal,
+    }),
+
+  deletePhoto: (photoId: string, signal?: AbortSignal) =>
+    request<null>(path(["photos", encodeURIComponent(photoId)]), {
+      method: "DELETE",
+      signal,
+    }),
+
+  listShareTokens: (tripId: string, signal?: AbortSignal) =>
+    request<AlbumShareToken[]>(
+      path(["trips", encodeURIComponent(tripId), "shares"]),
+      { signal },
     ),
+
+  createShareToken: (
+    tripId: string,
+    input: AlbumCreateShareInput | null,
+    signal?: AbortSignal,
+  ) =>
+    request<AlbumCreateShareResponse>(
+      path(["trips", encodeURIComponent(tripId), "shares"]),
+      { method: "POST", json: input ?? {}, signal },
+    ),
+
+  revokeShareToken: (tokenId: string, signal?: AbortSignal) =>
+    request<null>(path(["shares", encodeURIComponent(tokenId)]), {
+      method: "DELETE",
+      signal,
+    }),
+
+  resolvePublicAlbum: (token: string, signal?: AbortSignal) =>
+    request<AlbumPublicResponse>(path(["public", encodeURIComponent(token)]), {
+      signal,
+    }),
 };
