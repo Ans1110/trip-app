@@ -9,6 +9,7 @@ import (
 
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/Ans1110/trip-app/internal/outbox"
+	"github.com/Ans1110/trip-app/pkg/stream"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -59,6 +60,9 @@ type IRepository interface {
 	DeleteItinerary(ctx context.Context, id uuid.UUID) error
 	ListItinerary(ctx context.Context, tripID uuid.UUID) ([]Itinerary, error)
 	ReorderItinerary(ctx context.Context, tripID uuid.UUID, itemIDs []uuid.UUID) error
+
+	// Outbox producers
+	EnqueueTripPublished(ctx context.Context, tripID, actorID uuid.UUID, publishedAt time.Time, traceID string) error
 
 	// Todo
 	CreateTodo(ctx context.Context, todo *Todo) error
@@ -525,6 +529,26 @@ func updateTodoReturning(db *gorm.DB, id uuid.UUID, expectedVersion int, patch m
 		return nil, ErrStaleVersion
 	}
 	return &updated, nil
+}
+
+func (r *repository) EnqueueTripPublished(ctx context.Context, tripID, actorID uuid.UUID, publishedAt time.Time, traceID string) error {
+	payload, err := json.Marshal(map[string]any{
+		"trip_id":      tripID.String(),
+		"actor_id":     actorID.String(),
+		"published_at": publishedAt.UTC().Format(time.RFC3339Nano),
+	})
+	if err != nil {
+		return err
+	}
+	return r.db.WithContext(ctx).Create(&outbox.Outbox{
+		AggregateType: "trip",
+		AggregateID:   tripID,
+		OpType:        OpTripPublished,
+		Stream:        stream.StreamProfileEvents,
+		ActorID:       outbox.ActorPtr(actorID),
+		TraceID:       traceID,
+		Payload:       payload,
+	}).Error
 }
 
 func insertOutboxRow(tx *gorm.DB, event *EventMeta, tripID uuid.UUID, version int, entity any) error {

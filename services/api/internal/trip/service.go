@@ -229,6 +229,16 @@ func (s *service) UpdateTrip(ctx context.Context, userID, tripID uuid.UUID, p Up
 		}
 		patch["status"] = *p.Status
 	}
+	// Detect private→public transition so we can enqueue TRIP_PUBLISHED in
+	// the same tx as the visibility flip. Ignore no-ops and reverse flips.
+	var publishTransition bool
+	if p.Visibility != nil {
+		newVis := TripVisibility(*p.Visibility)
+		if newVis != effectiveVisibility(*t) {
+			patch["visibility"] = string(newVis)
+			publishTransition = newVis == TripVisibilityPublic
+		}
+	}
 	if p.StartDate != nil || p.EndDate != nil {
 		startStr, endStr := t.StartDate.Format(dateLayout), t.EndDate.Format(dateLayout)
 		if p.StartDate != nil {
@@ -256,6 +266,11 @@ func (s *service) UpdateTrip(ctx context.Context, userID, tripID uuid.UUID, p Up
 		if err := s.repo.WithTx(ctx, func(tx IRepository) error {
 			if err := tx.UpdateTrip(ctx, tripID, patch); err != nil {
 				return err
+			}
+			if publishTransition {
+				if err := tx.EnqueueTripPublished(ctx, tripID, userID, time.Now(), middleware.GetTraceID(ctx)); err != nil {
+					return err
+				}
 			}
 			return s.syncTripUpdated(ctx, tx, tripID, userID)
 		}); err != nil {
@@ -1037,6 +1052,7 @@ func (s *service) buildTripResponse(ctx context.Context, t Trip, room *Room, mem
 		EndDate:     t.EndDate.Format(dateLayout),
 		TimeZone:    t.TimeZone,
 		Status:      string(effectiveStatus(t)),
+		Visibility:  string(effectiveVisibility(t)),
 		MemberCount: memberCount,
 		MyRole:      role,
 		CreatedAt:   t.CreatedAt,
@@ -1155,6 +1171,15 @@ func (s *service) publish(ctx context.Context, evtType string, userID, targetID 
 }
 
 // ---- Pure helpers ----
+
+// effectiveVisibility returns the stored visibility, defaulting to private
+// for rows that predate the visibility column being added.
+func effectiveVisibility(t Trip) TripVisibility {
+	if t.Visibility == "" {
+		return TripVisibilityPrivate
+	}
+	return t.Visibility
+}
 
 // effectiveStatus returns TripCompleted once the trip's end date has passed,
 // regardless of the stored status. Otherwise it returns the stored status.

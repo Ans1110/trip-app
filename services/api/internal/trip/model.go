@@ -25,6 +25,15 @@ const (
 	TripCompleted TripStatus = "completed"
 )
 
+type TripVisibility string
+
+const (
+	TripVisibilityPrivate TripVisibility = "private"
+	TripVisibilityPublic  TripVisibility = "public"
+)
+
+const OpTripPublished = "TRIP_PUBLISHED"
+
 type RoomMemberRole string
 
 const (
@@ -43,6 +52,7 @@ type Trip struct {
 	TimeZone     string         `gorm:"column:time_zone;not null;default:'UTC'"`
 	BaseCurrency string         `gorm:"column:base_currency;type:char(3);not null;default:'TWD'"`
 	Status       TripStatus     `gorm:"column:status;not null;default:'planning'"`
+	Visibility   TripVisibility `gorm:"column:visibility;not null;default:'private'"`
 	CreatedAt    time.Time      `gorm:"column:created_at"`
 	UpdatedAt    time.Time      `gorm:"column:updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at;index"`

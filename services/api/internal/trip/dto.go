@@ -28,6 +28,7 @@ type UpdateTripPayload struct {
 	EndDate     *string `json:"end_date"`
 	TimeZone    *string `json:"time_zone" binding:"omitempty,max=64"`
 	Status      *string `json:"status" binding:"omitempty,oneof=planning ongoing completed"`
+	Visibility  *string `json:"visibility" binding:"omitempty,oneof=private public"`
 }
 
 type TripResponse struct {
@@ -40,6 +41,7 @@ type TripResponse struct {
 	EndDate     string      `json:"end_date"`
 	TimeZone    string      `json:"time_zone,omitempty"`
 	Status      string      `json:"status"`
+	Visibility  string      `json:"visibility"`
 	MemberCount int         `json:"member_count"`
 	MyRole      string      `json:"my_role,omitempty"`
 	Room        *RoomBrief  `json:"room,omitempty"`

@@ -313,6 +313,10 @@ func (r *repoMock) UpdateTodoWithVersion(_ context.Context, _ uuid.UUID, _ int, 
 	return nil, nil
 }
 
+func (r *repoMock) EnqueueTripPublished(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ time.Time, _ string) error {
+	return nil
+}
+
 // ---- Helpers ----
 
 func newSvc(repo trip.IRepository) trip.IService {
