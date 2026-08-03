@@ -2,7 +2,6 @@ package realtime
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -144,14 +143,6 @@ func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 		pipe := d.rdb.Pipeline()
 		cmds := make([]*redis.StringCmd, len(rows))
 		for i, row := range rows {
-			values, verr := outboxRowToValues(row)
-			if verr != nil {
-				// Bad payload — record failure for this row but keep going.
-				if ferr := d.repo.RecordFailure(ctx, row.ID, verr.Error()); ferr != nil {
-					d.logger.Warn("record outbox failure", zap.Error(ferr))
-				}
-				continue
-			}
 			target := row.Stream
 			if target == "" {
 				target = stream.StreamTripEvents
@@ -160,7 +151,7 @@ func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 				Stream: target,
 				MaxLen: 10000,
 				Approx: true,
-				Values: values,
+				Values: outboxRowToValues(row),
 			})
 		}
 		// pipe.Exec runs all queued commands even if some fail; it just
@@ -193,15 +184,22 @@ func (d *OutboxDispatcher) tick(ctx context.Context) (int, error) {
 	return processed, err
 }
 
-func outboxRowToValues(row outbox.Outbox) (map[string]any, error) {
-	var ev outboxPayload
-	if err := json.Unmarshal(row.Payload, &ev); err != nil {
-		return nil, err
+// outboxRowToValues renders an outbox row for XADD. The wire format is generic
+// across event types: standard row fields as top-level keys plus the raw
+// payload JSON string for consumers to decode.
+func outboxRowToValues(row outbox.Outbox) map[string]any {
+	values := map[string]any{
+		"op_type":        row.OpType,
+		"aggregate_type": row.AggregateType,
+		"aggregate_id":   row.AggregateID.String(),
+		"payload":        string(row.Payload),
+		"ts":             time.Now().UnixMilli(),
 	}
-	// The outbox row is the source of truth for trace_id — if the caller
-	// stored one on the row (not in the JSON payload) prefer that.
-	if ev.TraceID == "" {
-		ev.TraceID = row.TraceID
+	if row.ActorID != nil && *row.ActorID != uuid.Nil {
+		values["actor_id"] = row.ActorID.String()
 	}
-	return outboxEventValues(&ev), nil
+	if row.TraceID != "" {
+		values["trace_id"] = row.TraceID
+	}
+	return values
 }
