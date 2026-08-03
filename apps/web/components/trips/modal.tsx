@@ -3,14 +3,24 @@
 import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 
+const SIZE_CLASSES = {
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+  "3xl": "max-w-3xl",
+} as const;
+
 export function Modal({
   title,
   onClose,
   children,
+  size = "md",
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  size?: keyof typeof SIZE_CLASSES;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -29,9 +39,9 @@ export function Modal({
         className="absolute inset-0 cursor-default"
         style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
       />
-      <div className="absolute inset-0 flex items-center justify-center px-4 py-8">
+      <div className="absolute inset-0 flex items-center justify-center px-4 py-8 overflow-y-auto">
         <div
-          className="w-full max-w-md rounded-2xl overflow-hidden"
+          className={`w-full ${SIZE_CLASSES[size]} rounded-2xl overflow-hidden my-auto`}
           style={{
             backgroundColor: "#0B100D",
             border: "1px solid #1F2A24",

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ChevronLeft, Compass } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { UserMenu } from "@/components/user-menu";
+
 export function PageShell({
   back,
   children,
@@ -47,17 +49,27 @@ export function PageShell({
           >
             Calendar
           </Link>
-        </nav>
-        {back && (
           <Link
-            href={back.href}
-            className="ml-auto inline-flex items-center gap-1 text-sm hover:bg-white/5 rounded-lg px-2 py-1"
-            style={{ color: "#8B9A8E" }}
+            href="/feed"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
+            style={{ color: "#ECEFEA" }}
           >
-            <ChevronLeft className="size-4" />
-            {back.label}
+            Feed
           </Link>
-        )}
+        </nav>
+        <div className="ml-auto flex items-center gap-3">
+          {back && (
+            <Link
+              href={back.href}
+              className="inline-flex items-center gap-1 text-sm hover:bg-white/5 rounded-lg px-2 py-1"
+              style={{ color: "#8B9A8E" }}
+            >
+              <ChevronLeft className="size-4" />
+              {back.label}
+            </Link>
+          )}
+          <UserMenu />
+        </div>
       </header>
       {children}
     </main>
