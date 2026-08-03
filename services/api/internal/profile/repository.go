@@ -8,6 +8,7 @@ import (
 
 	"github.com/Ans1110/trip-app/internal/auth"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -109,6 +110,9 @@ func (r *repository) UpsertProfile(ctx context.Context, p *Profile) error {
 		p.CreatedAt = now
 	}
 	p.UpdatedAt = now
+	if p.TravelTags == nil {
+		p.TravelTags = pq.StringArray{}
+	}
 	return r.db.WithContext(ctx).Exec(`
 		INSERT INTO profile.profiles (
 		    user_id, username, bio, avatar_url, cover_image, travel_tags,
