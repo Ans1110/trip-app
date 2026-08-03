@@ -33,6 +33,7 @@ import (
 	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/Ans1110/trip-app/internal/media"
 	"github.com/Ans1110/trip-app/internal/outbox"
+	"github.com/Ans1110/trip-app/internal/profile"
 	"github.com/Ans1110/trip-app/internal/realtime"
 	"github.com/Ans1110/trip-app/internal/trip"
 	"github.com/Ans1110/trip-app/internal/vote"
@@ -278,6 +279,20 @@ func main() {
 	})
 	albumHandler := album.NewHandler(albumSvc, logger)
 
+	profileRepo := profile.NewRepository(db)
+	profileSvc := profile.NewService(profile.ServiceConfig{
+		Repo:   profileRepo,
+		Logger: logger,
+	})
+	profileHandler := profile.NewHandler(profileSvc, logger)
+	profileFanout := profile.NewFanoutConsumer(profile.FanoutConsumerConfig{
+		Repo:       profileRepo,
+		Redis:      rdb,
+		Logger:     logger,
+		ConsumerID: fmt.Sprintf("profile-fanout-%d", os.Getpid()),
+	})
+	go profileFanout.Start(ctx)
+
 	// Chat wiring: writer (bounded queue → batch INSERT) → service (persist
 	// then broadcast via hub + pub/sub).
 	chatRepo := chat.NewRepository(db)
@@ -309,7 +324,25 @@ func main() {
 
 	// Router
 	gin.SetMode(cfg.Server.Mode)
-	r := setupRouter(cfg, logger, publicKey, rdb, rtTickets, chatTickets, authHandler, friendHandler, tripHandler, calendarHandler, rtHandler, chatHandler, mediaHandler, voteHandler, financeHandler, albumHandler)
+	r := setupRouter(
+		cfg,
+		logger,
+		publicKey,
+		rdb,
+		rtTickets,
+		chatTickets,
+		authHandler,
+		friendHandler,
+		tripHandler,
+		calendarHandler,
+		rtHandler,
+		chatHandler,
+		mediaHandler,
+		voteHandler,
+		financeHandler,
+		albumHandler,
+		profileHandler,
+	)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -357,6 +390,7 @@ func setupRouter(
 	voteHandler vote.IHandler,
 	financeHandler finance.IHandler,
 	albumHandler album.IHandler,
+	profileHandler profile.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -420,6 +454,7 @@ func setupRouter(
 	voteHandler.RegisterRoutes(protected)
 	financeHandler.RegisterRoutes(protected)
 	albumHandler.RegisterRoutes(public, protected)
+	profileHandler.RegisterRoutes(protected)
 
 	ws := r.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)

@@ -276,6 +276,9 @@ func (r *tripRepoStub) ListTodos(_ context.Context, _ uuid.UUID) ([]trip.Todo, e
 func (r *tripRepoStub) ReorderTodos(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
+func (r *tripRepoStub) EnqueueTripPublished(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ time.Time, _ string) error {
+	return nil
+}
 
 // ---- mediaAuthzMock ----
 

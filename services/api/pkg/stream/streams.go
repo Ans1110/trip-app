@@ -18,4 +18,7 @@ const (
 
 	StreamTripEvents = "events:trip"
 	GroupTripEvents  = "trip-events-group"
+
+	StreamProfileEvents = "events:profile"
+	GroupProfileFanout  = "profile-fanout-group"
 )
