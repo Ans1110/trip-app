@@ -237,14 +237,7 @@ export function ProfileView({ username }: { username: string }) {
         </div>
       </div>
 
-      {profile.bio && (
-        <p
-          className="mt-6 text-[15px] leading-relaxed max-w-2xl"
-          style={{ color: "#ECEFEA" }}
-        >
-          {profile.bio}
-        </p>
-      )}
+      {profile.bio && <Bio text={profile.bio} />}
 
       {editOpen && <EditProfileDialog onClose={() => setEditOpen(false)} />}
       {followersTab && (
@@ -255,6 +248,45 @@ export function ProfileView({ username }: { username: string }) {
           followingCount={profile.following_count}
           onClose={() => setFollowersTab(null)}
         />
+      )}
+    </div>
+  );
+}
+
+const BIO_DESKTOP_LIMIT = 60;
+const BIO_MOBILE_LIMIT = 30;
+
+function Bio({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  const limit = isDesktop ? BIO_DESKTOP_LIMIT : BIO_MOBILE_LIMIT;
+  const words = text.trim().split(/\s+/);
+  const isLong = words.length > limit;
+  const preview = isLong ? `${words.slice(0, limit).join(" ")}…` : text;
+  return (
+    <div className="mt-6 max-w-2xl">
+      <p
+        className="text-[15px] leading-relaxed whitespace-pre-wrap"
+        style={{ color: "#ECEFEA" }}
+      >
+        {expanded || !isLong ? text : preview}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 text-xs font-medium hover:underline"
+          style={{ color: "var(--season-accent)" }}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
       )}
     </div>
   );
