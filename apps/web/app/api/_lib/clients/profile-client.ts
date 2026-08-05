@@ -11,17 +11,14 @@ import {
 import { RequestContext } from "../request-context";
 import { ensureCsrfToken, readSessionTokens } from "../session-store";
 import {
-  FeedView,
   ListProfileUsersView,
   ProfileRecommendationView,
   ProfileView,
-  toFeedView,
   toListProfileUsersView,
   toProfileRecommendationView,
   toProfileView,
 } from "../contracts/frontend";
 import {
-  UpstreamFeedResponse,
   UpstreamListProfileUsersResponse,
   UpstreamProfilePageQuery,
   UpstreamProfileRecommendationResponse,
@@ -34,7 +31,6 @@ export type ProfilePageQueryInput = UpstreamProfilePageQuery;
 export type RecommendationsQueryInput = { limit?: number };
 
 export type {
-  FeedView,
   ListProfileUsersView,
   ProfileRecommendationView,
   ProfileView,
@@ -54,8 +50,9 @@ export class ProfileClient {
   constructor(private readonly http: HttpClient = httpClient) {}
 
   async getMyProfile(auth: AuthCtx): Promise<ApiResult<ProfileView>> {
-    const res = await this.callProtected<UpstreamProfileResponse>(auth, (opts) =>
-      this.http.get<UpstreamProfileResponse>("/profiles/me", opts),
+    const res = await this.callProtected<UpstreamProfileResponse>(
+      auth,
+      (opts) => this.http.get<UpstreamProfileResponse>("/profiles/me", opts),
     );
     return mapData(res, toProfileView);
   }
@@ -64,8 +61,10 @@ export class ProfileClient {
     input: UpdateProfileInput,
     auth: AuthCtx,
   ): Promise<ApiResult<ProfileView>> {
-    const res = await this.callProtected<UpstreamProfileResponse>(auth, (opts) =>
-      this.http.patch<UpstreamProfileResponse>("/profiles/me", input, opts),
+    const res = await this.callProtected<UpstreamProfileResponse>(
+      auth,
+      (opts) =>
+        this.http.patch<UpstreamProfileResponse>("/profiles/me", input, opts),
     );
     return mapData(res, toProfileView);
   }
@@ -74,11 +73,13 @@ export class ProfileClient {
     username: string,
     auth: AuthCtx,
   ): Promise<ApiResult<ProfileView>> {
-    const res = await this.callProtected<UpstreamProfileResponse>(auth, (opts) =>
-      this.http.get<UpstreamProfileResponse>(
-        `/profiles/by-username/${encodeURIComponent(username)}`,
-        opts,
-      ),
+    const res = await this.callProtected<UpstreamProfileResponse>(
+      auth,
+      (opts) =>
+        this.http.get<UpstreamProfileResponse>(
+          `/profiles/by-username/${encodeURIComponent(username)}`,
+          opts,
+        ),
     );
     return mapData(res, toProfileView);
   }
@@ -142,25 +143,12 @@ export class ProfileClient {
     const path = suffix
       ? `/profiles/recommendations?${suffix}`
       : "/profiles/recommendations";
-    const res =
-      await this.callProtected<UpstreamProfileRecommendationResponse>(
-        auth,
-        (opts) =>
-          this.http.get<UpstreamProfileRecommendationResponse>(path, opts),
-      );
-    return mapData(res, toProfileRecommendationView);
-  }
-
-  async listFeed(
-    auth: AuthCtx,
-    query: ProfilePageQueryInput = {},
-  ): Promise<ApiResult<FeedView>> {
-    const qs = buildPageQuery(query);
-    const path = qs ? `/feed?${qs}` : "/feed";
-    const res = await this.callProtected<UpstreamFeedResponse>(auth, (opts) =>
-      this.http.get<UpstreamFeedResponse>(path, opts),
+    const res = await this.callProtected<UpstreamProfileRecommendationResponse>(
+      auth,
+      (opts) =>
+        this.http.get<UpstreamProfileRecommendationResponse>(path, opts),
     );
-    return mapData(res, toFeedView);
+    return mapData(res, toProfileRecommendationView);
   }
 
   private protectedOpts(auth: AuthCtx, deps: ProtectedDeps): HttpOptions {

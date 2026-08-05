@@ -1,8 +1,8 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 
-import { feedClient } from "../../_lib/clients/feed-client";
-import type { FeedPageQueryInput } from "../../_lib/clients/feed-client";
+import { searchClient } from "../../_lib/clients/search-client";
+import type { SearchPostsInput } from "../../_lib/clients/search-client";
 import type { ApiResult } from "../../_lib/http-client";
 import { extractRequestContext } from "../../_lib/request-context";
 
@@ -13,28 +13,42 @@ type AuthArg = {
   signal?: AbortSignal;
 };
 
-type Dispatch = (
-  req: NextRequest,
-  auth: AuthArg,
-) => Promise<ApiResult<unknown>>;
-
 export async function GET(req: NextRequest, { params }: RouteParams) {
   const slug = (await params).slug ?? [];
   const dispatch = matchGet(slug);
   if (!dispatch) return notFound(req.method, slug);
-  return toResponse(await dispatch(req, buildAuth(req)));
+  const auth = buildAuth(req);
+  const built = dispatch(req, auth);
+  if (built instanceof NextResponse) return built;
+  return toResponse(await built);
 }
 
-const matchGet = (slug: string[]): Dispatch | null => {
-  if (slug.length === 0) {
-    return (req, auth) => feedClient.listFeed(auth, readPageQuery(req));
+const matchGet = (
+  slug: string[],
+):
+  | ((req: NextRequest, auth: AuthArg) => Promise<ApiResult<unknown>> | NextResponse)
+  | null => {
+  // GET /search/posts?q=
+  if (slug.length === 1 && slug[0] === "posts") {
+    return (req, auth) => {
+      const query = readSearchQuery(req);
+      if (query instanceof NextResponse) return query;
+      return searchClient.searchPosts(auth, query);
+    };
   }
   return null;
 };
 
-const readPageQuery = (req: NextRequest): FeedPageQueryInput => {
+const readSearchQuery = (req: NextRequest): SearchPostsInput | NextResponse => {
   const url = new URL(req.url);
-  const out: FeedPageQueryInput = {};
+  const q = url.searchParams.get("q");
+  if (!q || !q.trim()) {
+    return NextResponse.json(
+      { code: 400, message: "query is required" },
+      { status: 400 },
+    );
+  }
+  const out: SearchPostsInput = { q: q.trim() };
   const cursor = url.searchParams.get("cursor");
   if (cursor) out.cursor = cursor;
   const limitParam = url.searchParams.get("limit");
@@ -78,7 +92,7 @@ const notFound = (method: string, slug: string[]): NextResponse =>
   NextResponse.json(
     {
       code: 404,
-      message: `unknown feed op: ${method} ${slug.join("/")}`,
+      message: `unknown search op: ${method} ${slug.join("/")}`,
     },
     { status: 404 },
   );
