@@ -25,7 +25,6 @@ type IHandler interface {
 	ListFollowers(c *gin.Context)
 	ListFollowing(c *gin.Context)
 
-	ListFeed(c *gin.Context)
 	Recommendations(c *gin.Context)
 }
 
@@ -57,8 +56,6 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 		profiles.GET("/:user_id/followers", h.ListFollowers)
 		profiles.GET("/:user_id/following", h.ListFollowing)
 	}
-
-	protected.GET("/feed", h.ListFeed)
 }
 
 // GetMyProfile godoc
@@ -228,33 +225,6 @@ func (h *Handler) listFollowSide(c *gin.Context, fn followSideFn) {
 		return
 	}
 	response.OK(c, out)
-}
-
-// ListFeed godoc
-// @Summary      Get the caller's follow feed (keyset paginated)
-// @Tags         profiles
-// @Security     BearerAuth
-// @Produce      json
-// @Param        cursor  query     string  false  "opaque cursor from previous page"
-// @Param        limit   query     int     false  "page size (default 20, max 50)"
-// @Success      200     {object}  response.Response{data=FeedResponse}
-// @Router       /feed [get]
-func (h *Handler) ListFeed(c *gin.Context) {
-	uid, ok := requireUser(c)
-	if !ok {
-		return
-	}
-	cursor, err := DecodeFeedCursor(c.Query("cursor"))
-	if err != nil {
-		response.BadRequest(c, "invalid cursor")
-		return
-	}
-	feed, err := h.svc.ListFeed(c.Request.Context(), uid, cursor, parseLimit(c))
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.OK(c, feed)
 }
 
 // Recommendations godoc

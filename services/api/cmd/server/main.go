@@ -32,9 +32,12 @@ import (
 	"github.com/Ans1110/trip-app/internal/finance"
 	"github.com/Ans1110/trip-app/internal/friend"
 	"github.com/Ans1110/trip-app/internal/media"
+	"github.com/Ans1110/trip-app/internal/feed"
 	"github.com/Ans1110/trip-app/internal/outbox"
+	"github.com/Ans1110/trip-app/internal/post"
 	"github.com/Ans1110/trip-app/internal/profile"
 	"github.com/Ans1110/trip-app/internal/realtime"
+	"github.com/Ans1110/trip-app/internal/search"
 	"github.com/Ans1110/trip-app/internal/trip"
 	"github.com/Ans1110/trip-app/internal/vote"
 	"github.com/Ans1110/trip-app/pkg/config"
@@ -45,6 +48,7 @@ import (
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	pkgredis "github.com/Ans1110/trip-app/pkg/redis"
 	"github.com/Ans1110/trip-app/pkg/ticket"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
@@ -293,6 +297,39 @@ func main() {
 	})
 	go profileFanout.Start(ctx)
 
+	postRepo := post.NewRepository(db)
+	postSvc := post.NewService(post.ServiceConfig{
+		Repo:     postRepo,
+		Redis:    rdb,
+		Profiles: newPostProfileLookup(profileRepo),
+		Logger:   logger,
+	})
+	postHandler := post.NewHandler(postSvc, logger)
+
+	feedRepo := feed.NewRepository(db)
+	feedSvc := feed.NewService(feed.ServiceConfig{
+		Repo:   feedRepo,
+		Posts:  postSvc,
+		Logger: logger,
+	})
+	feedHandler := feed.NewHandler(feedSvc, logger)
+	feedFanout := feed.NewFanoutConsumer(feed.FanoutConsumerConfig{
+		Repo:           feedRepo,
+		Redis:          rdb,
+		Logger:         logger,
+		ConsumerID:     fmt.Sprintf("feed-fanout-%d", os.Getpid()),
+		FollowerLookup: newFollowerLookup(profileRepo),
+	})
+	go feedFanout.Start(ctx)
+
+	searchRepo := search.NewRepository(db)
+	searchSvc := search.NewService(search.ServiceConfig{
+		Repo:   searchRepo,
+		Posts:  postSvc,
+		Logger: logger,
+	})
+	searchHandler := search.NewHandler(searchSvc, logger)
+
 	// Chat wiring: writer (bounded queue → batch INSERT) → service (persist
 	// then broadcast via hub + pub/sub).
 	chatRepo := chat.NewRepository(db)
@@ -342,6 +379,9 @@ func main() {
 		financeHandler,
 		albumHandler,
 		profileHandler,
+		postHandler,
+		feedHandler,
+		searchHandler,
 	)
 
 	srv := &http.Server{
@@ -391,6 +431,9 @@ func setupRouter(
 	financeHandler finance.IHandler,
 	albumHandler album.IHandler,
 	profileHandler profile.IHandler,
+	postHandler post.IHandler,
+	feedHandler feed.IHandler,
+	searchHandler search.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -455,6 +498,9 @@ func setupRouter(
 	financeHandler.RegisterRoutes(protected)
 	albumHandler.RegisterRoutes(public, protected)
 	profileHandler.RegisterRoutes(protected)
+	postHandler.RegisterRoutes(protected)
+	feedHandler.RegisterRoutes(protected)
+	searchHandler.RegisterRoutes(protected)
 
 	ws := r.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)
@@ -507,6 +553,49 @@ func resolveConfigPath() string {
 		}
 	}
 	return "./config/config.yml"
+}
+
+func newPostProfileLookup(repo profile.IRepository) post.ProfileLookup {
+	return postProfileLookupFn(func(ctx context.Context, userID uuid.UUID) (string, string, error) {
+		p, err := repo.FindProfileByUserID(ctx, userID)
+		if err != nil || p == nil {
+			return "", "", err
+		}
+		return p.Username, p.AvatarURL, nil
+	})
+}
+
+type postProfileLookupFn func(ctx context.Context, userID uuid.UUID) (string, string, error)
+
+func (f postProfileLookupFn) FindProfileByUserID(ctx context.Context, userID uuid.UUID) (string, string, error) {
+	return f(ctx, userID)
+}
+
+func newFollowerLookup(repo profile.IRepository) feed.FollowerLookup {
+	const pageSize = 200
+	return func(ctx context.Context, actorID uuid.UUID) ([]uuid.UUID, error) {
+		var (
+			out    []uuid.UUID
+			cursor *profile.FollowCursor
+		)
+		for {
+			rows, err := repo.ListFollowers(ctx, actorID, cursor, pageSize)
+			if err != nil {
+				return nil, err
+			}
+			if len(rows) == 0 {
+				return out, nil
+			}
+			for _, r := range rows {
+				out = append(out, r.FollowerID)
+			}
+			if len(rows) < pageSize {
+				return out, nil
+			}
+			last := rows[len(rows)-1]
+			cursor = &profile.FollowCursor{CreatedAt: last.CreatedAt, OtherID: last.FollowerID}
+		}
+	}
 }
 
 func resolveMigrationsPath() string {
