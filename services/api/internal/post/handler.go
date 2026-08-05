@@ -27,6 +27,7 @@ type IHandler interface {
 	UpdateComment(c *gin.Context)
 	DeleteComment(c *gin.Context)
 	ListComments(c *gin.Context)
+	ListReplies(c *gin.Context)
 }
 
 type Handler struct {
@@ -60,6 +61,7 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 		posts.POST("/:id/comments", h.CreateComment)
 		posts.PATCH("/:id/comments/:comment_id", h.UpdateComment)
 		posts.DELETE("/:id/comments/:comment_id", h.DeleteComment)
+		posts.GET("/:id/comments/:comment_id/replies", h.ListReplies)
 	}
 }
 
@@ -371,6 +373,37 @@ func (h *Handler) ListComments(c *gin.Context) {
 	response.OK(c, out)
 }
 
+// ListReplies godoc
+// @Summary      List replies to a top-level comment (keyset paginated, ascending)
+// @Tags         posts
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id          path      string  true   "post id"
+// @Param        comment_id  path      string  true   "parent comment id"
+// @Param        cursor      query     string  false  "opaque cursor from previous page"
+// @Param        limit       query     int     false  "page size (default 20, max 100)"
+// @Success      200         {object}  response.Response{data=ListRepliesResponse}
+// @Router       /posts/{id}/comments/{comment_id}/replies [get]
+func (h *Handler) ListReplies(c *gin.Context) {
+	viewerID := middleware.GetUserID(c)
+	commentID, err := uuid.Parse(c.Param("comment_id"))
+	if err != nil {
+		response.BadRequest(c, "invalid comment id")
+		return
+	}
+	cursor, err := DecodeReplyCursor(c.Query("cursor"))
+	if err != nil {
+		response.BadRequest(c, "invalid cursor")
+		return
+	}
+	out, err := h.svc.ListReplies(c.Request.Context(), viewerID, commentID, cursor, parseLimit(c))
+	if err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, out)
+}
+
 func (h *Handler) requireCallerAndPost(c *gin.Context) (uuid.UUID, uuid.UUID, bool) {
 	uid, ok := requireUser(c)
 	if !ok {
@@ -386,8 +419,10 @@ func (h *Handler) requireCallerAndPost(c *gin.Context) (uuid.UUID, uuid.UUID, bo
 
 func (h *Handler) respondServiceError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, ErrPostNotFound), errors.Is(err, ErrCommentNotFound):
+	case errors.Is(err, ErrPostNotFound), errors.Is(err, ErrCommentNotFound), errors.Is(err, ErrParentNotFound):
 		response.NotFound(c, err.Error())
+	case errors.Is(err, ErrInvalidParent):
+		response.BadRequest(c, err.Error())
 	case errors.Is(err, ErrForbidden):
 		response.Forbidden(c)
 	case errors.Is(err, ErrAlreadyLiked), errors.Is(err, ErrNotLiked):

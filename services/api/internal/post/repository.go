@@ -20,6 +20,8 @@ var (
 	ErrForbidden       = errors.New("forbidden")
 	ErrAlreadyLiked    = errors.New("already liked")
 	ErrNotLiked        = errors.New("not liked")
+	ErrParentNotFound  = errors.New("parent comment not found")
+	ErrInvalidParent   = errors.New("invalid parent comment")
 )
 
 type IRepository interface {
@@ -42,8 +44,11 @@ type IRepository interface {
 	UpdateCommentContent(ctx context.Context, commentID, authorID uuid.UUID, content string) (*Comment, error)
 	SoftDeleteComment(ctx context.Context, commentID, authorID uuid.UUID) error
 	FindComment(ctx context.Context, id uuid.UUID) (*Comment, error)
+	FindCommentAny(ctx context.Context, id uuid.UUID) (*Comment, error)
 	ListComments(ctx context.Context, postID uuid.UUID, cursor *CommentCursor, limit int) ([]Comment, error)
+	ListReplies(ctx context.Context, parentID uuid.UUID, cursor *ReplyCursor, limit int) ([]Comment, error)
 	BumpCommentCount(ctx context.Context, postID uuid.UUID, delta int) error
+	BumpReplyCount(ctx context.Context, commentID uuid.UUID, delta int) error
 
 	FindUsersByIDs(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]auth.User, error)
 
@@ -56,6 +61,11 @@ type PostCursor struct {
 }
 
 type CommentCursor struct {
+	CreatedAt time.Time
+	ID        uuid.UUID
+}
+
+type ReplyCursor struct {
 	CreatedAt time.Time
 	ID        uuid.UUID
 }
@@ -298,17 +308,43 @@ func (r *repository) FindComment(ctx context.Context, id uuid.UUID) (*Comment, e
 	return &c, nil
 }
 
+func (r *repository) FindCommentAny(ctx context.Context, id uuid.UUID) (*Comment, error) {
+	var c Comment
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&c).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 func (r *repository) ListComments(ctx context.Context, postID uuid.UUID, cursor *CommentCursor, limit int) ([]Comment, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
 	q := r.db.WithContext(ctx).Model(&Comment{}).
-		Where("post_id = ? AND deleted_at IS NULL", postID)
+		Where("post_id = ? AND parent_id IS NULL AND (deleted_at IS NULL OR reply_count > 0)", postID)
 	if cursor != nil {
 		q = q.Where("(created_at, id) < (?, ?)", cursor.CreatedAt, cursor.ID)
 	}
 	var rows []Comment
 	err := q.Order("created_at DESC, id DESC").Limit(limit).Find(&rows).Error
+	return rows, err
+}
+
+func (r *repository) ListReplies(ctx context.Context, parentID uuid.UUID, cursor *ReplyCursor, limit int) ([]Comment, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	q := r.db.WithContext(ctx).Model(&Comment{}).
+		Where("parent_id = ? AND deleted_at IS NULL", parentID)
+	if cursor != nil {
+		q = q.Where("(created_at, id) > (?, ?)", cursor.CreatedAt, cursor.ID)
+	}
+	var rows []Comment
+	err := q.Order("created_at ASC, id ASC").Limit(limit).Find(&rows).Error
 	return rows, err
 }
 
@@ -318,6 +354,14 @@ func (r *repository) BumpCommentCount(ctx context.Context, postID uuid.UUID, del
 		SET comment_count = GREATEST(comment_count + ?, 0)
 		WHERE id = ? AND deleted_at IS NULL
 	`, delta, postID).Error
+}
+
+func (r *repository) BumpReplyCount(ctx context.Context, commentID uuid.UUID, delta int) error {
+	return r.db.WithContext(ctx).Exec(`
+		UPDATE post.comments
+		SET reply_count = GREATEST(reply_count + ?, 0)
+		WHERE id = ?
+	`, delta, commentID).Error
 }
 
 func (r *repository) FindUsersByIDs(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]auth.User, error) {

@@ -33,13 +33,16 @@ type Like struct {
 func (Like) TableName() string { return "post.likes" }
 
 type Comment struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	PostID    uuid.UUID  `gorm:"type:uuid;column:post_id;not null;index"`
-	AuthorID  uuid.UUID  `gorm:"type:uuid;column:author_id;not null"`
-	Content   string     `gorm:"column:content;not null"`
-	CreatedAt time.Time  `gorm:"column:created_at"`
-	UpdatedAt time.Time  `gorm:"column:updated_at"`
-	DeletedAt *time.Time `gorm:"column:deleted_at"`
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	PostID      uuid.UUID  `gorm:"type:uuid;column:post_id;not null;index"`
+	AuthorID    uuid.UUID  `gorm:"type:uuid;column:author_id;not null"`
+	ParentID    *uuid.UUID `gorm:"type:uuid;column:parent_id"`
+	InReplyToID *uuid.UUID `gorm:"type:uuid;column:in_reply_to_id"`
+	Content     string     `gorm:"column:content;not null"`
+	ReplyCount  int        `gorm:"column:reply_count;not null;default:0"`
+	CreatedAt   time.Time  `gorm:"column:created_at"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at"`
+	DeletedAt   *time.Time `gorm:"column:deleted_at"`
 }
 
 func (Comment) TableName() string { return "post.comments" }

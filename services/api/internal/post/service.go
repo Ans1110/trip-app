@@ -28,6 +28,7 @@ type IService interface {
 	UpdateComment(ctx context.Context, authorID, commentID uuid.UUID, payload UpdateCommentPayload) (*CommentResponse, error)
 	DeleteComment(ctx context.Context, authorID, commentID uuid.UUID) error
 	ListComments(ctx context.Context, viewerID, postID uuid.UUID, cursor *CommentCursor, limit int) (ListCommentsResponse, error)
+	ListReplies(ctx context.Context, viewerID, commentID uuid.UUID, cursor *ReplyCursor, limit int) (ListRepliesResponse, error)
 }
 
 type ProfileLookup interface {
@@ -299,17 +300,53 @@ func (s *service) CreateComment(ctx context.Context, authorID, postID uuid.UUID,
 	if p == nil {
 		return nil, ErrPostNotFound
 	}
+	var parentID *uuid.UUID
+	var inReplyToID *uuid.UUID
+	if payload.ParentID != nil && *payload.ParentID != "" {
+		pid, err := uuid.Parse(*payload.ParentID)
+		if err != nil {
+			return nil, ErrInvalidParent
+		}
+		parent, err := s.repo.FindComment(ctx, pid)
+		if err != nil {
+			return nil, err
+		}
+		if parent == nil || parent.PostID != postID {
+			return nil, ErrParentNotFound
+		}
+		root := pid
+		if parent.ParentID != nil {
+			rootParent, err := s.repo.FindComment(ctx, *parent.ParentID)
+			if err != nil {
+				return nil, err
+			}
+			if rootParent == nil || rootParent.PostID != postID {
+				return nil, ErrParentNotFound
+			}
+			root = rootParent.ID
+		}
+		parentID = &root
+		inReplyToID = &pid
+	}
 	c := &Comment{
-		ID:       uuid.New(),
-		PostID:   postID,
-		AuthorID: authorID,
-		Content:  strings.TrimSpace(payload.Content),
+		ID:          uuid.New(),
+		PostID:      postID,
+		AuthorID:    authorID,
+		ParentID:    parentID,
+		InReplyToID: inReplyToID,
+		Content:     strings.TrimSpace(payload.Content),
 	}
 	err = s.repo.WithTx(ctx, func(tx IRepository) error {
 		if err := tx.CreateComment(ctx, c); err != nil {
 			return err
 		}
-		return tx.BumpCommentCount(ctx, postID, +1)
+		if err := tx.BumpCommentCount(ctx, postID, +1); err != nil {
+			return err
+		}
+		if parentID != nil {
+			return tx.BumpReplyCount(ctx, *parentID, +1)
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -340,7 +377,13 @@ func (s *service) DeleteComment(ctx context.Context, authorID, commentID uuid.UU
 		if err := tx.SoftDeleteComment(ctx, commentID, authorID); err != nil {
 			return err
 		}
-		return tx.BumpCommentCount(ctx, existing.PostID, -1)
+		if err := tx.BumpCommentCount(ctx, existing.PostID, -1); err != nil {
+			return err
+		}
+		if existing.ParentID != nil {
+			return tx.BumpReplyCount(ctx, *existing.ParentID, -1)
+		}
+		return nil
 	})
 }
 
@@ -352,6 +395,44 @@ func (s *service) ListComments(ctx context.Context, viewerID, postID uuid.UUID, 
 	if len(rows) == 0 {
 		return ListCommentsResponse{Comments: []CommentResponse{}}, nil
 	}
+	out, err := s.hydrateComments(ctx, viewerID, rows)
+	if err != nil {
+		return ListCommentsResponse{}, err
+	}
+	last := rows[len(rows)-1]
+	return ListCommentsResponse{
+		Comments:   out,
+		NextCursor: encodeCursor(last.CreatedAt, last.ID),
+	}, nil
+}
+
+func (s *service) ListReplies(ctx context.Context, viewerID, commentID uuid.UUID, cursor *ReplyCursor, limit int) (ListRepliesResponse, error) {
+	parent, err := s.repo.FindCommentAny(ctx, commentID)
+	if err != nil {
+		return ListRepliesResponse{}, err
+	}
+	if parent == nil || parent.ParentID != nil {
+		return ListRepliesResponse{}, ErrCommentNotFound
+	}
+	rows, err := s.repo.ListReplies(ctx, commentID, cursor, limit)
+	if err != nil {
+		return ListRepliesResponse{}, err
+	}
+	if len(rows) == 0 {
+		return ListRepliesResponse{Replies: []CommentResponse{}}, nil
+	}
+	out, err := s.hydrateComments(ctx, viewerID, rows)
+	if err != nil {
+		return ListRepliesResponse{}, err
+	}
+	last := rows[len(rows)-1]
+	return ListRepliesResponse{
+		Replies:    out,
+		NextCursor: encodeCursor(last.CreatedAt, last.ID),
+	}, nil
+}
+
+func (s *service) hydrateComments(ctx context.Context, viewerID uuid.UUID, rows []Comment) ([]CommentResponse, error) {
 	authorIDs := make([]uuid.UUID, 0, len(rows))
 	seen := make(map[uuid.UUID]struct{}, len(rows))
 	for _, c := range rows {
@@ -362,18 +443,14 @@ func (s *service) ListComments(ctx context.Context, viewerID, postID uuid.UUID, 
 	}
 	users, err := s.repo.FindUsersByIDs(ctx, authorIDs)
 	if err != nil {
-		return ListCommentsResponse{}, err
+		return nil, err
 	}
 	profiles := s.batchProfiles(ctx, authorIDs)
 	out := make([]CommentResponse, 0, len(rows))
 	for _, c := range rows {
 		out = append(out, buildCommentResponse(c, users[c.AuthorID], profiles[c.AuthorID], c.AuthorID == viewerID))
 	}
-	last := rows[len(rows)-1]
-	return ListCommentsResponse{
-		Comments:   out,
-		NextCursor: encodeCursor(last.CreatedAt, last.ID),
-	}, nil
+	return out, nil
 }
 
 type profileHit struct {
@@ -444,15 +521,28 @@ func buildPostResponse(p Post, u auth.User, prof profileHit, liked bool, likeCou
 }
 
 func buildCommentResponse(c Comment, u auth.User, prof profileHit, isAuthor bool) CommentResponse {
-	return CommentResponse{
-		ID:        c.ID.String(),
-		PostID:    c.PostID.String(),
-		Author:    toUserSummary(c.AuthorID, u, prof),
-		Content:   c.Content,
-		IsAuthor:  isAuthor,
-		CreatedAt: c.CreatedAt,
-		UpdatedAt: c.UpdatedAt,
+	deleted := c.DeletedAt != nil
+	resp := CommentResponse{
+		ID:         c.ID.String(),
+		PostID:     c.PostID.String(),
+		Author:     toUserSummary(c.AuthorID, u, prof),
+		Content:    c.Content,
+		ReplyCount: c.ReplyCount,
+		IsAuthor:   isAuthor && !deleted,
+		IsDeleted:  deleted,
+		CreatedAt:  c.CreatedAt,
+		UpdatedAt:  c.UpdatedAt,
 	}
+	if c.ParentID != nil {
+		resp.ParentID = c.ParentID.String()
+	}
+	if c.InReplyToID != nil {
+		resp.InReplyToID = c.InReplyToID.String()
+	}
+	if deleted {
+		resp.Content = ""
+	}
+	return resp
 }
 
 func toUserSummary(id uuid.UUID, u auth.User, prof profileHit) UserSummary {
@@ -529,6 +619,14 @@ func DecodeCommentCursor(token string) (*CommentCursor, error) {
 		return nil, err
 	}
 	return &CommentCursor{CreatedAt: *t, ID: id}, nil
+}
+
+func DecodeReplyCursor(token string) (*ReplyCursor, error) {
+	t, id, err := decodeCursor(token)
+	if err != nil || t == nil {
+		return nil, err
+	}
+	return &ReplyCursor{CreatedAt: *t, ID: id}, nil
 }
 
 const (

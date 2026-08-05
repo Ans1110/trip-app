@@ -67,6 +67,11 @@ const matchGet = (slug: string[]): Dispatch | null => {
     return (req, auth) =>
       postClient.listComments(slug[0], auth, readPageQuery(req));
   }
+  // GET /posts/:id/comments/:comment_id/replies
+  if (slug.length === 4 && slug[1] === "comments" && slug[3] === "replies") {
+    return (req, auth) =>
+      postClient.listReplies(slug[0], slug[2], auth, readPageQuery(req));
+  }
   return null;
 };
 

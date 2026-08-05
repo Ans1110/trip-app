@@ -37,7 +37,8 @@ type ListPostsResponse struct {
 }
 
 type CreateCommentPayload struct {
-	Content string `json:"content" binding:"required,min=1,max=2000"`
+	Content  string  `json:"content" binding:"required,min=1,max=2000"`
+	ParentID *string `json:"parent_id,omitempty" binding:"omitempty,uuid"`
 }
 
 type UpdateCommentPayload struct {
@@ -45,17 +46,26 @@ type UpdateCommentPayload struct {
 }
 
 type CommentResponse struct {
-	ID        string      `json:"id"`
-	PostID    string      `json:"post_id"`
-	Author    UserSummary `json:"author"`
-	Content   string      `json:"content"`
-	IsAuthor  bool        `json:"is_author"`
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	ID          string      `json:"id"`
+	PostID      string      `json:"post_id"`
+	ParentID    string      `json:"parent_id,omitempty"`
+	InReplyToID string      `json:"in_reply_to_id,omitempty"`
+	Author      UserSummary `json:"author"`
+	Content     string      `json:"content"`
+	ReplyCount  int         `json:"reply_count"`
+	IsAuthor    bool        `json:"is_author"`
+	IsDeleted   bool        `json:"is_deleted"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
 }
 
 type ListCommentsResponse struct {
 	Comments   []CommentResponse `json:"comments"`
+	NextCursor string            `json:"next_cursor,omitempty"`
+}
+
+type ListRepliesResponse struct {
+	Replies    []CommentResponse `json:"replies"`
 	NextCursor string            `json:"next_cursor,omitempty"`
 }
 

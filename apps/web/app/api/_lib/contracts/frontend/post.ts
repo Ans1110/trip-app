@@ -3,6 +3,7 @@ import {
   UpstreamCommentResponse,
   UpstreamListCommentsResponse,
   UpstreamListPostsResponse,
+  UpstreamListRepliesResponse,
   UpstreamPostAuthorSummary,
   UpstreamPostResponse,
 } from "../upstream";
@@ -37,15 +38,24 @@ export type ListPostsView = {
 export type CommentView = {
   id: string;
   post_id: string;
+  parent_id?: string;
+  in_reply_to_id?: string;
   author: PostAuthorSummaryView;
   content: string;
+  reply_count: number;
   is_author: boolean;
+  is_deleted: boolean;
   created_at: string;
   updated_at: string;
 };
 
 export type ListCommentsView = {
   comments: CommentView[];
+  next_cursor?: string;
+};
+
+export type ListRepliesView = {
+  replies: CommentView[];
   next_cursor?: string;
 };
 
@@ -83,9 +93,13 @@ export const toListPostsView = (
 export const toCommentView = (c: UpstreamCommentResponse): CommentView => ({
   id: c.id,
   post_id: c.post_id,
+  parent_id: c.parent_id,
+  in_reply_to_id: c.in_reply_to_id,
   author: toPostAuthorSummaryView(c.author),
   content: c.content,
+  reply_count: c.reply_count ?? 0,
   is_author: c.is_author,
+  is_deleted: c.is_deleted ?? false,
   created_at: c.created_at,
   updated_at: c.updated_at,
 });
@@ -94,5 +108,12 @@ export const toListCommentsView = (
   r: UpstreamListCommentsResponse,
 ): ListCommentsView => ({
   comments: (r.comments ?? []).map(toCommentView),
+  next_cursor: r.next_cursor,
+});
+
+export const toListRepliesView = (
+  r: UpstreamListRepliesResponse,
+): ListRepliesView => ({
+  replies: (r.replies ?? []).map(toCommentView),
   next_cursor: r.next_cursor,
 });

@@ -14,10 +14,12 @@ import {
   CommentView,
   ListCommentsView,
   ListPostsView,
+  ListRepliesView,
   PostView,
   toCommentView,
   toListCommentsView,
   toListPostsView,
+  toListRepliesView,
   toPostView,
 } from "../contracts/frontend";
 import {
@@ -27,6 +29,7 @@ import {
   UpstreamListCommentsResponse,
   UpstreamListPostsQuery,
   UpstreamListPostsResponse,
+  UpstreamListRepliesResponse,
   UpstreamPostResponse,
   UpstreamUpdateCommentPayload,
   UpstreamUpdatePostPayload,
@@ -43,6 +46,7 @@ export type {
   CommentView,
   ListCommentsView,
   ListPostsView,
+  ListRepliesView,
   PostAuthorSummaryView,
   PostView,
 } from "../contracts/frontend";
@@ -191,6 +195,22 @@ export class PostClient {
         opts,
       ),
     );
+  }
+
+  async listReplies(
+    postID: string,
+    commentID: string,
+    auth: AuthCtx,
+    query: PostPageQueryInput = {},
+  ): Promise<ApiResult<ListRepliesView>> {
+    const qs = buildPageQuery(query);
+    const base = `/posts/${encodeURIComponent(postID)}/comments/${encodeURIComponent(commentID)}/replies`;
+    const path = qs ? `${base}?${qs}` : base;
+    const res = await this.callProtected<UpstreamListRepliesResponse>(
+      auth,
+      (opts) => this.http.get<UpstreamListRepliesResponse>(path, opts),
+    );
+    return mapData(res, toListRepliesView);
   }
 
   private protectedOpts(auth: AuthCtx, deps: ProtectedDeps): HttpOptions {

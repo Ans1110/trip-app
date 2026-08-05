@@ -44,9 +44,13 @@ export type UpstreamUpdatePostPayload = {
 export type UpstreamCommentResponse = {
   id: string;
   post_id: string;
+  parent_id?: string;
+  in_reply_to_id?: string;
   author: UpstreamPostAuthorSummary;
   content: string;
+  reply_count: number;
   is_author: boolean;
+  is_deleted: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -56,7 +60,15 @@ export type UpstreamListCommentsResponse = {
   next_cursor?: string;
 };
 
-export type UpstreamCreateCommentPayload = { content: string };
+export type UpstreamListRepliesResponse = {
+  replies: UpstreamCommentResponse[];
+  next_cursor?: string;
+};
+
+export type UpstreamCreateCommentPayload = {
+  content: string;
+  parent_id?: string;
+};
 export type UpstreamUpdateCommentPayload = { content: string };
 
 export type UpstreamListPostsQuery = {
