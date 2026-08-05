@@ -32,7 +32,8 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 }
 
 // ListFeed godoc
-// @Summary      Get the caller's home feed (keyset paginated)
+// @Summary      Get the caller's personalized home feed (ranked, keyset paginated)
+// @Description  Global discovery feed. All public posts are eligible; posts from followed authors get a ranking boost.
 // @Tags         feed
 // @Security     BearerAuth
 // @Produce      json

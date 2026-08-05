@@ -18,7 +18,7 @@ import {
 
 export type FeedPageQueryInput = UpstreamProfilePageQuery;
 
-export type { FeedItemView, FeedView } from "../contracts/frontend";
+export type { FeedView } from "../contracts/frontend";
 
 type AuthCtx = { ctx: RequestContext; signal?: AbortSignal };
 

@@ -313,14 +313,6 @@ func main() {
 		Logger: logger,
 	})
 	feedHandler := feed.NewHandler(feedSvc, logger)
-	feedFanout := feed.NewFanoutConsumer(feed.FanoutConsumerConfig{
-		Repo:           feedRepo,
-		Redis:          rdb,
-		Logger:         logger,
-		ConsumerID:     fmt.Sprintf("feed-fanout-%d", os.Getpid()),
-		FollowerLookup: newFollowerLookup(profileRepo),
-	})
-	go feedFanout.Start(ctx)
 
 	searchRepo := search.NewRepository(db)
 	searchSvc := search.NewService(search.ServiceConfig{
@@ -569,33 +561,6 @@ type postProfileLookupFn func(ctx context.Context, userID uuid.UUID) (string, st
 
 func (f postProfileLookupFn) FindProfileByUserID(ctx context.Context, userID uuid.UUID) (string, string, error) {
 	return f(ctx, userID)
-}
-
-func newFollowerLookup(repo profile.IRepository) feed.FollowerLookup {
-	const pageSize = 200
-	return func(ctx context.Context, actorID uuid.UUID) ([]uuid.UUID, error) {
-		var (
-			out    []uuid.UUID
-			cursor *profile.FollowCursor
-		)
-		for {
-			rows, err := repo.ListFollowers(ctx, actorID, cursor, pageSize)
-			if err != nil {
-				return nil, err
-			}
-			if len(rows) == 0 {
-				return out, nil
-			}
-			for _, r := range rows {
-				out = append(out, r.FollowerID)
-			}
-			if len(rows) < pageSize {
-				return out, nil
-			}
-			last := rows[len(rows)-1]
-			cursor = &profile.FollowCursor{CreatedAt: last.CreatedAt, OtherID: last.FollowerID}
-		}
-	}
 }
 
 func resolveMigrationsPath() string {

@@ -2,6 +2,10 @@ package feed
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -9,15 +13,29 @@ import (
 	"gorm.io/gorm"
 )
 
-type FeedCursor struct {
-	PublishedAt time.Time
-	ID          uuid.UUID
+// Ranking constants. score = recencyScale * exp(-hours/decayHours) + follow_boost.
+// Half-life is decayHours * ln(2) ≈ 33h at 48. Tune in one place.
+const (
+	recencyScale = 100.0
+	decayHours   = 48.0
+	followBoost  = 25.0
+)
+
+type Cursor struct {
+	RefTime     time.Time `json:"r"`
+	Score       float64   `json:"s"`
+	PublishedAt time.Time `json:"p"`
+	PostID      uuid.UUID `json:"i"`
+}
+
+type RankedPost struct {
+	ID          uuid.UUID `gorm:"column:id"`
+	PublishedAt time.Time `gorm:"column:published_at"`
+	Score       float64   `gorm:"column:score"`
 }
 
 type IRepository interface {
-	InsertMany(ctx context.Context, items []FeedItem) error
-	DeleteBySubject(ctx context.Context, subjectType string, subjectID uuid.UUID) error
-	ListForUser(ctx context.Context, userID uuid.UUID, cursor *FeedCursor, limit int) ([]FeedItem, error)
+	ListRanked(ctx context.Context, viewerID uuid.UUID, cursor *Cursor, limit int) (rows []RankedPost, refTime time.Time, err error)
 }
 
 type repository struct {
@@ -26,63 +44,70 @@ type repository struct {
 
 func NewRepository(db *gorm.DB) IRepository { return &repository{db: db} }
 
-// ON CONFLICT DO NOTHING so consumer retries after transient failure are idempotent.
-func (r *repository) InsertMany(ctx context.Context, items []FeedItem) error {
-	if len(items) == 0 {
-		return nil
-	}
-	for i := range items {
-		if items[i].ID == uuid.Nil {
-			items[i].ID = uuid.New()
-		}
-	}
-	sql := `INSERT INTO feed.feed_items
-	          (id, user_id, actor_id, event_type, subject_type, subject_id, published_at)
-	        VALUES ` + placeholders(len(items), 7) + `
-	        ON CONFLICT (user_id, event_type, subject_id) DO NOTHING`
-	args := make([]any, 0, len(items)*7)
-	for _, it := range items {
-		args = append(args, it.ID, it.UserID, it.ActorID, it.EventType, it.SubjectType, it.SubjectID, it.PublishedAt)
-	}
-	return r.db.WithContext(ctx).Exec(sql, args...).Error
-}
+var baseSQL = fmt.Sprintf(`
+WITH ref AS (SELECT ?::timestamptz AS t, ?::uuid AS viewer),
+ranked AS (
+    SELECT p.id, p.published_at,
+           (%.1f * exp(-EXTRACT(EPOCH FROM (r.t - p.published_at)) / (3600.0 * %.1f))
+            + CASE WHEN EXISTS (
+                SELECT 1 FROM profile.follows f
+                WHERE f.follower_id = r.viewer
+                  AND f.followee_id = p.author_id
+              ) THEN %.1f ELSE 0.0 END) AS score
+    FROM post.posts p
+    CROSS JOIN ref r
+    WHERE p.deleted_at IS NULL
+      AND p.published_at <= r.t
+)
+SELECT id, published_at, score FROM ranked`, recencyScale, decayHours, followBoost)
 
-func (r *repository) DeleteBySubject(ctx context.Context, subjectType string, subjectID uuid.UUID) error {
-	return r.db.WithContext(ctx).
-		Where("subject_type = ? AND subject_id = ?", subjectType, subjectID).
-		Delete(&FeedItem{}).Error
-}
-
-func (r *repository) ListForUser(ctx context.Context, userID uuid.UUID, cursor *FeedCursor, limit int) ([]FeedItem, error) {
+func (r *repository) ListRanked(ctx context.Context, viewerID uuid.UUID, cursor *Cursor, limit int) ([]RankedPost, time.Time, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
-	q := r.db.WithContext(ctx).Where("user_id = ?", userID)
-	if cursor != nil {
-		q = q.Where("(published_at, id) < (?, ?)", cursor.PublishedAt, cursor.ID)
+	refTime := time.Now().UTC()
+	if cursor != nil && !cursor.RefTime.IsZero() {
+		refTime = cursor.RefTime.UTC()
 	}
-	var rows []FeedItem
-	err := q.Order("published_at DESC, id DESC").Limit(limit).Find(&rows).Error
-	return rows, err
+
+	var sb strings.Builder
+	sb.WriteString(baseSQL)
+	args := []any{refTime, viewerID}
+
+	if cursor != nil {
+		sb.WriteString(` WHERE (score, published_at, id) < (?::float8, ?::timestamptz, ?::uuid)`)
+		args = append(args, cursor.Score, cursor.PublishedAt.UTC(), cursor.PostID)
+	}
+	sb.WriteString(` ORDER BY score DESC, published_at DESC, id DESC LIMIT ?`)
+	args = append(args, limit)
+
+	var rows []RankedPost
+	if err := r.db.WithContext(ctx).Raw(sb.String(), args...).Scan(&rows).Error; err != nil {
+		return nil, refTime, err
+	}
+	return rows, refTime, nil
 }
 
-func placeholders(rows, cols int) string {
-	if rows == 0 {
-		return ""
+func encodeCursor(c Cursor) string {
+	b, _ := json.Marshal(c)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func DecodeCursor(token string) (*Cursor, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil, nil
 	}
-	var b strings.Builder
-	for i := 0; i < rows; i++ {
-		if i > 0 {
-			b.WriteString(",")
-		}
-		b.WriteString("(")
-		for j := 0; j < cols; j++ {
-			if j > 0 {
-				b.WriteString(",")
-			}
-			b.WriteString("?")
-		}
-		b.WriteString(")")
+	raw, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil {
+		return nil, errors.New("invalid cursor")
 	}
-	return b.String()
+	var c Cursor
+	if err := json.Unmarshal(raw, &c); err != nil {
+		return nil, errors.New("invalid cursor")
+	}
+	if c.RefTime.IsZero() || c.PostID == uuid.Nil {
+		return nil, errors.New("invalid cursor")
+	}
+	return &c, nil
 }
