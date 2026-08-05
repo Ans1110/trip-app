@@ -21,4 +21,7 @@ const (
 
 	StreamProfileEvents = "events:profile"
 	GroupProfileFanout  = "profile-fanout-group"
+
+	StreamPostEvents = "events:post"
+	GroupFeedFanout  = "feed-fanout-group"
 )
