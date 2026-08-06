@@ -10,7 +10,6 @@ import {
 
 import {
   profileApi,
-  type Feed,
   type ListProfileUsers,
   type PageQuery,
   type Profile,
@@ -29,7 +28,6 @@ export const profileKeys = {
     ["profile", userId, "following", cursor ?? null] as const,
   recommendations: (limit?: number) =>
     ["profile", "recommendations", limit ?? null] as const,
-  feed: (cursor?: string) => ["profile", "feed", cursor ?? null] as const,
 };
 
 type MutOpts<TData, TInput> = Omit<
@@ -135,14 +133,6 @@ export function useRecommendations(
   return useQuery<ProfileRecommendation, ApiError>({
     queryKey: profileKeys.recommendations(limit),
     queryFn: ({ signal }) => profileApi.recommendations(limit, signal),
-    ...options,
-  });
-}
-
-export function useFeed(query?: PageQuery, options?: QueryOpts<Feed>) {
-  return useQuery<Feed, ApiError>({
-    queryKey: profileKeys.feed(query?.cursor),
-    queryFn: ({ signal }) => profileApi.feed(query, signal),
     ...options,
   });
 }

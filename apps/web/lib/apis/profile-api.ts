@@ -43,42 +43,6 @@ export type ListProfileUsers = {
   next_cursor?: string;
 };
 
-export type PostAuthorSummary = {
-  user_id: string;
-  username?: string;
-  name: string;
-  avatar_url?: string;
-};
-
-export type Post = {
-  id: string;
-  author: PostAuthorSummary;
-  title: string;
-  content: string;
-  cover_image?: string;
-  tags: string[];
-  like_count: number;
-  comment_count: number;
-  is_liked: boolean;
-  is_author: boolean;
-  published_at: string;
-  updated_at: string;
-};
-
-export type FeedItem = {
-  id: string;
-  event_type: string;
-  subject_type: string;
-  subject_id: string;
-  published_at: string;
-  post?: Post;
-};
-
-export type Feed = {
-  items: FeedItem[];
-  next_cursor?: string;
-};
-
 export type ProfileRecommendation = {
   users: ProfileUserSummary[];
 };
@@ -142,7 +106,4 @@ export const profileApi = {
       { signal },
     );
   },
-
-  feed: (query?: PageQuery, signal?: AbortSignal) =>
-    request<Feed>(`/api/feed${pageQS(query)}`, { signal }),
 };

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { HoverCard as RxHoverCard } from "radix-ui";
-import { LogOut, User as UserIcon, Loader2 } from "lucide-react";
+import { Bookmark, LogOut, User as UserIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { useMe } from "@/hooks/auth-hooks";
@@ -30,8 +30,7 @@ export function UserMenu({
   if (userLoading) return <div className={cn(SIZE_CLASSES[size])} />;
   if (!user) return null;
 
-  const displayName =
-    profile?.name?.trim() || user.name?.trim() || user.email;
+  const displayName = profile?.name?.trim() || user.name?.trim() || user.email;
   const username = profile?.username || null;
   const avatarUrl = profile?.avatar_url || user.avatar_url || "";
   const initial = pickInitial(username, displayName, user.email);
@@ -122,10 +121,7 @@ export function UserMenu({
               >
                 {displayName}
               </p>
-              <p
-                className="text-[11px] truncate"
-                style={{ color: "#8B9A8E" }}
-              >
+              <p className="text-[11px] truncate" style={{ color: "#8B9A8E" }}>
                 {username ? `@${username}` : user.email}
               </p>
             </div>
@@ -138,10 +134,16 @@ export function UserMenu({
           />
 
           {username && (
-            <MenuLink href={`/profile/${username}`} icon={<UserIcon className="size-4" />}>
+            <MenuLink
+              href={`/profile/${username}`}
+              icon={<UserIcon className="size-4" />}
+            >
               View profile
             </MenuLink>
           )}
+          <MenuLink href="/bookmarks" icon={<Bookmark className="size-4" />}>
+            Bookmarks
+          </MenuLink>
           <button
             type="button"
             onClick={signOut}

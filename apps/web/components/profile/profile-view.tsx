@@ -21,6 +21,7 @@ import {
 } from "@/hooks/profile-hooks";
 import { EditProfileDialog } from "./edit-profile-dialog";
 import { FollowersModal, type FollowersTab } from "./followers-modal";
+import { UserPosts } from "./user-posts";
 
 const MAX_TAGS = 20;
 const MAX_TAG_LEN = 32;
@@ -238,6 +239,8 @@ export function ProfileView({ username }: { username: string }) {
       </div>
 
       {profile.bio && <Bio text={profile.bio} />}
+
+      <UserPosts userId={profile.user_id} />
 
       {editOpen && <EditProfileDialog onClose={() => setEditOpen(false)} />}
       {followersTab && (
