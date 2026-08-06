@@ -14,6 +14,7 @@ type Post struct {
 	Content      string         `gorm:"column:content;not null;default:''"`
 	CoverImage   string         `gorm:"column:cover_image;not null;default:''"`
 	Tags         pq.StringArray `gorm:"column:tags;type:text[]"`
+	Status       string         `gorm:"column:status;not null;default:'published'"`
 	LikeCount    int            `gorm:"column:like_count;not null;default:0"`
 	CommentCount int            `gorm:"column:comment_count;not null;default:0"`
 	PublishedAt  time.Time      `gorm:"column:published_at;not null"`
@@ -46,6 +47,28 @@ type Comment struct {
 }
 
 func (Comment) TableName() string { return "post.comments" }
+
+type Bookmark struct {
+	UserID    uuid.UUID `gorm:"type:uuid;primaryKey;column:user_id"`
+	PostID    uuid.UUID `gorm:"type:uuid;primaryKey;column:post_id"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
+
+func (Bookmark) TableName() string { return "post.bookmarks" }
+
+const (
+	StatusDraft     = "draft"
+	StatusPublished = "published"
+	StatusArchived  = "archived"
+)
+
+func IsValidStatus(s string) bool {
+	switch s {
+	case StatusDraft, StatusPublished, StatusArchived:
+		return true
+	}
+	return false
+}
 
 const (
 	OpPostPublished = "POST_PUBLISHED"

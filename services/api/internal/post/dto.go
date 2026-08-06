@@ -7,6 +7,7 @@ type CreatePostPayload struct {
 	Content    string   `json:"content" binding:"required,max=20000"`
 	CoverImage string   `json:"cover_image" binding:"omitempty,max=1024,url"`
 	Tags       []string `json:"tags" binding:"omitempty,max=20,dive,max=32"`
+	Status     *string  `json:"status,omitempty" binding:"omitempty,oneof=draft published archived"`
 }
 
 type UpdatePostPayload struct {
@@ -14,6 +15,7 @@ type UpdatePostPayload struct {
 	Content    *string   `json:"content,omitempty" binding:"omitempty,max=20000"`
 	CoverImage *string   `json:"cover_image,omitempty" binding:"omitempty,max=1024,url"`
 	Tags       *[]string `json:"tags,omitempty" binding:"omitempty,max=20,dive,max=32"`
+	Status     *string   `json:"status,omitempty" binding:"omitempty,oneof=draft published archived"`
 }
 
 type PostResponse struct {
@@ -23,9 +25,11 @@ type PostResponse struct {
 	Content      string      `json:"content"`
 	CoverImage   string      `json:"cover_image,omitempty"`
 	Tags         []string    `json:"tags"`
+	Status       string      `json:"status"`
 	LikeCount    int         `json:"like_count"`
 	CommentCount int         `json:"comment_count"`
 	IsLiked      bool        `json:"is_liked"`
+	IsBookmarked bool        `json:"is_bookmarked"`
 	IsAuthor     bool        `json:"is_author"`
 	PublishedAt  time.Time   `json:"published_at"`
 	UpdatedAt    time.Time   `json:"updated_at"`

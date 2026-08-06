@@ -32,13 +32,18 @@ type IRepository interface {
 	SoftDeletePost(ctx context.Context, id uuid.UUID) error
 	FindPost(ctx context.Context, id uuid.UUID) (*Post, error)
 	FindPostsByIDs(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]Post, error)
-	ListPosts(ctx context.Context, authorID uuid.UUID, cursor *PostCursor, limit int) ([]Post, error)
+	ListPosts(ctx context.Context, filter ListPostsFilter, cursor *PostCursor, limit int) ([]Post, error)
 
 	InsertLike(ctx context.Context, postID, userID uuid.UUID) error
 	DeleteLike(ctx context.Context, postID, userID uuid.UUID) error
 	AreLiked(ctx context.Context, userID uuid.UUID, postIDs []uuid.UUID) (map[uuid.UUID]bool, error)
 	CountLikes(ctx context.Context, postID uuid.UUID) (int, error)
 	BumpLikeCount(ctx context.Context, postID uuid.UUID, delta int) error
+
+	InsertBookmark(ctx context.Context, userID, postID uuid.UUID) error
+	DeleteBookmark(ctx context.Context, userID, postID uuid.UUID) error
+	AreBookmarked(ctx context.Context, userID uuid.UUID, postIDs []uuid.UUID) (map[uuid.UUID]bool, error)
+	ListBookmarks(ctx context.Context, userID uuid.UUID, cursor *BookmarkCursor, limit int) ([]Bookmark, error)
 
 	CreateComment(ctx context.Context, c *Comment) error
 	UpdateCommentContent(ctx context.Context, commentID, authorID uuid.UUID, content string) (*Comment, error)
@@ -70,6 +75,16 @@ type ReplyCursor struct {
 	ID        uuid.UUID
 }
 
+type BookmarkCursor struct {
+	CreatedAt time.Time
+	PostID    uuid.UUID
+}
+
+type ListPostsFilter struct {
+	AuthorID uuid.UUID
+	Statuses []string
+}
+
 type repository struct {
 	db *gorm.DB
 }
@@ -95,12 +110,18 @@ func (r *repository) CreatePost(ctx context.Context, p *Post) error {
 	if p.Tags == nil {
 		p.Tags = pq.StringArray{}
 	}
+	if p.Status == "" {
+		p.Status = StatusPublished
+	}
 	return r.db.WithContext(ctx).Create(p).Error
 }
 
 func (r *repository) UpdatePost(ctx context.Context, p *Post) error {
 	if p.Tags == nil {
 		p.Tags = pq.StringArray{}
+	}
+	if p.Status == "" {
+		p.Status = StatusPublished
 	}
 	p.UpdatedAt = time.Now()
 	res := r.db.WithContext(ctx).Model(&Post{}).
@@ -110,6 +131,7 @@ func (r *repository) UpdatePost(ctx context.Context, p *Post) error {
 			"content":     p.Content,
 			"cover_image": p.CoverImage,
 			"tags":        p.Tags,
+			"status":      p.Status,
 			"updated_at":  p.UpdatedAt,
 		})
 	if res.Error != nil {
@@ -166,13 +188,16 @@ func (r *repository) FindPostsByIDs(ctx context.Context, ids []uuid.UUID) (map[u
 	return out, nil
 }
 
-func (r *repository) ListPosts(ctx context.Context, authorID uuid.UUID, cursor *PostCursor, limit int) ([]Post, error) {
+func (r *repository) ListPosts(ctx context.Context, filter ListPostsFilter, cursor *PostCursor, limit int) ([]Post, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
 	q := r.db.WithContext(ctx).Model(&Post{}).Where("deleted_at IS NULL")
-	if authorID != uuid.Nil {
-		q = q.Where("author_id = ?", authorID)
+	if filter.AuthorID != uuid.Nil {
+		q = q.Where("author_id = ?", filter.AuthorID)
+	}
+	if len(filter.Statuses) > 0 {
+		q = q.Where("status IN ?", filter.Statuses)
 	}
 	if cursor != nil {
 		q = q.Where("(published_at, id) < (?, ?)", cursor.PublishedAt, cursor.ID)
@@ -242,6 +267,51 @@ func (r *repository) BumpLikeCount(ctx context.Context, postID uuid.UUID, delta 
 		SET like_count = GREATEST(like_count + ?, 0)
 		WHERE id = ? AND deleted_at IS NULL
 	`, delta, postID).Error
+}
+
+func (r *repository) InsertBookmark(ctx context.Context, userID, postID uuid.UUID) error {
+	return r.db.WithContext(ctx).Exec(`
+		INSERT INTO post.bookmarks (user_id, post_id, created_at)
+		VALUES (?, ?, now())
+		ON CONFLICT DO NOTHING
+	`, userID, postID).Error
+}
+
+func (r *repository) DeleteBookmark(ctx context.Context, userID, postID uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Where("user_id = ? AND post_id = ?", userID, postID).
+		Delete(&Bookmark{}).Error
+}
+
+func (r *repository) AreBookmarked(ctx context.Context, userID uuid.UUID, postIDs []uuid.UUID) (map[uuid.UUID]bool, error) {
+	out := make(map[uuid.UUID]bool, len(postIDs))
+	if userID == uuid.Nil || len(postIDs) == 0 {
+		return out, nil
+	}
+	var rows []Bookmark
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND post_id IN ?", userID, postIDs).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, b := range rows {
+		out[b.PostID] = true
+	}
+	return out, nil
+}
+
+func (r *repository) ListBookmarks(ctx context.Context, userID uuid.UUID, cursor *BookmarkCursor, limit int) ([]Bookmark, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	q := r.db.WithContext(ctx).Model(&Bookmark{}).Where("user_id = ?", userID)
+	if cursor != nil {
+		q = q.Where("(created_at, post_id) < (?, ?)", cursor.CreatedAt, cursor.PostID)
+	}
+	var rows []Bookmark
+	err := q.Order("created_at DESC, post_id DESC").Limit(limit).Find(&rows).Error
+	return rows, err
 }
 
 func (r *repository) CreateComment(ctx context.Context, c *Comment) error {

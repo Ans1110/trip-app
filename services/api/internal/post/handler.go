@@ -23,6 +23,10 @@ type IHandler interface {
 	LikePost(c *gin.Context)
 	UnlikePost(c *gin.Context)
 
+	BookmarkPost(c *gin.Context)
+	UnbookmarkPost(c *gin.Context)
+	ListBookmarks(c *gin.Context)
+
 	CreateComment(c *gin.Context)
 	UpdateComment(c *gin.Context)
 	DeleteComment(c *gin.Context)
@@ -57,12 +61,16 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 		posts.POST("/:id/likes", h.LikePost)
 		posts.DELETE("/:id/likes", h.UnlikePost)
 
+		posts.POST("/:id/bookmarks", h.BookmarkPost)
+		posts.DELETE("/:id/bookmarks", h.UnbookmarkPost)
+
 		posts.GET("/:id/comments", h.ListComments)
 		posts.POST("/:id/comments", h.CreateComment)
 		posts.PATCH("/:id/comments/:comment_id", h.UpdateComment)
 		posts.DELETE("/:id/comments/:comment_id", h.DeleteComment)
 		posts.GET("/:id/comments/:comment_id/replies", h.ListReplies)
 	}
+	protected.GET("/bookmarks", h.ListBookmarks)
 }
 
 // CreatePost godoc
@@ -197,7 +205,12 @@ func (h *Handler) ListPosts(c *gin.Context) {
 		response.BadRequest(c, "invalid cursor")
 		return
 	}
-	out, err := h.svc.ListPosts(c.Request.Context(), viewerID, authorID, cursor, parseLimit(c))
+	statusFilter := c.Query("status")
+	if statusFilter != "" && !IsValidStatus(statusFilter) {
+		response.BadRequest(c, "invalid status")
+		return
+	}
+	out, err := h.svc.ListPosts(c.Request.Context(), viewerID, authorID, statusFilter, cursor, parseLimit(c))
 	if err != nil {
 		h.respondServiceError(c, err)
 		return
@@ -247,6 +260,74 @@ func (h *Handler) UnlikePost(c *gin.Context) {
 		return
 	}
 	response.OK(c, nil)
+}
+
+// BookmarkPost godoc
+// @Summary      Bookmark a post for later
+// @Tags         posts
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      string  true  "post id"
+// @Success      200  {object}  response.Response
+// @Failure      404  {object}  response.Response
+// @Router       /posts/{id}/bookmarks [post]
+func (h *Handler) BookmarkPost(c *gin.Context) {
+	uid, postID, ok := h.requireCallerAndPost(c)
+	if !ok {
+		return
+	}
+	if err := h.svc.BookmarkPost(c.Request.Context(), uid, postID); err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
+// UnbookmarkPost godoc
+// @Summary      Remove a bookmark
+// @Tags         posts
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      string  true  "post id"
+// @Success      200  {object}  response.Response
+// @Router       /posts/{id}/bookmarks [delete]
+func (h *Handler) UnbookmarkPost(c *gin.Context) {
+	uid, postID, ok := h.requireCallerAndPost(c)
+	if !ok {
+		return
+	}
+	if err := h.svc.UnbookmarkPost(c.Request.Context(), uid, postID); err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
+// ListBookmarks godoc
+// @Summary      List the caller's bookmarked posts (keyset paginated)
+// @Tags         posts
+// @Security     BearerAuth
+// @Produce      json
+// @Param        cursor  query     string  false  "opaque cursor from previous page"
+// @Param        limit   query     int     false  "page size (default 20, max 50)"
+// @Success      200     {object}  response.Response{data=ListPostsResponse}
+// @Router       /bookmarks [get]
+func (h *Handler) ListBookmarks(c *gin.Context) {
+	uid, ok := requireUser(c)
+	if !ok {
+		return
+	}
+	cursor, err := DecodeBookmarkCursor(c.Query("cursor"))
+	if err != nil {
+		response.BadRequest(c, "invalid cursor")
+		return
+	}
+	out, err := h.svc.ListBookmarks(c.Request.Context(), uid, cursor, parseLimit(c))
+	if err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, out)
 }
 
 // CreateComment godoc

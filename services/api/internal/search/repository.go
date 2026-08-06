@@ -32,15 +32,37 @@ func (r *repository) SearchPosts(ctx context.Context, query string, cursor *Curs
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
+
+	like := "%" + escapeLike(query) + "%"
 	q := r.db.WithContext(ctx).
-		Table("post.posts").
-		Select("id, published_at").
-		Where("deleted_at IS NULL").
-		Where("search_vector @@ plainto_tsquery('simple', ?)", query)
+		Table("post.posts AS p").
+		Select("p.id, p.published_at").
+		Where("p.deleted_at IS NULL").
+		Where(`(
+			p.search_vector @@ plainto_tsquery('simple', ?)
+			OR EXISTS (
+				SELECT 1 FROM auth.users u
+				LEFT JOIN profile.profiles pr ON pr.user_id = u.id
+				WHERE u.id = p.author_id
+				  AND (u.name ILIKE ? ESCAPE '\' OR pr.username::text ILIKE ? ESCAPE '\')
+			)
+		)`, query, like, like)
 	if cursor != nil {
-		q = q.Where("(published_at, id) < (?, ?)", cursor.PublishedAt, cursor.ID)
+		q = q.Where("(p.published_at, p.id) < (?, ?)", cursor.PublishedAt, cursor.ID)
 	}
 	var rows []PostHit
-	err := q.Order("published_at DESC, id DESC").Limit(limit).Find(&rows).Error
+	err := q.Order("p.published_at DESC, p.id DESC").Limit(limit).Find(&rows).Error
 	return rows, err
+}
+
+func escapeLike(s string) string {
+	out := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '\\' || c == '%' || c == '_' {
+			out = append(out, '\\')
+		}
+		out = append(out, c)
+	}
+	return string(out)
 }

@@ -19,10 +19,14 @@ type IService interface {
 	DeletePost(ctx context.Context, authorID, postID uuid.UUID) error
 	GetPost(ctx context.Context, viewerID, postID uuid.UUID) (*PostResponse, error)
 	GetPostsByIDs(ctx context.Context, viewerID uuid.UUID, ids []uuid.UUID) ([]PostResponse, error)
-	ListPosts(ctx context.Context, viewerID, authorID uuid.UUID, cursor *PostCursor, limit int) (ListPostsResponse, error)
+	ListPosts(ctx context.Context, viewerID, authorID uuid.UUID, statusFilter string, cursor *PostCursor, limit int) (ListPostsResponse, error)
 
 	LikePost(ctx context.Context, userID, postID uuid.UUID) error
 	UnlikePost(ctx context.Context, userID, postID uuid.UUID) error
+
+	BookmarkPost(ctx context.Context, userID, postID uuid.UUID) error
+	UnbookmarkPost(ctx context.Context, userID, postID uuid.UUID) error
+	ListBookmarks(ctx context.Context, userID uuid.UUID, cursor *BookmarkCursor, limit int) (ListPostsResponse, error)
 
 	CreateComment(ctx context.Context, authorID, postID uuid.UUID, payload CreateCommentPayload) (*CommentResponse, error)
 	UpdateComment(ctx context.Context, authorID, commentID uuid.UUID, payload UpdateCommentPayload) (*CommentResponse, error)
@@ -63,6 +67,10 @@ func NewService(cfg ServiceConfig) IService {
 }
 
 func (s *service) CreatePost(ctx context.Context, authorID uuid.UUID, payload CreatePostPayload) (*PostResponse, error) {
+	status := StatusPublished
+	if payload.Status != nil && IsValidStatus(*payload.Status) {
+		status = *payload.Status
+	}
 	now := time.Now()
 	p := &Post{
 		ID:          uuid.New(),
@@ -71,11 +79,15 @@ func (s *service) CreatePost(ctx context.Context, authorID uuid.UUID, payload Cr
 		Content:     payload.Content,
 		CoverImage:  payload.CoverImage,
 		Tags:        normalizeTags(payload.Tags),
+		Status:      status,
 		PublishedAt: now,
 	}
 	err := s.repo.WithTx(ctx, func(tx IRepository) error {
 		if err := tx.CreatePost(ctx, p); err != nil {
 			return err
+		}
+		if p.Status != StatusPublished {
+			return nil
 		}
 		row, err := BuildPostEvent(OpPostPublished, p.ID, authorID, p.PublishedAt)
 		if err != nil {
@@ -112,11 +124,28 @@ func (s *service) UpdatePost(ctx context.Context, authorID, postID uuid.UUID, pa
 	if payload.Tags != nil {
 		existing.Tags = normalizeTags(*payload.Tags)
 	}
+	prevStatus := existing.Status
+	if payload.Status != nil && IsValidStatus(*payload.Status) {
+		existing.Status = *payload.Status
+	}
 	err = s.repo.WithTx(ctx, func(tx IRepository) error {
 		if err := tx.UpdatePost(ctx, existing); err != nil {
 			return err
 		}
-		row, err := BuildPostEvent(OpPostUpdated, existing.ID, authorID, existing.PublishedAt)
+
+		var op string
+		switch {
+		case prevStatus != StatusPublished && existing.Status == StatusPublished:
+			op = OpPostPublished
+		case prevStatus == StatusPublished && existing.Status != StatusPublished:
+			op = OpPostDeleted
+		case existing.Status == StatusPublished:
+			op = OpPostUpdated
+		}
+		if op == "" {
+			return nil
+		}
+		row, err := BuildPostEvent(op, existing.ID, authorID, existing.PublishedAt)
 		if err != nil {
 			return err
 		}
@@ -171,6 +200,9 @@ func (s *service) GetPost(ctx context.Context, viewerID, postID uuid.UUID) (*Pos
 	if p == nil {
 		return nil, ErrPostNotFound
 	}
+	if p.Status != StatusPublished && p.AuthorID != viewerID {
+		return nil, ErrPostNotFound
+	}
 	return s.hydratePost(ctx, viewerID, p)
 }
 
@@ -194,12 +226,18 @@ func (s *service) GetPostsByIDs(ctx context.Context, viewerID uuid.UUID, ids []u
 		if !ok {
 			continue
 		}
+		if p.Status != StatusPublished && p.AuthorID != viewerID {
+			continue
+		}
 		rows = append(rows, p)
 		postIDs = append(postIDs, p.ID)
 		if _, dup := seen[p.AuthorID]; !dup {
 			seen[p.AuthorID] = struct{}{}
 			authorIDs = append(authorIDs, p.AuthorID)
 		}
+	}
+	if len(rows) == 0 {
+		return []PostResponse{}, nil
 	}
 	users, err := s.repo.FindUsersByIDs(ctx, authorIDs)
 	if err != nil {
@@ -210,16 +248,29 @@ func (s *service) GetPostsByIDs(ctx context.Context, viewerID uuid.UUID, ids []u
 	if err != nil {
 		return nil, err
 	}
+	bookmarked, err := s.repo.AreBookmarked(ctx, viewerID, postIDs)
+	if err != nil {
+		return nil, err
+	}
 	counts := s.likeCache.getMany(ctx, rows)
 	out := make([]PostResponse, 0, len(rows))
 	for _, p := range rows {
-		out = append(out, buildPostResponse(p, users[p.AuthorID], profiles[p.AuthorID], liked[p.ID], counts[p.ID], p.AuthorID == viewerID))
+		out = append(out, buildPostResponse(p, users[p.AuthorID], profiles[p.AuthorID], liked[p.ID], bookmarked[p.ID], counts[p.ID], p.AuthorID == viewerID))
 	}
 	return out, nil
 }
 
-func (s *service) ListPosts(ctx context.Context, viewerID, authorID uuid.UUID, cursor *PostCursor, limit int) (ListPostsResponse, error) {
-	rows, err := s.repo.ListPosts(ctx, authorID, cursor, limit)
+func (s *service) ListPosts(ctx context.Context, viewerID, authorID uuid.UUID, statusFilter string, cursor *PostCursor, limit int) (ListPostsResponse, error) {
+	filter := ListPostsFilter{AuthorID: authorID}
+	switch {
+	case statusFilter == "" || statusFilter == StatusPublished:
+		filter.Statuses = []string{StatusPublished}
+	case authorID != uuid.Nil && authorID == viewerID && IsValidStatus(statusFilter):
+		filter.Statuses = []string{statusFilter}
+	default:
+		filter.Statuses = []string{StatusPublished}
+	}
+	rows, err := s.repo.ListPosts(ctx, filter, cursor, limit)
 	if err != nil {
 		return ListPostsResponse{}, err
 	}
@@ -245,10 +296,14 @@ func (s *service) ListPosts(ctx context.Context, viewerID, authorID uuid.UUID, c
 	if err != nil {
 		return ListPostsResponse{}, err
 	}
+	bookmarked, err := s.repo.AreBookmarked(ctx, viewerID, postIDs)
+	if err != nil {
+		return ListPostsResponse{}, err
+	}
 	counts := s.likeCache.getMany(ctx, rows)
 	out := make([]PostResponse, 0, len(rows))
 	for _, p := range rows {
-		out = append(out, buildPostResponse(p, users[p.AuthorID], profiles[p.AuthorID], liked[p.ID], counts[p.ID], p.AuthorID == viewerID))
+		out = append(out, buildPostResponse(p, users[p.AuthorID], profiles[p.AuthorID], liked[p.ID], bookmarked[p.ID], counts[p.ID], p.AuthorID == viewerID))
 	}
 	last := rows[len(rows)-1]
 	return ListPostsResponse{
@@ -290,6 +345,47 @@ func (s *service) UnlikePost(ctx context.Context, userID, postID uuid.UUID) erro
 	}
 	s.likeCache.decr(ctx, postID)
 	return nil
+}
+
+func (s *service) BookmarkPost(ctx context.Context, userID, postID uuid.UUID) error {
+	p, err := s.repo.FindPost(ctx, postID)
+	if err != nil {
+		return err
+	}
+	if p == nil {
+		return ErrPostNotFound
+	}
+	if p.Status != StatusPublished && p.AuthorID != userID {
+		return ErrPostNotFound
+	}
+	return s.repo.InsertBookmark(ctx, userID, postID)
+}
+
+func (s *service) UnbookmarkPost(ctx context.Context, userID, postID uuid.UUID) error {
+	return s.repo.DeleteBookmark(ctx, userID, postID)
+}
+
+func (s *service) ListBookmarks(ctx context.Context, userID uuid.UUID, cursor *BookmarkCursor, limit int) (ListPostsResponse, error) {
+	rows, err := s.repo.ListBookmarks(ctx, userID, cursor, limit)
+	if err != nil {
+		return ListPostsResponse{}, err
+	}
+	if len(rows) == 0 {
+		return ListPostsResponse{Posts: []PostResponse{}}, nil
+	}
+	ids := make([]uuid.UUID, 0, len(rows))
+	for _, b := range rows {
+		ids = append(ids, b.PostID)
+	}
+	hydrated, err := s.GetPostsByIDs(ctx, userID, ids)
+	if err != nil {
+		return ListPostsResponse{}, err
+	}
+	last := rows[len(rows)-1]
+	return ListPostsResponse{
+		Posts:      hydrated,
+		NextCursor: encodeBookmarkCursor(last.CreatedAt, last.PostID),
+	}, nil
 }
 
 func (s *service) CreateComment(ctx context.Context, authorID, postID uuid.UUID, payload CreateCommentPayload) (*CommentResponse, error) {
@@ -484,8 +580,12 @@ func (s *service) hydratePost(ctx context.Context, viewerID uuid.UUID, p *Post) 
 	if err != nil {
 		return nil, err
 	}
+	bookmarked, err := s.repo.AreBookmarked(ctx, viewerID, []uuid.UUID{p.ID})
+	if err != nil {
+		return nil, err
+	}
 	counts := s.likeCache.getMany(ctx, []Post{*p})
-	resp := buildPostResponse(*p, users[p.AuthorID], profiles[p.AuthorID], liked[p.ID], counts[p.ID], p.AuthorID == viewerID)
+	resp := buildPostResponse(*p, users[p.AuthorID], profiles[p.AuthorID], liked[p.ID], bookmarked[p.ID], counts[p.ID], p.AuthorID == viewerID)
 	return &resp, nil
 }
 
@@ -499,10 +599,14 @@ func (s *service) hydrateComment(ctx context.Context, viewerID uuid.UUID, c *Com
 	return &resp, nil
 }
 
-func buildPostResponse(p Post, u auth.User, prof profileHit, liked bool, likeCount int, isAuthor bool) PostResponse {
+func buildPostResponse(p Post, u auth.User, prof profileHit, liked, bookmarked bool, likeCount int, isAuthor bool) PostResponse {
 	tags := []string(p.Tags)
 	if tags == nil {
 		tags = []string{}
+	}
+	status := p.Status
+	if status == "" {
+		status = StatusPublished
 	}
 	return PostResponse{
 		ID:           p.ID.String(),
@@ -511,9 +615,11 @@ func buildPostResponse(p Post, u auth.User, prof profileHit, liked bool, likeCou
 		Content:      p.Content,
 		CoverImage:   p.CoverImage,
 		Tags:         tags,
+		Status:       status,
 		LikeCount:    likeCount,
 		CommentCount: p.CommentCount,
 		IsLiked:      liked,
+		IsBookmarked: bookmarked,
 		IsAuthor:     isAuthor,
 		PublishedAt:  p.PublishedAt,
 		UpdatedAt:    p.UpdatedAt,
@@ -627,6 +733,18 @@ func DecodeReplyCursor(token string) (*ReplyCursor, error) {
 		return nil, err
 	}
 	return &ReplyCursor{CreatedAt: *t, ID: id}, nil
+}
+
+func DecodeBookmarkCursor(token string) (*BookmarkCursor, error) {
+	t, id, err := decodeCursor(token)
+	if err != nil || t == nil {
+		return nil, err
+	}
+	return &BookmarkCursor{CreatedAt: *t, PostID: id}, nil
+}
+
+func encodeBookmarkCursor(t time.Time, postID uuid.UUID) string {
+	return encodeCursor(t, postID)
 }
 
 const (
