@@ -23,6 +23,7 @@ import {
   toPostView,
 } from "../contracts/frontend";
 import {
+  UpstreamBookmarksQuery,
   UpstreamCommentResponse,
   UpstreamCreateCommentPayload,
   UpstreamCreatePostPayload,
@@ -41,6 +42,7 @@ export type CreateCommentInput = UpstreamCreateCommentPayload;
 export type UpdateCommentInput = UpstreamUpdateCommentPayload;
 export type ListPostsQueryInput = UpstreamListPostsQuery;
 export type PostPageQueryInput = { cursor?: string; limit?: number };
+export type BookmarksQueryInput = UpstreamBookmarksQuery;
 
 export type {
   CommentView,
@@ -132,6 +134,38 @@ export class PostClient {
     return this.callProtected<null>(auth, (opts) =>
       this.http.delete<null>(`/posts/${encodeURIComponent(id)}/likes`, opts),
     );
+  }
+
+  async bookmarkPost(id: string, auth: AuthCtx): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.post<null>(
+        `/posts/${encodeURIComponent(id)}/bookmarks`,
+        null,
+        opts,
+      ),
+    );
+  }
+
+  async unbookmarkPost(id: string, auth: AuthCtx): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.delete<null>(
+        `/posts/${encodeURIComponent(id)}/bookmarks`,
+        opts,
+      ),
+    );
+  }
+
+  async listBookmarks(
+    auth: AuthCtx,
+    query: BookmarksQueryInput = {},
+  ): Promise<ApiResult<ListPostsView>> {
+    const qs = buildPageQuery(query);
+    const path = qs ? `/bookmarks?${qs}` : "/bookmarks";
+    const res = await this.callProtected<UpstreamListPostsResponse>(
+      auth,
+      (opts) => this.http.get<UpstreamListPostsResponse>(path, opts),
+    );
+    return mapData(res, toListPostsView);
   }
 
   async listComments(
@@ -250,6 +284,7 @@ export class PostClient {
 const buildListPostsQuery = (q: ListPostsQueryInput): string => {
   const qs = new URLSearchParams();
   if (q.author_id) qs.set("author_id", q.author_id);
+  if (q.status) qs.set("status", q.status);
   if (q.cursor) qs.set("cursor", q.cursor);
   if (q.limit && q.limit > 0) qs.set("limit", String(q.limit));
   return qs.toString();

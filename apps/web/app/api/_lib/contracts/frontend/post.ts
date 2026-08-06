@@ -15,6 +15,8 @@ export type PostAuthorSummaryView = {
   avatar_url?: string;
 };
 
+export type PostStatusView = "draft" | "published" | "archived";
+
 export type PostView = {
   id: string;
   author: PostAuthorSummaryView;
@@ -22,9 +24,11 @@ export type PostView = {
   content: string;
   cover_image?: string;
   tags: string[];
+  status: PostStatusView;
   like_count: number;
   comment_count: number;
   is_liked: boolean;
+  is_bookmarked: boolean;
   is_author: boolean;
   published_at: string;
   updated_at: string;
@@ -75,9 +79,11 @@ export const toPostView = (p: UpstreamPostResponse): PostView => ({
   content: p.content,
   cover_image: p.cover_image,
   tags: p.tags ?? [],
+  status: p.status ?? "published",
   like_count: p.like_count ?? 0,
   comment_count: p.comment_count ?? 0,
   is_liked: p.is_liked,
+  is_bookmarked: p.is_bookmarked ?? false,
   is_author: p.is_author,
   published_at: p.published_at,
   updated_at: p.updated_at,

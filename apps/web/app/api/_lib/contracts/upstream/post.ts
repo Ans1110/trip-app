@@ -7,6 +7,8 @@ export type UpstreamPostAuthorSummary = {
   avatar_url?: string;
 };
 
+export type UpstreamPostStatus = "draft" | "published" | "archived";
+
 export type UpstreamPostResponse = {
   id: string;
   author: UpstreamPostAuthorSummary;
@@ -14,9 +16,11 @@ export type UpstreamPostResponse = {
   content: string;
   cover_image?: string;
   tags: string[];
+  status: UpstreamPostStatus;
   like_count: number;
   comment_count: number;
   is_liked: boolean;
+  is_bookmarked: boolean;
   is_author: boolean;
   published_at: string;
   updated_at: string;
@@ -32,6 +36,7 @@ export type UpstreamCreatePostPayload = {
   content: string;
   cover_image?: string;
   tags?: string[];
+  status?: UpstreamPostStatus;
 };
 
 export type UpstreamUpdatePostPayload = {
@@ -39,6 +44,7 @@ export type UpstreamUpdatePostPayload = {
   content?: string;
   cover_image?: string;
   tags?: string[];
+  status?: UpstreamPostStatus;
 };
 
 export type UpstreamCommentResponse = {
@@ -73,6 +79,12 @@ export type UpstreamUpdateCommentPayload = { content: string };
 
 export type UpstreamListPostsQuery = {
   author_id?: string;
+  status?: UpstreamPostStatus;
+  cursor?: string;
+  limit?: number;
+};
+
+export type UpstreamBookmarksQuery = {
   cursor?: string;
   limit?: number;
 };

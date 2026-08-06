@@ -88,6 +88,10 @@ const matchPost = (slug: string[]): Dispatch | null => {
   if (slug.length === 2 && slug[1] === "likes") {
     return (_req, auth) => postClient.likePost(slug[0], auth);
   }
+  // POST /posts/:id/bookmarks
+  if (slug.length === 2 && slug[1] === "bookmarks") {
+    return (_req, auth) => postClient.bookmarkPost(slug[0], auth);
+  }
   // POST /posts/:id/comments
   if (slug.length === 2 && slug[1] === "comments") {
     return async (req, auth) => {
@@ -141,6 +145,10 @@ const matchDelete = (slug: string[]): Dispatch | null => {
   if (slug.length === 2 && slug[1] === "likes") {
     return (_req, auth) => postClient.unlikePost(slug[0], auth);
   }
+  // DELETE /posts/:id/bookmarks
+  if (slug.length === 2 && slug[1] === "bookmarks") {
+    return (_req, auth) => postClient.unbookmarkPost(slug[0], auth);
+  }
   // DELETE /posts/:id/comments/:comment_id
   if (slug.length === 3 && slug[1] === "comments") {
     return (_req, auth) => postClient.deleteComment(slug[0], slug[2], auth);
@@ -153,6 +161,10 @@ const readListPostsQuery = (req: NextRequest): ListPostsQueryInput => {
   const out: ListPostsQueryInput = {};
   const author = url.searchParams.get("author_id");
   if (author) out.author_id = author;
+  const status = url.searchParams.get("status");
+  if (status === "draft" || status === "published" || status === "archived") {
+    out.status = status;
+  }
   const cursor = url.searchParams.get("cursor");
   if (cursor) out.cursor = cursor;
   const limitParam = url.searchParams.get("limit");
