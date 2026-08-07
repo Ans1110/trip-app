@@ -24,7 +24,6 @@ type IHandler interface {
 	Login(c *gin.Context)
 	OAuthGoogle(c *gin.Context)
 	OAuthGithub(c *gin.Context)
-	OAuthFacebook(c *gin.Context)
 	Refresh(c *gin.Context)
 	VerifyEmail(c *gin.Context)
 	ResendVerification(c *gin.Context)
@@ -70,7 +69,6 @@ func (h *Handler) RegisterRoutes(public *gin.RouterGroup, protected *gin.RouterG
 		pub.POST("/login", h.Login)
 		pub.POST("/oauth/google", h.OAuthGoogle)
 		pub.POST("/oauth/github", h.OAuthGithub)
-		pub.POST("/oauth/facebook", h.OAuthFacebook)
 		pub.POST("/refresh", h.Refresh)
 		pub.POST("/verify-email", h.VerifyEmail)
 		pub.POST("/resend-verification", h.ResendVerification)
@@ -143,30 +141,6 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 	resp, err := h.svc.Login(c.Request.Context(), req, deviceFromCtx(c))
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	h.issueSession(c, resp, http.StatusOK)
-}
-
-// OAuthFacebook godoc
-// @Summary      Sign in with Facebook
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        body  body      FacebookOAuthRequest  true  "Facebook access token"
-// @Success      200   {object}  response.Response{data=SessionResponse}
-// @Failure      400   {object}  response.Response
-// @Failure      401   {object}  response.Response
-// @Router       /auth/oauth/facebook [post]
-func (h *Handler) OAuthFacebook(c *gin.Context) {
-	var req FacebookOAuthRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-	resp, err := h.svc.OAuthFacebook(c.Request.Context(), req.AccessToken, deviceFromCtx(c))
 	if err != nil {
 		h.respondServiceError(c, err)
 		return

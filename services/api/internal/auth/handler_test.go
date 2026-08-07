@@ -34,7 +34,6 @@ type svcMock struct {
 	oauthLogin         func(context.Context, auth.OAuthIdentity, auth.DeviceInfo) (*auth.SessionResponse, error)
 	oauthGoogle        func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error)
 	oauthGithub        func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error)
-	oauthFacebook      func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error)
 	refresh            func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error)
 	logout             func(context.Context, string) error
 	logoutAll          func(context.Context, uuid.UUID) error
@@ -83,12 +82,6 @@ func (s *svcMock) OAuthGoogle(c context.Context, tok string, d auth.DeviceInfo) 
 func (s *svcMock) OAuthGithub(c context.Context, code string, d auth.DeviceInfo) (*auth.SessionResponse, error) {
 	if s.oauthGithub != nil {
 		return s.oauthGithub(c, code, d)
-	}
-	return &auth.SessionResponse{AccessToken: "at"}, nil
-}
-func (s *svcMock) OAuthFacebook(c context.Context, tok string, d auth.DeviceInfo) (*auth.SessionResponse, error) {
-	if s.oauthFacebook != nil {
-		return s.oauthFacebook(c, tok, d)
 	}
 	return &auth.SessionResponse{AccessToken: "at"}, nil
 }
@@ -369,12 +362,12 @@ func TestHandlerOAuthProviders(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("facebook_oauth_not_configured_returns_503", func(t *testing.T) {
-		svc := &svcMock{oauthFacebook: func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error) {
+	t.Run("github_oauth_not_configured_returns_503", func(t *testing.T) {
+		svc := &svcMock{oauthGithub: func(context.Context, string, auth.DeviceInfo) (*auth.SessionResponse, error) {
 			return nil, auth.ErrOAuthNotConfigured
 		}}
-		w := doJSON(t, newRouter(svc, nil), http.MethodPost, "/api/v1/auth/oauth/facebook",
-			auth.FacebookOAuthRequest{AccessToken: "tok"})
+		w := doJSON(t, newRouter(svc, nil), http.MethodPost, "/api/v1/auth/oauth/github",
+			auth.GithubOAuthRequest{Code: "code"})
 		assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 	})
 }

@@ -58,11 +58,12 @@ type DeviceInfo struct {
 }
 
 type OAuthIdentity struct {
-	Provider   string
-	ProviderID string
-	Email      string
-	Name       string
-	AvatarURL  string
+	Provider      string
+	ProviderID    string
+	Email         string
+	EmailVerified bool
+	Name          string
+	AvatarURL     string
 }
 
 type Mailer interface {
@@ -73,7 +74,6 @@ type Mailer interface {
 type OAuthVerifier interface {
 	VerifyGoogle(ctx context.Context, idToken string) (*OAuthIdentity, error)
 	VerifyGithub(ctx context.Context, code string) (*OAuthIdentity, error)
-	VerifyFacebook(ctx context.Context, accessToken string) (*OAuthIdentity, error)
 }
 
 type IService interface {
@@ -82,7 +82,6 @@ type IService interface {
 	OAuthLogin(ctx context.Context, identity OAuthIdentity, device DeviceInfo) (*SessionResponse, error)
 	OAuthGoogle(ctx context.Context, idToken string, device DeviceInfo) (*SessionResponse, error)
 	OAuthGithub(ctx context.Context, code string, device DeviceInfo) (*SessionResponse, error)
-	OAuthFacebook(ctx context.Context, accessToken string, device DeviceInfo) (*SessionResponse, error)
 	Refresh(ctx context.Context, refreshToken string, device DeviceInfo) (*SessionResponse, error)
 	Logout(ctx context.Context, refreshToken string) error
 	LogoutAll(ctx context.Context, userID uuid.UUID) error
@@ -379,6 +378,9 @@ func (s *Service) OAuthLogin(ctx context.Context, identity OAuthIdentity, device
 	if err != nil {
 		return nil, err
 	}
+	if !user.IsVerified {
+		resp.RequiresVerification = true
+	}
 	s.logger.Info("user logged in via oauth",
 		zap.String("user_id", user.ID.String()),
 		zap.String("provider", identity.Provider),
@@ -401,17 +403,6 @@ func (s *Service) OAuthLogin(ctx context.Context, identity OAuthIdentity, device
 		"user_agent":  device.UserAgent,
 	})
 	return resp, nil
-}
-
-func (s *Service) OAuthFacebook(ctx context.Context, accessToken string, device DeviceInfo) (*SessionResponse, error) {
-	if s.oauth == nil {
-		return nil, ErrOAuthNotConfigured
-	}
-	id, err := s.oauth.VerifyFacebook(ctx, accessToken)
-	if err != nil {
-		return nil, err
-	}
-	return s.OAuthLogin(ctx, *id, device)
 }
 
 func (s *Service) OAuthGithub(ctx context.Context, code string, device DeviceInfo) (*SessionResponse, error) {
@@ -1188,8 +1179,9 @@ func (s *Service) resolveOAuthUser(ctx context.Context, identity OAuthIdentity) 
 	}
 
 	var (
-		user    *User
-		created bool
+		user              *User
+		created           bool
+		verificationToken string
 	)
 	err = s.repo.WithTx(ctx, func(tx IRepository) error {
 		u, isNew, err := s.findOrCreateUserByEmailTx(ctx, tx, identity)
@@ -1198,15 +1190,28 @@ func (s *Service) resolveOAuthUser(ctx context.Context, identity OAuthIdentity) 
 		}
 		user = u
 		created = isNew
-		return tx.CreateProvider(ctx, &Provider{
+		if err := tx.CreateProvider(ctx, &Provider{
 			ID:         uuid.New(),
 			UserID:     u.ID,
 			Provider:   identity.Provider,
 			ProviderID: identity.ProviderID,
-		})
+		}); err != nil {
+			return err
+		}
+		if isNew && !u.IsVerified && u.Email != "" {
+			raw, err := s.createEmailVerificationToken(ctx, tx, u.ID)
+			if err != nil {
+				return err
+			}
+			verificationToken = raw
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, false, err
+	}
+	if verificationToken != "" {
+		go s.sendVerificationEmail(context.WithoutCancel(ctx), user, verificationToken)
 	}
 	return user, created, nil
 }
@@ -1228,7 +1233,7 @@ func (s *Service) findOrCreateUserByEmailTx(ctx context.Context, tx IRepository,
 		Name:       strings.TrimSpace(identity.Name),
 		AvatarURL:  identity.AvatarURL,
 		Status:     UserStatusActive,
-		IsVerified: true,
+		IsVerified: identity.EmailVerified,
 	}
 	if err := tx.CreateUser(ctx, user); err != nil {
 		return nil, false, err
@@ -1237,6 +1242,7 @@ func (s *Service) findOrCreateUserByEmailTx(ctx context.Context, tx IRepository,
 		zap.String("user_id", user.ID.String()),
 		zap.String("email", email),
 		zap.String("provider", identity.Provider),
+		zap.Bool("email_verified", identity.EmailVerified),
 	)
 	return user, true, nil
 }

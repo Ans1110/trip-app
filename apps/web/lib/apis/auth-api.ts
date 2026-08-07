@@ -60,5 +60,17 @@ export const authApi = {
       json: input,
       signal,
     }),
+  oauthGoogle: (input: { id_token: string }, signal?: AbortSignal) =>
+    request<SessionView>("/api/auth/oauth/google", {
+      method: "POST",
+      json: input,
+      signal,
+    }),
+  oauthGithub: (input: { code: string }, signal?: AbortSignal) =>
+    request<SessionView>("/api/auth/oauth/github", {
+      method: "POST",
+      json: input,
+      signal,
+    }),
   me: (signal?: AbortSignal) => request<User>("/api/auth/me", { signal }),
 };

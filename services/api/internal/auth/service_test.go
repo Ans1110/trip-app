@@ -287,9 +287,6 @@ func (m *mockOAuth) VerifyGoogle(_ context.Context, _ string) (*auth.OAuthIdenti
 func (m *mockOAuth) VerifyGithub(_ context.Context, _ string) (*auth.OAuthIdentity, error) {
 	return m.identity, m.err
 }
-func (m *mockOAuth) VerifyFacebook(_ context.Context, _ string) (*auth.OAuthIdentity, error) {
-	return m.identity, m.err
-}
 
 // ---- mock audit writer ----
 
@@ -660,7 +657,7 @@ func TestOAuthLogin(t *testing.T) {
 	})
 }
 
-// ---- OAuthGoogle / OAuthGithub / OAuthFacebook ----
+// ---- OAuthGoogle / OAuthGithub ----
 
 func TestOAuthProviderWrappers(t *testing.T) {
 	t.Run("no_verifier_returns_error", func(t *testing.T) {
@@ -668,8 +665,6 @@ func TestOAuthProviderWrappers(t *testing.T) {
 		_, err := svc.OAuthGoogle(ctx, "id-token", noDevice)
 		require.ErrorIs(t, err, auth.ErrOAuthNotConfigured)
 		_, err = svc.OAuthGithub(ctx, "code", noDevice)
-		require.ErrorIs(t, err, auth.ErrOAuthNotConfigured)
-		_, err = svc.OAuthFacebook(ctx, "token", noDevice)
 		require.ErrorIs(t, err, auth.ErrOAuthNotConfigured)
 	})
 

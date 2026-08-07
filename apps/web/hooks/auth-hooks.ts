@@ -90,6 +90,30 @@ export function useResendVerification(options?: MutOpts<null, string>) {
   });
 }
 
+export function useOAuthGoogle(options?: MutOpts<SessionView, string>) {
+  const qc = useQueryClient();
+  return useMutation<SessionView, ApiError, string>({
+    mutationFn: (idToken) => authApi.oauthGoogle({ id_token: idToken }),
+    ...options,
+    onSuccess: (...args) => {
+      qc.invalidateQueries({ queryKey: authKeys.me });
+      return options?.onSuccess?.(...args);
+    },
+  });
+}
+
+export function useOAuthGithub(options?: MutOpts<SessionView, string>) {
+  const qc = useQueryClient();
+  return useMutation<SessionView, ApiError, string>({
+    mutationFn: (code) => authApi.oauthGithub({ code }),
+    ...options,
+    onSuccess: (...args) => {
+      qc.invalidateQueries({ queryKey: authKeys.me });
+      return options?.onSuccess?.(...args);
+    },
+  });
+}
+
 export function errorMessage(err: unknown): string | null {
   if (!err) return null;
   if (err instanceof ApiError) return err.message;

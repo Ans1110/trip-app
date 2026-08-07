@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
@@ -9,6 +10,9 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { ControlledInput } from "@/components/ui/controlled-input";
 import { signInSchema, type SignInInput } from "@/lib/schemas/auth-schemas";
 import { errorMessage, useSignIn } from "@/hooks/auth-hooks";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { VerifyEmailPending } from "@/components/auth/verify-email-pending";
+import type { SessionView } from "@/lib/apis/auth-api";
 
 const AUTH_LABEL = "text-[11px] tracking-[0.2em] uppercase";
 const AUTH_INPUT = "px-4 py-3";
@@ -22,6 +26,7 @@ const safeNext = (raw: string | null): string => {
 export function SignInForm() {
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
@@ -31,6 +36,16 @@ export function SignInForm() {
   const mutation = useSignIn({
     onSuccess: () => window.location.assign(next),
   });
+
+  const handleOAuthSession = (session: SessionView) => {
+    if (session?.requires_verification) {
+      setPendingEmail(session.user?.email ?? null);
+      return;
+    }
+    window.location.assign(next);
+  };
+
+  if (pendingEmail) return <VerifyEmailPending email={pendingEmail} />;
 
   const submitError = errorMessage(mutation.error);
 
@@ -102,6 +117,8 @@ export function SignInForm() {
             </>
           )}
         </button>
+
+        <OAuthButtons next={next} onSession={handleOAuthSession} />
       </form>
     </FormProvider>
   );

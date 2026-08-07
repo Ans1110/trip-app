@@ -45,7 +45,7 @@ type Provider struct {
 	ID         uuid.UUID `gorm:"type:uuid;primaryKey"`
 	UserID     uuid.UUID `gorm:"type:uuid;index;not null"`
 	User       User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	Provider   string    `gorm:"not null;uniqueIndex:idx_provider_pid"` // google | github | facebook
+	Provider   string    `gorm:"not null;uniqueIndex:idx_provider_pid"` // google | github
 	ProviderID string    `gorm:"column:provider_id;not null;uniqueIndex:idx_provider_pid"`
 	CreatedAt  time.Time
 }

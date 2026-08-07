@@ -13,6 +13,10 @@ type AuthArg = { ctx: ReturnType<typeof extractRequestContext>; signal?: AbortSi
 const POST_OPS: Record<string, Op> = {
   register: (_req, body, auth) => authClient.register(body as never, auth),
   login: (_req, body, auth) => authClient.login(body as never, auth),
+  "oauth/google": (_req, body, auth) =>
+    authClient.oauthGoogle(body as never, auth),
+  "oauth/github": (_req, body, auth) =>
+    authClient.oauthGithub(body as never, auth),
   refresh: (_req, _body, auth) => authClient.refresh(auth),
   logout: (_req, _body, auth) => authClient.logout(auth),
   "forgot-password": (_req, body, auth) =>

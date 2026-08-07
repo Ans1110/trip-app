@@ -1,7 +1,6 @@
 import "server-only";
 import {
   UpstreamChangePasswordRequest,
-  UpstreamFacebookOAuthRequest,
   UpstreamForgotPasswordRequest,
   UpstreamGithubOAuthRequest,
   UpstreamGoogleOAuthRequest,
@@ -48,7 +47,6 @@ export type RegisterInput = UpstreamRegisterRequest;
 export type LoginInput = UpstreamLoginRequest;
 export type GoogleOAuthInput = UpstreamGoogleOAuthRequest;
 export type GithubOAuthInput = UpstreamGithubOAuthRequest;
-export type FacebookOAuthInput = UpstreamFacebookOAuthRequest;
 export type VerifyEmailInput = UpstreamVerifyEmailRequest;
 export type ResendVerificationInput = UpstreamResendVerificationRequest;
 export type ForgotPasswordInput = UpstreamForgotPasswordRequest;
@@ -119,18 +117,6 @@ export class AuthClient {
   ): Promise<ApiResult<SessionView>> {
     const res = await this.http.post<UpstreamSessionResponse>(
       "/auth/oauth/github",
-      input,
-      this.publicOpts(auth),
-    );
-    return this.captureSession(res);
-  }
-
-  async oauthFacebook(
-    input: FacebookOAuthInput,
-    auth: AuthCtx,
-  ): Promise<ApiResult<SessionView>> {
-    const res = await this.http.post<UpstreamSessionResponse>(
-      "/auth/oauth/facebook",
       input,
       this.publicOpts(auth),
     );

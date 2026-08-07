@@ -22,10 +22,6 @@ type GithubOAuthRequest struct {
 	Code string `json:"code" binding:"required"`
 }
 
-type FacebookOAuthRequest struct {
-	AccessToken string `json:"access_token" binding:"required"`
-}
-
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }

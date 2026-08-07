@@ -27,6 +27,7 @@ import (
 	"github.com/Ans1110/trip-app/internal/album"
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
+	authoauth "github.com/Ans1110/trip-app/internal/auth/oauth"
 	"github.com/Ans1110/trip-app/internal/calendar"
 	"github.com/Ans1110/trip-app/internal/chat"
 	"github.com/Ans1110/trip-app/internal/finance"
@@ -141,6 +142,7 @@ func main() {
 		JWT:        cfg.JWT,
 		Security:   cfg.Security,
 		Mailer:     mailer,
+		OAuth:      authoauth.New(cfg.OAuth, logger),
 		Redis:      rdb,
 		Audit:      auditRepo,
 		Bus:        bus,

@@ -14,7 +14,6 @@ export type UpstreamLoginRequest = {
 
 export type UpstreamGoogleOAuthRequest = { id_token: string };
 export type UpstreamGithubOAuthRequest = { code: string };
-export type UpstreamFacebookOAuthRequest = { access_token: string };
 
 export type UpstreamRefreshTokenRequest = { refresh_token: string };
 export type UpstreamLogoutRequest = { refresh_token: string };

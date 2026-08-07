@@ -81,17 +81,11 @@ type RateLimitRule struct {
 }
 
 type OAuthConfig struct {
-	Google   GoogleOAuthConfig
-	Facebook FacebookOAuthConfig
-	Github   GithubOAuthConfig
+	Google GoogleOAuthConfig
+	Github GithubOAuthConfig
 }
 
 type GoogleOAuthConfig struct {
-	ClientID     string `mapstructure:"client_id"`
-	ClientSecret string `mapstructure:"client_secret"`
-}
-
-type FacebookOAuthConfig struct {
 	ClientID     string `mapstructure:"client_id"`
 	ClientSecret string `mapstructure:"client_secret"`
 }
