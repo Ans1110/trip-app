@@ -50,6 +50,7 @@ import (
 	pkgredis "github.com/Ans1110/trip-app/pkg/redis"
 	"github.com/Ans1110/trip-app/pkg/ticket"
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
@@ -62,6 +63,8 @@ import (
 )
 
 func main() {
+	loadDotenv()
+
 	cfgPath := os.Getenv("CONFIG_PATH")
 	if cfgPath == "" {
 		cfgPath = resolveConfigPath()
@@ -531,6 +534,16 @@ func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
 		return rsaKey, nil
 	default:
 		return nil, fmt.Errorf("unsupported key type: %s", block.Type)
+	}
+}
+
+func loadDotenv() {
+	candidates := []string{".env", "../.env", "../../.env", "../../../.env"}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			_ = godotenv.Load(c)
+			return
+		}
 	}
 }
 

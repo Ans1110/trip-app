@@ -26,17 +26,12 @@ vendor/
 .env
 .env.*
 !.env.example
-config.yml
 
 # Keys and credentials
 services/api/keys/*.pem
 services/api/keys/*.json
 services/api/keys/*.p8
 services/api/keys/*.p12
-
-# Config overrides
-services/api/config/config.local.yml
-services/api/config/config.prod.yml
 
 # IDE
 .idea/

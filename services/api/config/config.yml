@@ -1,0 +1,101 @@
+server:
+  url: ${SERVER_URL}
+  port: ${SERVER_PORT}
+  mode: ${SERVER_MODE} # debug, release
+  allowed_origins:
+    - ${ALLOWED_ORIGINS}
+  request_timeout: ${REQUEST_TIMEOUT}
+  body_limit_mb: ${BODY_LIMIT_MB}
+  trusted_proxies:
+    - ${TRUSTED_PROXIES}
+  
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+  name: ${DB_NAME}
+  sslmode: ${DB_SSL_MODE}
+  max_open_conns: ${DB_MAX_OPEN_CONNS}
+  max_idle_conns: ${DB_MAX_IDLE_CONNS}
+  conn_max_lifetime: ${DB_CONN_MAX_LIFETIME}
+
+redis:
+  addr: ${REDIS_ADDR}
+  password: ${REDIS_PASSWORD}
+  db: ${REDIS_DB}
+  pool_size: ${REDIS_POOL_SIZE}
+  min_idle_conns: ${REDIS_MIN_IDLE_CONNS}
+  dial_timeout: ${REDIS_DIAL_TIMEOUT}
+  read_timeout: ${REDIS_READ_TIMEOUT}
+  write_timeout: ${REDIS_WRITE_TIMEOUT}
+
+jwt:
+  private_key_path: ${JWT_PRIVATE_KEY_PATH}
+  public_key_path: ${JWT_PUBLIC_KEY_PATH}
+  access_token_ttl: ${JWT_ACCESS_TOKEN_EXPIRATION}
+  refresh_token_ttl: ${JWT_REFRESH_TOKEN_EXPIRATION}
+  audience: ${JWT_AUD}
+
+security:
+  operation_timeout: ${SECURITY_OPERATION_TIMEOUT}
+
+  rate_limit:
+    login:
+      limit: ${RATE_LIMIT_LOGIN_LIMIT}
+      window: ${RATE_LIMIT_LOGIN_WINDOW}
+
+    register:
+      limit: ${RATE_LIMIT_REGISTER_LIMIT}
+      window: ${RATE_LIMIT_REGISTER_WINDOW}
+
+    forgot_password:
+      limit: ${RATE_LIMIT_FORGOT_PASSWORD_LIMIT}
+      window: ${RATE_LIMIT_FORGOT_PASSWORD_WINDOW}
+
+    mfa:
+      limit: ${RATE_LIMIT_MFA_VERIFY_LIMIT}
+      window: ${RATE_LIMIT_MFA_VERIFY_WINDOW}
+  
+oauth:
+  google:
+    client_id: ${OAUTH_GOOGLE_CLIENT_ID}
+    client_secret: ${OAUTH_GOOGLE_CLIENT_SECRET}
+  github:
+    client_id: ${OAUTH_GITHUB_CLIENT_ID}
+    client_secret: ${OAUTH_GITHUB_CLIENT_SECRET}
+  
+cloudinary:
+  cloud_name: ${CLOUDINARY_CLOUD_NAME}
+  api_key: ${CLOUDINARY_API_KEY}
+  api_secret: ${CLOUDINARY_API_SECRET}
+  folder: ${CLOUDINARY_FOLDER}
+  secure: ${CLOUDINARY_SECURE}
+  timeout: ${CLOUDINARY_TIMEOUT}
+
+media:
+  endpoint: ${MEDIA_ENDPOINT}
+  public_endpoint: ${MEDIA_PUBLIC_ENDPOINT}         # falls back to endpoint when empty
+  access_key: ${MEDIA_ACCESS_KEY}
+  secret_key: ${MEDIA_SECRET_KEY}
+  bucket: ${MEDIA_BUCKET_NAME}
+  region: ${MEDIA_REGION}
+  use_ssl: ${MEDIA_USE_SSL}
+  presign_put_ttl: ${MEDIA_PRESIGN_PUT_TTL}
+  presign_get_ttl: ${MEDIA_PRESIGN_GET_TTL}
+  upload_session_ttl: ${MEDIA_UPLOAD_SESSION_TTL}
+  gc_interval: ${MEDIA_GC_INTERVAL}
+
+external:
+  google_maps_api_key: ${GOOGLE_MAPS_API_KEY}
+  openweathermap_api_key: ${OPENWEATHERMAP_API_KEY}
+
+notifications:
+  fcm_credentials_file: ${NOTIFICATION_FCM_CREDENTIALS_PATH}
+  web_url: ${NOTIFICATION_WEB_URL}
+  smtp:
+    host: ${NOTIFICATION_SMTP_HOST}
+    port: ${NOTIFICATION_SMTP_PORT}
+    user: ${NOTIFICATION_SMTP_USER}
+    password: ${NOTIFICATION_SMTP_PASSWORD}
+    from_email: ${NOTIFICATION_SMTP_FROM_EMAIL}

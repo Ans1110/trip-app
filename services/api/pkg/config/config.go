@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -139,13 +141,20 @@ type SMTPConfig struct {
 }
 
 func Load(cfgPath string) (*Config, error) {
+	raw, err := os.ReadFile(cfgPath)
+	if err != nil {
+		return nil, err
+	}
+	// Expand ${VAR} placeholders from the process env so the yml can carry
+	// deploy-time secrets without a second env-var naming scheme.
+	expanded := os.ExpandEnv(string(raw))
+
 	v := viper.New()
-	v.SetConfigFile(cfgPath)
 	v.SetConfigType("yaml")
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	if err := v.ReadInConfig(); err != nil {
+	if err := v.ReadConfig(bytes.NewReader([]byte(expanded))); err != nil {
 		return nil, err
 	}
 
