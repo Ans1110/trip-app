@@ -1051,14 +1051,23 @@ func TestChangePassword(t *testing.T) {
 		require.ErrorIs(t, err, auth.ErrUserNotFound)
 	})
 
-	t.Run("oauth_user_without_password", func(t *testing.T) {
+	t.Run("oauth_user_sets_initial_password", func(t *testing.T) {
 		user := newActiveUser()
 		user.PasswordHash = nil
+		updated := false
 		repo := &repoMock{
 			findUserByID: func(_ context.Context, _ uuid.UUID) (*auth.User, error) { return user, nil },
+			updateUserFields: func(_ context.Context, _ uuid.UUID, updates map[string]any) error {
+				if _, ok := updates["password_hash"]; ok {
+					updated = true
+				}
+				return nil
+			},
+			revokeAllSessions: func(_ context.Context, _ uuid.UUID) error { return nil },
 		}
-		err := newSvc(repo).ChangePassword(ctx, user.ID, "old", "new")
-		require.ErrorIs(t, err, auth.ErrPasswordNotSet)
+		err := newSvc(repo).ChangePassword(ctx, user.ID, "", "newpass123")
+		require.NoError(t, err)
+		assert.True(t, updated, "should have persisted the new password hash")
 	})
 
 	t.Run("wrong_current_password", func(t *testing.T) {

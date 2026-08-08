@@ -664,7 +664,6 @@ func TestHandlerErrorMapping(t *testing.T) {
 		{"not_found_to_404", auth.ErrUserNotFound, http.StatusNotFound},
 		{"rate_limited_to_429", auth.ErrRateLimited, http.StatusTooManyRequests},
 		{"oauth_unavailable_to_503", auth.ErrOAuthNotConfigured, http.StatusServiceUnavailable},
-		{"password_not_set_to_400", auth.ErrPasswordNotSet, http.StatusBadRequest},
 		{"unknown_to_500", errors.New("kaboom"), http.StatusInternalServerError},
 	}
 	for _, tc := range cases {

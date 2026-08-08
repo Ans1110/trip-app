@@ -94,11 +94,11 @@ notifications:
   fcm_credentials_file: ${NOTIFICATION_FCM_CREDENTIALS_PATH}
   web_url: ${NOTIFICATION_WEB_URL}
   smtp:
-    host: ${NOTIFICATION_SMTP_HOST}
-    port: ${NOTIFICATION_SMTP_PORT}
-    user: ${NOTIFICATION_SMTP_USER}
-    password: ${NOTIFICATION_SMTP_PASSWORD}
-    from_email: ${NOTIFICATION_SMTP_FROM_EMAIL}
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+    user: ${SMTP_USER}
+    password: ${SMTP_PASSWORD}
+    from_email: ${SMTP_FROM_EMAIL}
 
 admin:
   email: ${ADMIN_EMAIL}

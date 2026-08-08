@@ -753,8 +753,6 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 		response.NotFound(c, err.Error())
 	case errors.Is(err, ErrMFAAlreadyEnabled):
 		response.Conflict(c, err.Error())
-	case errors.Is(err, ErrPasswordNotSet):
-		response.BadRequest(c, err.Error())
 	case errors.Is(err, ErrOAuthNotConfigured):
 		response.Error(c, http.StatusServiceUnavailable, "oauth_unavailable", err.Error())
 	case errors.Is(err, ErrMFAStoreUnavailable):

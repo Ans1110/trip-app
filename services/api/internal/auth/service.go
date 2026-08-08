@@ -698,15 +698,18 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	if user == nil {
 		return ErrUserNotFound
 	}
-	if user.PasswordHash == nil {
-		return ErrPasswordNotSet
-	}
-	if !checkPassword(*user.PasswordHash, oldPassword) {
-		s.logger.Warn("password change failed: wrong current password",
-			zap.String("user_id", userID.String()),
-		)
-		s.audit(ctx, AuditPasswordChange, audit.Failure, &userID, DeviceInfo{}, "wrong password")
-		return ErrInvalidCredentials
+
+	if user.PasswordHash != nil {
+		if oldPassword == "" {
+			return ErrPasswordNotSet
+		}
+		if !checkPassword(*user.PasswordHash, oldPassword) {
+			s.logger.Warn("password change failed: wrong current password",
+				zap.String("user_id", userID.String()),
+			)
+			s.audit(ctx, AuditPasswordChange, audit.Failure, &userID, DeviceInfo{}, "wrong password")
+			return ErrInvalidCredentials
+		}
 	}
 	pwHash, err := hashPassword(newPassword)
 	if err != nil {

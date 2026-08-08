@@ -64,7 +64,8 @@ type ResetPasswordRequest struct {
 }
 
 type ChangePasswordRequest struct {
-	CurrentPassword string `json:"current_password" binding:"required,min=8,max=72"`
+	// Empty when an OAuth-only account is setting its first password.
+	CurrentPassword string `json:"current_password" binding:"omitempty,min=8,max=72"`
 	NewPassword     string `json:"new_password" binding:"required,min=8,max=72"`
 }
 
