@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { HoverCard as RxHoverCard } from "radix-ui";
-import { Bookmark, LogOut, User as UserIcon, Loader2 } from "lucide-react";
+import {
+  Bookmark,
+  LogOut,
+  Shield,
+  User as UserIcon,
+  Loader2,
+} from "lucide-react";
 import { useState } from "react";
 
 import { useMe } from "@/hooks/auth-hooks";
@@ -144,6 +150,11 @@ export function UserMenu({
           <MenuLink href="/bookmarks" icon={<Bookmark className="size-4" />}>
             Bookmarks
           </MenuLink>
+          {user.is_admin && (
+            <MenuLink href="/admin" icon={<Shield className="size-4" />}>
+              Admin
+            </MenuLink>
+          )}
           <button
             type="button"
             onClick={signOut}

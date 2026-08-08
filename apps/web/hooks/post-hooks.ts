@@ -254,6 +254,7 @@ export function useCreateComment(
     ...options,
     onSuccess: (...args) => {
       const [data] = args;
+      bumpPostCommentCount(qc, postId, +1);
       qc.invalidateQueries({ queryKey: [...postKeys.all, "comments", postId] });
       qc.invalidateQueries({ queryKey: postKeys.detail(postId) });
       // Response.parent_id is the resolved thread root; use the 3-element
@@ -296,6 +297,7 @@ export function useDeleteComment(
     ...options,
     onSuccess: (...args) => {
       const [, input] = args;
+      bumpPostCommentCount(qc, postId, -1);
       qc.invalidateQueries({ queryKey: [...postKeys.all, "comments", postId] });
       qc.invalidateQueries({ queryKey: postKeys.detail(postId) });
       if (input.parentId) {
@@ -306,6 +308,18 @@ export function useDeleteComment(
       return options?.onSuccess?.(...args);
     },
   });
+}
+
+function bumpPostCommentCount(
+  qc: ReturnType<typeof useQueryClient>,
+  postId: string,
+  delta: number,
+) {
+  qc.setQueryData<Post>(postKeys.detail(postId), (prev) =>
+    prev
+      ? { ...prev, comment_count: Math.max(0, prev.comment_count + delta) }
+      : prev,
+  );
 }
 
 export function useReplies(

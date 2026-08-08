@@ -22,6 +22,7 @@ import {
 } from "@/hooks/post-hooks";
 import type { PostStatus } from "@/lib/apis/post-api";
 import { CommentList } from "./comment-list";
+import { PostActionsMenu } from "./post-actions-menu";
 
 export function PostDetail({ postId }: { postId: string }) {
   const router = useRouter();
@@ -145,32 +146,41 @@ export function PostDetail({ postId }: { postId: string }) {
           </div>
         </div>
 
-        {post.is_author && (
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href={`/posts/${post.id}/edit`}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-white/5"
-              style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
-            >
-              <Pencil className="size-3.5" />
-              Edit
-            </Link>
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={del.isPending}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-white/5 disabled:opacity-60"
-              style={{ borderColor: "#1F2A24", color: "#FCA5A5" }}
-            >
-              {del.isPending ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="size-3.5" />
-              )}
-              Delete
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {post.is_author ? (
+            <>
+              <Link
+                href={`/posts/${post.id}/edit`}
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-white/5"
+                style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+              >
+                <Pencil className="size-3.5" />
+                Edit
+              </Link>
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={del.isPending}
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-white/5 disabled:opacity-60"
+                style={{ borderColor: "#1F2A24", color: "#FCA5A5" }}
+              >
+                {del.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="size-3.5" />
+                )}
+                Delete
+              </button>
+            </>
+          ) : (
+            <PostActionsMenu
+              postId={post.id}
+              authorUserId={author.user_id}
+              authorUsername={author.username}
+              authorName={author.name || author.username || "user"}
+            />
+          )}
+        </div>
       </header>
 
       {post.tags.length > 0 && (
