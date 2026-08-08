@@ -1,6 +1,9 @@
 -- +goose Up
 CREATE SCHEMA IF NOT EXISTS trip;
 
+-- visibility: trips are private by default; owners can toggle to public,
+-- which fans out a TRIP_PUBLISHED event via platform.outbox that the profile
+-- module consumes to build follower feeds.
 CREATE TABLE IF NOT EXISTS trip.trip (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id      UUID        NOT NULL,
@@ -10,15 +13,20 @@ CREATE TABLE IF NOT EXISTS trip.trip (
     start_date    DATE        NOT NULL,
     end_date      DATE        NOT NULL,
     status        TEXT        NOT NULL DEFAULT 'planning',
+    visibility    TEXT        NOT NULL DEFAULT 'private',
     time_zone     VARCHAR(64) NOT NULL DEFAULT 'UTC',
     base_currency CHAR(3)     NOT NULL DEFAULT 'TWD',
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    deleted_at    TIMESTAMPTZ
+    deleted_at    TIMESTAMPTZ,
+    CONSTRAINT trip_visibility_check CHECK (visibility IN ('private', 'public'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_trip_owner_id   ON trip.trip(owner_id);
 CREATE INDEX IF NOT EXISTS idx_trip_deleted_at ON trip.trip(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_trip_visibility_public
+    ON trip.trip (visibility, created_at DESC)
+    WHERE visibility = 'public' AND deleted_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS trip.itineraries (
     id          UUID             PRIMARY KEY DEFAULT gen_random_uuid(),

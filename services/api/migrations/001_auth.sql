@@ -51,7 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_pwd_reset_user ON auth.password_resets(user_id);
 
 CREATE TABLE IF NOT EXISTS auth.mfa_configs (
     user_id     UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    totp_secret TEXT        NOT NULL,
+    method      VARCHAR(32) NOT NULL DEFAULT 'email',
     is_enabled  BOOLEAN     NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
