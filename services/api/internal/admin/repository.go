@@ -67,6 +67,7 @@ type IRepository interface {
 	ListUsers(ctx context.Context, filter UserFilter, cursor *ListUsersCursor, limit int) ([]auth.User, error)
 	SetUserBlocked(ctx context.Context, id uuid.UUID, blocked bool) error
 	DeactivateUser(ctx context.Context, id uuid.UUID) error
+	ReactivateUser(ctx context.Context, id uuid.UUID) error
 	ListUserRoles(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID][]string, error)
 	CountPostsByAuthor(ctx context.Context, authorIDs []uuid.UUID) (map[uuid.UUID]int, error)
 
@@ -238,6 +239,22 @@ func (r *repository) DeactivateUser(ctx context.Context, id uuid.UUID) error {
 		Updates(map[string]any{
 			"status":         auth.UserStatusDeactivated,
 			"deactivated_at": now,
+		})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *repository) ReactivateUser(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Model(&auth.User{}).
+		Where("id = ? AND status = ?", id, auth.UserStatusDeactivated).
+		Updates(map[string]any{
+			"status":         auth.UserStatusActive,
+			"deactivated_at": nil,
 		})
 	if res.Error != nil {
 		return res.Error

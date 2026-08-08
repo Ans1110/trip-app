@@ -159,6 +159,16 @@ export class AdminClient {
     );
   }
 
+  async reactivateUser(id: string, auth: AuthCtx): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.post<null>(
+        `/admin/users/${encodeURIComponent(id)}/reactivate`,
+        null,
+        opts,
+      ),
+    );
+  }
+
   async listPosts(
     auth: AuthCtx,
     query: ListAdminPostsQuery = {},

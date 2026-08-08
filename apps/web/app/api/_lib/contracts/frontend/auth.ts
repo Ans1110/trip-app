@@ -12,6 +12,7 @@ export type User = {
   name: string;
   avatar_url?: string;
   is_verified: boolean;
+  is_admin?: boolean;
   mfa_enabled?: boolean;
   created_at: string;
 };
@@ -43,6 +44,7 @@ export const toUser = (u: UpstreamUserResponse): User => ({
   name: u.name,
   avatar_url: u.avatar_url,
   is_verified: u.is_verified,
+  is_admin: u.is_admin,
   mfa_enabled: u.mfa_enabled,
   created_at: u.created_at,
 });

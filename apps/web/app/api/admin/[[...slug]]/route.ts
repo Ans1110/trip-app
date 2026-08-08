@@ -97,6 +97,10 @@ const matchPost = (slug: string[]): Dispatch | null => {
   if (slug.length === 3 && slug[0] === "users" && slug[2] === "deactivate") {
     return (_req, auth) => adminClient.deactivateUser(slug[1], auth);
   }
+  // POST /admin/users/:id/reactivate
+  if (slug.length === 3 && slug[0] === "users" && slug[2] === "reactivate") {
+    return (_req, auth) => adminClient.reactivateUser(slug[1], auth);
+  }
   // POST /admin/posts/:id/restore
   if (slug.length === 3 && slug[0] === "posts" && slug[2] === "restore") {
     return (_req, auth) => adminClient.restorePost(slug[1], auth);

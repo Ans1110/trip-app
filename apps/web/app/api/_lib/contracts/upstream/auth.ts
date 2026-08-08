@@ -24,7 +24,7 @@ export type UpstreamForgotPasswordRequest = { email: string };
 export type UpstreamResetPasswordRequest = { token: string; password: string };
 
 export type UpstreamChangePasswordRequest = {
-  current_password: string;
+  current_password?: string;
   new_password: string;
 };
 
@@ -36,6 +36,7 @@ export type UpstreamUserResponse = {
   name: string;
   avatar_url?: string;
   is_verified: boolean;
+  is_admin?: boolean;
   mfa_enabled?: boolean;
   created_at: string;
 };

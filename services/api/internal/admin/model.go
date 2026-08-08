@@ -61,6 +61,7 @@ const (
 	AuditUserBlocked      audit.Action = "admin_user_blocked"
 	AuditUserUnblocked    audit.Action = "admin_user_unblocked"
 	AuditUserDeactivated  audit.Action = "admin_user_deactivated"
+	AuditUserReactivated  audit.Action = "admin_user_reactivated"
 	AuditPostDeleted      audit.Action = "admin_post_deleted"
 	AuditPostRestored     audit.Action = "admin_post_restored"
 	AuditCommentDeleted   audit.Action = "admin_comment_deleted"

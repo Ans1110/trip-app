@@ -28,6 +28,7 @@ type IHandler interface {
 	BlockUser(c *gin.Context)
 	UnblockUser(c *gin.Context)
 	DeactivateUser(c *gin.Context)
+	ReactivateUser(c *gin.Context)
 
 	ListPosts(c *gin.Context)
 	DeletePost(c *gin.Context)
@@ -75,6 +76,7 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 			users.POST("/:id/block", h.BlockUser)
 			users.POST("/:id/unblock", h.UnblockUser)
 			users.POST("/:id/deactivate", h.DeactivateUser)
+			users.POST("/:id/reactivate", h.ReactivateUser)
 		}
 
 		posts := admin.Group("/posts")
@@ -282,6 +284,26 @@ func (h *Handler) DeactivateUser(c *gin.Context) {
 		return
 	}
 	if err := h.svc.DeactivateUser(c.Request.Context(), actor, target); err != nil {
+		h.respondError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
+// ReactivateUser godoc
+// @Summary      Reactivate a previously deactivated user (admin)
+// @Tags         admin
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id   path      string  true  "user id"
+// @Success      200  {object}  response.Response
+// @Router       /admin/users/{id}/reactivate [post]
+func (h *Handler) ReactivateUser(c *gin.Context) {
+	actor, target, ok := h.requireActorTarget(c, "id")
+	if !ok {
+		return
+	}
+	if err := h.svc.ReactivateUser(c.Request.Context(), actor, target); err != nil {
 		h.respondError(c, err)
 		return
 	}

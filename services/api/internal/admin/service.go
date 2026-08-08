@@ -29,6 +29,7 @@ type IService interface {
 	BlockUser(ctx context.Context, actorID, targetID uuid.UUID) error
 	UnblockUser(ctx context.Context, actorID, targetID uuid.UUID) error
 	DeactivateUser(ctx context.Context, actorID, targetID uuid.UUID) error
+	ReactivateUser(ctx context.Context, actorID, targetID uuid.UUID) error
 
 	// Posts (admin)
 	ListPosts(ctx context.Context, filter PostFilter, cursor *ListPostsCursor, limit int) (ListPostsResponse, error)
@@ -267,6 +268,14 @@ func (s *service) DeactivateUser(ctx context.Context, actorID, targetID uuid.UUI
 		return err
 	}
 	s.writeAudit(ctx, AuditUserDeactivated, audit.Success, &actorID, &targetID, string(SubjectUser), targetID.String(), nil)
+	return nil
+}
+
+func (s *service) ReactivateUser(ctx context.Context, actorID, targetID uuid.UUID) error {
+	if err := s.repo.ReactivateUser(ctx, targetID); err != nil {
+		return err
+	}
+	s.writeAudit(ctx, AuditUserReactivated, audit.Success, &actorID, &targetID, string(SubjectUser), targetID.String(), nil)
 	return nil
 }
 
