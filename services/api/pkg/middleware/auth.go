@@ -16,6 +16,7 @@ import (
 
 const (
 	ContextUserID    = "user_id"
+	ContextEmail     = "user_email"
 	ContextRoles     = "roles"
 	ContextJTI       = "jti"
 	ContextSessionID = "sid"
@@ -66,6 +67,7 @@ func JWTAuth(publicKey *rsa.PublicKey, rdb *redis.Client) gin.HandlerFunc {
 		}
 
 		c.Set(ContextUserID, userID)
+		c.Set(ContextEmail, claims.Email)
 		c.Set(ContextRoles, claims.Roles)
 		c.Set(ContextJTI, claims.ID)
 		if claims.SessionID != "" {
@@ -116,6 +118,15 @@ func SessionIDFromContext(ctx context.Context) uuid.UUID {
 		return v
 	}
 	return uuid.Nil
+}
+
+func GetUserEmail(c *gin.Context) string {
+	if v, exists := c.Get(ContextEmail); exists {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
 
 func GetUserRoles(c *gin.Context) []string {

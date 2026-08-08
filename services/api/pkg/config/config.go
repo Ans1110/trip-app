@@ -21,6 +21,12 @@ type Config struct {
 	External     ExternalConfig
 	Notification NotificationConfig `mapstructure:"notifications"`
 	Security     SecurityConfig
+	Admin        AdminConfig
+}
+
+type AdminConfig struct {
+	Email    string `mapstructure:"email"`
+	Password string `mapstructure:"password"`
 }
 
 type ServerConfig struct {

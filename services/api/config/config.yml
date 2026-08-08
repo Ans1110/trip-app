@@ -99,3 +99,7 @@ notifications:
     user: ${NOTIFICATION_SMTP_USER}
     password: ${NOTIFICATION_SMTP_PASSWORD}
     from_email: ${NOTIFICATION_SMTP_FROM_EMAIL}
+
+admin:
+  email: ${ADMIN_EMAIL}
+  password: ${ADMIN_PASSWORD}

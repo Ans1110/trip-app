@@ -24,6 +24,7 @@ import (
 	"time"
 
 	_ "github.com/Ans1110/trip-app/docs"
+	"github.com/Ans1110/trip-app/internal/admin"
 	"github.com/Ans1110/trip-app/internal/album"
 	"github.com/Ans1110/trip-app/internal/audit"
 	"github.com/Ans1110/trip-app/internal/auth"
@@ -149,6 +150,7 @@ func main() {
 		Redis:      rdb,
 		Audit:      auditRepo,
 		Bus:        bus,
+		AdminEmail: cfg.Admin.Email,
 	})
 	authHandler := auth.NewHandler(authSvc, logger, auth.CookieConfig{
 		MaxAge:   cfg.JWT.RefreshTokenTTL,
@@ -327,6 +329,15 @@ func main() {
 	})
 	searchHandler := search.NewHandler(searchSvc, logger)
 
+	adminRepo := admin.NewRepository(db)
+	adminSvc := admin.NewService(admin.ServiceConfig{
+		Repo:   adminRepo,
+		Audit:  auditRepo,
+		Logger: logger,
+	})
+	adminGate := admin.NewElevationGate(rdb, cfg.Admin.Email, cfg.Admin.Password)
+	adminHandler := admin.NewHandler(adminSvc, adminGate, logger)
+
 	// Chat wiring: writer (bounded queue → batch INSERT) → service (persist
 	// then broadcast via hub + pub/sub).
 	chatRepo := chat.NewRepository(db)
@@ -379,6 +390,7 @@ func main() {
 		postHandler,
 		feedHandler,
 		searchHandler,
+		adminHandler,
 	)
 
 	srv := &http.Server{
@@ -431,6 +443,7 @@ func setupRouter(
 	postHandler post.IHandler,
 	feedHandler feed.IHandler,
 	searchHandler search.IHandler,
+	adminHandler admin.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -498,6 +511,7 @@ func setupRouter(
 	postHandler.RegisterRoutes(protected)
 	feedHandler.RegisterRoutes(protected)
 	searchHandler.RegisterRoutes(protected)
+	adminHandler.RegisterRoutes(protected)
 
 	ws := r.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)

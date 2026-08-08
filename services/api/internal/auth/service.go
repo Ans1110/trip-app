@@ -123,6 +123,7 @@ type ServiceConfig struct {
 	Issuer     string
 	Audit      audit.Writer
 	Bus        *event.Bus
+	AdminEmail string
 }
 
 type Service struct {
@@ -140,6 +141,7 @@ type Service struct {
 	rl         *rateLimiter
 	auditW     audit.Writer
 	bus        *event.Bus
+	adminEmail string
 }
 
 func NewService(cfg ServiceConfig) IService {
@@ -162,6 +164,7 @@ func NewService(cfg ServiceConfig) IService {
 		rl:         newRateLimiter(cfg.Redis, cfg.Security.RateLimit),
 		auditW:     cfg.Audit,
 		bus:        cfg.Bus,
+		adminEmail: normalizeEmail(cfg.AdminEmail),
 	}
 }
 
@@ -242,7 +245,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest, device Devi
 		"ip_address": device.IPAddress,
 	})
 	return &SessionResponse{
-		User:                 toUserResponse(user),
+		User:                 s.toUserResponse(user),
 		RequiresVerification: true,
 	}, nil
 }
@@ -310,7 +313,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 			zap.String("user_id", user.ID.String()),
 			zap.String("ip", device.IPAddress),
 		)
-		mfaUser := toUserResponse(user)
+		mfaUser := s.toUserResponse(user)
 		mfaUser.MFAEnabled = true
 		return &SessionResponse{
 			User:        mfaUser,
@@ -873,7 +876,7 @@ func (s *Service) GetUser(ctx context.Context, userID uuid.UUID) (*UserResponse,
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
-	out := toUserResponse(user)
+	out := s.toUserResponse(user)
 	if mfa, err := s.repo.FindMFAConfig(ctx, userID); err == nil && mfa != nil {
 		out.MFAEnabled = mfa.IsEnabled
 	}
@@ -940,15 +943,23 @@ func rateKey(parts ...string) string {
 	return strings.Join(clean, ":")
 }
 
-func toUserResponse(u *User) UserResponse {
+func (s *Service) toUserResponse(u *User) UserResponse {
 	return UserResponse{
 		ID:         u.ID.String(),
 		Email:      u.Email,
 		Name:       u.Name,
 		AvatarURL:  u.AvatarURL,
 		IsVerified: u.IsVerified,
+		IsAdmin:    s.isAdminEmail(u.Email),
 		CreatedAt:  u.CreatedAt,
 	}
+}
+
+func (s *Service) isAdminEmail(email string) bool {
+	if s.adminEmail == "" {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(email), s.adminEmail)
 }
 
 func normalizeEmail(email string) string {
@@ -1320,7 +1331,7 @@ func (s *Service) createSession(ctx context.Context, user *User, device DeviceIn
 		return nil, nil, err
 	}
 
-	userResp := toUserResponse(user)
+	userResp := s.toUserResponse(user)
 	if mfa, err := s.repo.FindMFAConfig(ctx, user.ID); err == nil && mfa != nil {
 		userResp.MFAEnabled = mfa.IsEnabled
 	}

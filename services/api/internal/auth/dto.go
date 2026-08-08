@@ -45,6 +45,7 @@ type UserResponse struct {
 	Name       string    `json:"name"`
 	AvatarURL  string    `json:"avatar_url,omitempty"`
 	IsVerified bool      `json:"is_verified"`
+	IsAdmin    bool      `json:"is_admin"`
 	MFAEnabled bool      `json:"mfa_enabled"`
 	CreatedAt  time.Time `json:"created_at"`
 }
