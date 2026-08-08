@@ -14,3 +14,4 @@ export * from "./upstream/profile";
 export * from "./upstream/post";
 export * from "./upstream/feed";
 export * from "./upstream/search";
+export * from "./upstream/admin";
