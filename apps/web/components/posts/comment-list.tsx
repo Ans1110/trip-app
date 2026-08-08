@@ -20,7 +20,13 @@ import {
 } from "@/lib/schemas/post-schemas";
 import { ControlledTextarea } from "@/components/ui/controlled-textarea";
 
-export function CommentList({ postId }: { postId: string }) {
+export function CommentList({
+  postId,
+  viewerIsPostAuthor = false,
+}: {
+  postId: string;
+  viewerIsPostAuthor?: boolean;
+}) {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const { data, isLoading, error } = useComments(postId, { cursor });
 
@@ -58,7 +64,12 @@ export function CommentList({ postId }: { postId: string }) {
         <>
           <ul className="mt-6 flex flex-col gap-3">
             {data.comments.map((c) => (
-              <CommentRow key={c.id} postId={postId} comment={c} />
+              <CommentRow
+                key={c.id}
+                postId={postId}
+                comment={c}
+                viewerIsPostAuthor={viewerIsPostAuthor}
+              />
             ))}
           </ul>
           {data.next_cursor && data.comments.length > 5 && (
@@ -166,16 +177,20 @@ function CommentRow({
   comment,
   replyTargetName,
   nestedReplies,
+  viewerIsPostAuthor = false,
 }: {
   postId: string;
   comment: Comment;
   replyTargetName?: string;
   nestedReplies?: React.ReactNode;
+  viewerIsPostAuthor?: boolean;
 }) {
   const del = useDeleteComment(postId);
   const [replyOpen, setReplyOpen] = useState(false);
   const [threadOpen, setThreadOpen] = useState(false);
   const isReply = !!comment.parent_id;
+  const canDelete =
+    !comment.is_deleted && (comment.is_author || viewerIsPostAuthor);
 
   return (
     <li
@@ -186,7 +201,7 @@ function CommentRow({
         comment={comment}
         replyTargetName={replyTargetName}
         onDelete={
-          comment.is_author
+          canDelete
             ? () =>
                 del.mutate({
                   commentId: comment.id,
@@ -242,7 +257,11 @@ function CommentRow({
       {nestedReplies}
 
       {threadOpen && !isReply && (
-        <ReplyThread postId={postId} parentId={comment.id} />
+        <ReplyThread
+          postId={postId}
+          parentId={comment.id}
+          viewerIsPostAuthor={viewerIsPostAuthor}
+        />
       )}
     </li>
   );
@@ -355,9 +374,11 @@ function CommentBody({
 function ReplyThread({
   postId,
   parentId,
+  viewerIsPostAuthor = false,
 }: {
   postId: string;
   parentId: string;
+  viewerIsPostAuthor?: boolean;
 }) {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const { data, isLoading, error } = useReplies(postId, parentId, { cursor });
@@ -400,6 +421,7 @@ function ReplyThread({
             postId={postId}
             rootId={parentId}
             byId={byId}
+            viewerIsPostAuthor={viewerIsPostAuthor}
           />
         ))}
       </ul>
@@ -445,11 +467,13 @@ function ReplyBranch({
   postId,
   rootId,
   byId,
+  viewerIsPostAuthor = false,
 }: {
   node: ReplyNode;
   postId: string;
   rootId: string;
   byId: Map<string, Comment>;
+  viewerIsPostAuthor?: boolean;
 }) {
   const targetId = node.comment.in_reply_to_id;
   const target =
@@ -463,6 +487,7 @@ function ReplyBranch({
       postId={postId}
       comment={node.comment}
       replyTargetName={targetName}
+      viewerIsPostAuthor={viewerIsPostAuthor}
       nestedReplies={
         node.children.length > 0 ? (
           <ul
@@ -476,6 +501,7 @@ function ReplyBranch({
                 postId={postId}
                 rootId={rootId}
                 byId={byId}
+                viewerIsPostAuthor={viewerIsPostAuthor}
               />
             ))}
           </ul>

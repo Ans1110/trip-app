@@ -461,7 +461,7 @@ func (s *service) UpdateComment(ctx context.Context, authorID, commentID uuid.UU
 	return s.hydrateComment(ctx, authorID, updated)
 }
 
-func (s *service) DeleteComment(ctx context.Context, authorID, commentID uuid.UUID) error {
+func (s *service) DeleteComment(ctx context.Context, viewerID, commentID uuid.UUID) error {
 	existing, err := s.repo.FindComment(ctx, commentID)
 	if err != nil {
 		return err
@@ -469,8 +469,17 @@ func (s *service) DeleteComment(ctx context.Context, authorID, commentID uuid.UU
 	if existing == nil {
 		return ErrCommentNotFound
 	}
+	if existing.AuthorID != viewerID {
+		post, err := s.repo.FindPost(ctx, existing.PostID)
+		if err != nil {
+			return err
+		}
+		if post == nil || post.AuthorID != viewerID {
+			return ErrForbidden
+		}
+	}
 	return s.repo.WithTx(ctx, func(tx IRepository) error {
-		if err := tx.SoftDeleteComment(ctx, commentID, authorID); err != nil {
+		if err := tx.SoftDeleteComment(ctx, commentID); err != nil {
 			return err
 		}
 		if err := tx.BumpCommentCount(ctx, existing.PostID, -1); err != nil {

@@ -255,7 +255,7 @@ export function PostDetail({ postId }: { postId: string }) {
         </span>
       </div>
 
-      <CommentList postId={post.id} />
+      <CommentList postId={post.id} viewerIsPostAuthor={post.is_author} />
     </article>
   );
 }

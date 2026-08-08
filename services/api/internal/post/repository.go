@@ -47,7 +47,7 @@ type IRepository interface {
 
 	CreateComment(ctx context.Context, c *Comment) error
 	UpdateCommentContent(ctx context.Context, commentID, authorID uuid.UUID, content string) (*Comment, error)
-	SoftDeleteComment(ctx context.Context, commentID, authorID uuid.UUID) error
+	SoftDeleteComment(ctx context.Context, commentID uuid.UUID) error
 	FindComment(ctx context.Context, id uuid.UUID) (*Comment, error)
 	FindCommentAny(ctx context.Context, id uuid.UUID) (*Comment, error)
 	ListComments(ctx context.Context, postID uuid.UUID, cursor *CommentCursor, limit int) ([]Comment, error)
@@ -344,22 +344,15 @@ func (r *repository) UpdateCommentContent(ctx context.Context, commentID, author
 	return r.FindComment(ctx, commentID)
 }
 
-func (r *repository) SoftDeleteComment(ctx context.Context, commentID, authorID uuid.UUID) error {
+func (r *repository) SoftDeleteComment(ctx context.Context, commentID uuid.UUID) error {
 	res := r.db.WithContext(ctx).Model(&Comment{}).
-		Where("id = ? AND author_id = ? AND deleted_at IS NULL", commentID, authorID).
+		Where("id = ? AND deleted_at IS NULL", commentID).
 		Update("deleted_at", time.Now())
 	if res.Error != nil {
 		return res.Error
 	}
 	if res.RowsAffected == 0 {
-		existing, err := r.FindComment(ctx, commentID)
-		if err != nil {
-			return err
-		}
-		if existing == nil {
-			return ErrCommentNotFound
-		}
-		return ErrForbidden
+		return ErrCommentNotFound
 	}
 	return nil
 }
