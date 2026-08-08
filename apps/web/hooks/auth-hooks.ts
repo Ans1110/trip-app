@@ -90,6 +90,44 @@ export function useResendVerification(options?: MutOpts<null, string>) {
   });
 }
 
+export function useRequestMFAEnableCode(options?: MutOpts<null, void>) {
+  return useMutation<null, ApiError, void>({
+    mutationFn: () => authApi.requestMFAEnableCode(),
+    ...options,
+  });
+}
+
+export function useEnableMFA(options?: MutOpts<null, string>) {
+  const qc = useQueryClient();
+  return useMutation<null, ApiError, string>({
+    mutationFn: (code) => authApi.enableMFA({ mfa_code: code }),
+    ...options,
+    onSuccess: (...args) => {
+      qc.invalidateQueries({ queryKey: authKeys.me });
+      return options?.onSuccess?.(...args);
+    },
+  });
+}
+
+export function useRequestMFADisableCode(options?: MutOpts<null, void>) {
+  return useMutation<null, ApiError, void>({
+    mutationFn: () => authApi.requestMFADisableCode(),
+    ...options,
+  });
+}
+
+export function useDisableMFA(options?: MutOpts<null, string>) {
+  const qc = useQueryClient();
+  return useMutation<null, ApiError, string>({
+    mutationFn: (code) => authApi.disableMFA({ mfa_code: code }),
+    ...options,
+    onSuccess: (...args) => {
+      qc.invalidateQueries({ queryKey: authKeys.me });
+      return options?.onSuccess?.(...args);
+    },
+  });
+}
+
 export function useOAuthGoogle(options?: MutOpts<SessionView, string>) {
   const qc = useQueryClient();
   return useMutation<SessionView, ApiError, string>({

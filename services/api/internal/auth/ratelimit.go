@@ -17,7 +17,7 @@ const (
 	rateLogin    rateAction = "login"
 	rateRegister rateAction = "register"
 	rateForgot   rateAction = "forgot_password"
-	rateTOTP     rateAction = "totp"
+	rateMFA      rateAction = "mfa"
 )
 
 type rateLimiter struct {
@@ -32,7 +32,7 @@ func newRateLimiter(rdb *redis.Client, cfg config.RateLimitConfig) *rateLimiter 
 			rateLogin:    cfg.Login,
 			rateRegister: cfg.Register,
 			rateForgot:   cfg.ForgotPassword,
-			rateTOTP:     cfg.TOTP,
+			rateMFA:      cfg.MFA,
 		},
 	}
 }

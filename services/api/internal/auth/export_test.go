@@ -14,8 +14,5 @@ func (r *repository) DB() *gorm.DB {
 
 var (
 	HashToken         = hashToken
-	TotpNow           = totpNow
-	EncryptSecret     = encryptSecret
-	DecryptSecret     = decryptSecret
 	DeviceFingerprint = deviceFingerprint
 )

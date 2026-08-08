@@ -44,9 +44,10 @@ type svcMock struct {
 	forgotPassword     func(context.Context, string) error
 	resetPassword      func(context.Context, string, string) error
 	changePassword     func(context.Context, uuid.UUID, string, string) error
-	setupTOTP          func(context.Context, uuid.UUID) (*auth.TOTPSetupResponse, error)
-	enableTOTP         func(context.Context, uuid.UUID, string) error
-	disableTOTP        func(context.Context, uuid.UUID, string) error
+	requestMFAEnable   func(context.Context, uuid.UUID) error
+	enableMFA          func(context.Context, uuid.UUID, string) error
+	requestMFADisable  func(context.Context, uuid.UUID) error
+	disableMFA         func(context.Context, uuid.UUID, string) error
 	listSessions       func(context.Context, uuid.UUID) ([]auth.UserSession, error)
 	deleteSession      func(context.Context, uuid.UUID, uuid.UUID) error
 	getUser            func(context.Context, uuid.UUID) (*auth.UserResponse, error)
@@ -145,21 +146,27 @@ func (s *svcMock) ChangePassword(c context.Context, uid uuid.UUID, old, newPw st
 	}
 	return nil
 }
-func (s *svcMock) SetupTOTP(c context.Context, uid uuid.UUID) (*auth.TOTPSetupResponse, error) {
-	if s.setupTOTP != nil {
-		return s.setupTOTP(c, uid)
-	}
-	return &auth.TOTPSetupResponse{Secret: "S3CR3T", ProvisioningURL: "otpauth://totp/x"}, nil
-}
-func (s *svcMock) EnableTOTP(c context.Context, uid uuid.UUID, code string) error {
-	if s.enableTOTP != nil {
-		return s.enableTOTP(c, uid, code)
+func (s *svcMock) RequestMFAEnableCode(c context.Context, uid uuid.UUID) error {
+	if s.requestMFAEnable != nil {
+		return s.requestMFAEnable(c, uid)
 	}
 	return nil
 }
-func (s *svcMock) DisableTOTP(c context.Context, uid uuid.UUID, code string) error {
-	if s.disableTOTP != nil {
-		return s.disableTOTP(c, uid, code)
+func (s *svcMock) EnableMFA(c context.Context, uid uuid.UUID, code string) error {
+	if s.enableMFA != nil {
+		return s.enableMFA(c, uid, code)
+	}
+	return nil
+}
+func (s *svcMock) RequestMFADisableCode(c context.Context, uid uuid.UUID) error {
+	if s.requestMFADisable != nil {
+		return s.requestMFADisable(c, uid)
+	}
+	return nil
+}
+func (s *svcMock) DisableMFA(c context.Context, uid uuid.UUID, code string) error {
+	if s.disableMFA != nil {
+		return s.disableMFA(c, uid, code)
 	}
 	return nil
 }
@@ -326,9 +333,9 @@ func TestHandlerLogin(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 
-	t.Run("requires_totp_passthrough", func(t *testing.T) {
+	t.Run("requires_mfa_passthrough", func(t *testing.T) {
 		svc := &svcMock{login: func(context.Context, auth.LoginRequest, auth.DeviceInfo) (*auth.SessionResponse, error) {
-			return &auth.SessionResponse{RequiresTOTP: true}, nil
+			return &auth.SessionResponse{RequiresMFA: true}, nil
 		}}
 		w := doJSON(t, newRouter(svc, nil), http.MethodPost, "/api/v1/auth/login", auth.LoginRequest{
 			Email: "u@x.com", Password: "password123",
@@ -337,7 +344,7 @@ func TestHandlerLogin(t *testing.T) {
 		env := parseEnvelope(t, w)
 		var sr auth.SessionResponse
 		require.NoError(t, json.Unmarshal(env.Data, &sr))
-		assert.True(t, sr.RequiresTOTP)
+		assert.True(t, sr.RequiresMFA)
 	})
 }
 
@@ -514,43 +521,45 @@ func TestHandlerChangePassword(t *testing.T) {
 	})
 }
 
-func TestHandlerTOTPFlow(t *testing.T) {
+func TestHandlerMFAFlow(t *testing.T) {
 	uid := uuid.New()
 
-	t.Run("setup_success", func(t *testing.T) {
-		w := doJSON(t, newRouter(&svcMock{}, &uid), http.MethodPost, "/api/v1/auth/totp/setup", nil)
+	t.Run("request_enable_success", func(t *testing.T) {
+		called := false
+		svc := &svcMock{requestMFAEnable: func(_ context.Context, id uuid.UUID) error {
+			called = true
+			assert.Equal(t, uid, id)
+			return nil
+		}}
+		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/auth/mfa/enable/request", nil)
 		assert.Equal(t, http.StatusOK, w.Code)
-		env := parseEnvelope(t, w)
-		var setup auth.TOTPSetupResponse
-		require.NoError(t, json.Unmarshal(env.Data, &setup))
-		assert.NotEmpty(t, setup.Secret)
+		assert.True(t, called)
 	})
 
-	t.Run("setup_already_enabled_returns_409", func(t *testing.T) {
-		svc := &svcMock{setupTOTP: func(context.Context, uuid.UUID) (*auth.TOTPSetupResponse, error) {
-			return nil, auth.ErrTOTPAlreadyEnabled
+	t.Run("request_enable_already_enabled_returns_409", func(t *testing.T) {
+		svc := &svcMock{requestMFAEnable: func(context.Context, uuid.UUID) error {
+			return auth.ErrMFAAlreadyEnabled
 		}}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/auth/totp/setup", nil)
+		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/auth/mfa/enable/request", nil)
 		assert.Equal(t, http.StatusConflict, w.Code)
 	})
 
 	t.Run("enable_invalid_code_returns_401", func(t *testing.T) {
-		svc := &svcMock{enableTOTP: func(context.Context, uuid.UUID, string) error { return auth.ErrInvalidTOTP }}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/auth/totp/enable",
-			auth.VerifyTOTPRequest{TOTPCode: "000000"})
+		svc := &svcMock{enableMFA: func(context.Context, uuid.UUID, string) error { return auth.ErrInvalidMFACode }}
+		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/auth/mfa/enable",
+			auth.VerifyMFARequest{MFACode: "000000"})
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 
-	t.Run("enable_not_configured_returns_404", func(t *testing.T) {
-		svc := &svcMock{enableTOTP: func(context.Context, uuid.UUID, string) error { return auth.ErrTOTPNotConfigured }}
-		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/auth/totp/enable",
-			auth.VerifyTOTPRequest{TOTPCode: "123456"})
+	t.Run("request_disable_not_configured_returns_404", func(t *testing.T) {
+		svc := &svcMock{requestMFADisable: func(context.Context, uuid.UUID) error { return auth.ErrMFANotConfigured }}
+		w := doJSON(t, newRouter(svc, &uid), http.MethodPost, "/api/v1/auth/mfa/disable/request", nil)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 
 	t.Run("disable_success", func(t *testing.T) {
-		w := doJSON(t, newRouter(&svcMock{}, &uid), http.MethodPost, "/api/v1/auth/totp/disable",
-			auth.VerifyTOTPRequest{TOTPCode: "123456"})
+		w := doJSON(t, newRouter(&svcMock{}, &uid), http.MethodPost, "/api/v1/auth/mfa/disable",
+			auth.VerifyMFARequest{MFACode: "123456"})
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }
@@ -650,7 +659,7 @@ func TestHandlerErrorMapping(t *testing.T) {
 	}{
 		{"invalid_credentials_to_401", auth.ErrInvalidCredentials, http.StatusUnauthorized},
 		{"invalid_token_to_401", auth.ErrInvalidToken, http.StatusUnauthorized},
-		{"invalid_totp_to_401", auth.ErrInvalidTOTP, http.StatusUnauthorized},
+		{"invalid_mfa_to_401", auth.ErrInvalidMFACode, http.StatusUnauthorized},
 		{"blocked_to_403", auth.ErrUserBlocked, http.StatusForbidden},
 		{"not_found_to_404", auth.ErrUserNotFound, http.StatusNotFound},
 		{"rate_limited_to_429", auth.ErrRateLimited, http.StatusTooManyRequests},

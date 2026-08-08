@@ -6,11 +6,22 @@ const strongPassword = z
   .min(8, "At least 8 characters")
   .max(72, "Too long");
 
+export const mfaCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, "Enter the 6-digit code");
+
 export const signInSchema = z.object({
   email,
   password: z.string().min(1, "Required"),
+  mfa_code: z.string().optional(),
 });
 export type SignInInput = z.infer<typeof signInSchema>;
+
+export const mfaChallengeSchema = z.object({
+  mfa_code: mfaCodeSchema,
+});
+export type MFAChallengeInput = z.infer<typeof mfaChallengeSchema>;
 
 export const signUpSchema = z.object({
   name: z.string().trim().min(1, "Required").max(50, "Too long"),

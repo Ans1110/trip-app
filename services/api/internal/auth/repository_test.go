@@ -86,7 +86,7 @@ func runMigrations(t *testing.T, db *gorm.DB) {
 		)`,
 		`CREATE TABLE IF NOT EXISTS auth.mfa_configs (
 			user_id     UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-			totp_secret TEXT NOT NULL,
+			method      VARCHAR(32) NOT NULL DEFAULT 'email',
 			is_enabled  BOOLEAN NOT NULL DEFAULT false,
 			created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
 			updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -395,30 +395,30 @@ func TestMFAConfigRepository(t *testing.T) {
 
 	t.Run("UpsertInsert", func(t *testing.T) {
 		cfg := &auth.MFAConfig{
-			UserID:     u.ID,
-			TOTPSecret: "secret-abc",
-			IsEnabled:  false,
+			UserID:    u.ID,
+			Method:    "email",
+			IsEnabled: false,
 		}
 		require.NoError(t, repo.UpsertMFAConfig(ctx, cfg))
 
 		got, err := repo.FindMFAConfig(ctx, u.ID)
 		require.NoError(t, err)
 		require.NotNil(t, got)
-		assert.Equal(t, "secret-abc", got.TOTPSecret)
+		assert.Equal(t, "email", got.Method)
 		assert.False(t, got.IsEnabled)
 	})
 
 	t.Run("UpsertUpdate", func(t *testing.T) {
 		cfg := &auth.MFAConfig{
-			UserID:     u.ID,
-			TOTPSecret: "secret-xyz",
-			IsEnabled:  true,
+			UserID:    u.ID,
+			Method:    "email",
+			IsEnabled: true,
 		}
 		require.NoError(t, repo.UpsertMFAConfig(ctx, cfg))
 
 		got, err := repo.FindMFAConfig(ctx, u.ID)
 		require.NoError(t, err)
-		assert.Equal(t, "secret-xyz", got.TOTPSecret)
+		assert.Equal(t, "email", got.Method)
 		assert.True(t, got.IsEnabled)
 	})
 

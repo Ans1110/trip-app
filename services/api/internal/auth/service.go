@@ -7,7 +7,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"strconv"
+	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -23,19 +24,19 @@ import (
 )
 
 var (
-	ErrEmailExists          = errors.New("email already registered")
-	ErrInvalidCredentials   = errors.New("invalid email or password")
-	ErrUserNotFound         = errors.New("user not found")
-	ErrUserBlocked          = errors.New("user is blocked")
-	ErrInvalidToken         = errors.New("invalid or expired token")
-	ErrInvalidTOTP          = errors.New("invalid totp code")
-	ErrTOTPNotConfigured    = errors.New("totp not configured")
-	ErrTOTPAlreadyEnabled   = errors.New("totp already enabled")
-	ErrPasswordNotSet       = errors.New("password not set")
-	ErrSessionNotFound      = errors.New("session not found")
-	ErrOAuthNotConfigured   = errors.New("oauth verifier not configured")
-	ErrInvalidOAuth         = errors.New("invalid oauth identity")
-	ErrTOTPStoreUnavailable = errors.New("totp pending store unavailable")
+	ErrEmailExists         = errors.New("email already registered")
+	ErrInvalidCredentials  = errors.New("invalid email or password")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrUserBlocked         = errors.New("user is blocked")
+	ErrInvalidToken        = errors.New("invalid or expired token")
+	ErrInvalidMFACode      = errors.New("invalid mfa code")
+	ErrMFANotConfigured    = errors.New("mfa not configured")
+	ErrMFAAlreadyEnabled   = errors.New("mfa already enabled")
+	ErrPasswordNotSet      = errors.New("password not set")
+	ErrSessionNotFound     = errors.New("session not found")
+	ErrOAuthNotConfigured  = errors.New("oauth verifier not configured")
+	ErrInvalidOAuth        = errors.New("invalid oauth identity")
+	ErrMFAStoreUnavailable = errors.New("mfa code store unavailable")
 )
 
 const (
@@ -44,10 +45,9 @@ const (
 	passwordResetTTL = time.Hour
 
 	jwtBlacklistKeyPrefix = "jwt_blacklist:"
-	totpPendingKeyPrefix  = "auth:totp:pending:"
-	totpUsedKeyPrefix     = "auth:totp:used:"
-	totpPendingTTL        = 10 * time.Minute
-	totpUsedTTL           = 2 * totpStep * time.Second
+	mfaCodeKeyPrefix      = "auth:mfa:code:"
+	mfaCodeTTL            = 10 * time.Minute
+	mfaCodeDigits         = 6
 )
 
 type DeviceInfo struct {
@@ -69,6 +69,7 @@ type OAuthIdentity struct {
 type Mailer interface {
 	SendVerificationEmail(ctx context.Context, to, name, token string) error
 	SendPasswordResetEmail(ctx context.Context, to, name, token string) error
+	SendMFACodeEmail(ctx context.Context, to, name, code string) error
 }
 
 type OAuthVerifier interface {
@@ -95,9 +96,10 @@ type IService interface {
 	ResetPassword(ctx context.Context, token, newPassword string) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 
-	SetupTOTP(ctx context.Context, userID uuid.UUID) (*TOTPSetupResponse, error)
-	EnableTOTP(ctx context.Context, userID uuid.UUID, code string) error
-	DisableTOTP(ctx context.Context, userID uuid.UUID, code string) error
+	RequestMFAEnableCode(ctx context.Context, userID uuid.UUID) error
+	EnableMFA(ctx context.Context, userID uuid.UUID, code string) error
+	RequestMFADisableCode(ctx context.Context, userID uuid.UUID) error
+	DisableMFA(ctx context.Context, userID uuid.UUID, code string) error
 
 	ListSessions(ctx context.Context, userID uuid.UUID) ([]UserSession, error)
 	DeleteSession(ctx context.Context, userID, sessionID uuid.UUID) error
@@ -134,7 +136,6 @@ type Service struct {
 	rdb        *redis.Client
 	issuer     string
 	audience   []string
-	totpKey    string
 	opTimeout  time.Duration
 	rl         *rateLimiter
 	auditW     audit.Writer
@@ -157,7 +158,6 @@ func NewService(cfg ServiceConfig) IService {
 		rdb:        cfg.Redis,
 		issuer:     issuer,
 		audience:   cfg.JWT.Audience,
-		totpKey:    cfg.Security.TOTPEncryptionKey,
 		opTimeout:  cfg.Security.OperationTimeout,
 		rl:         newRateLimiter(cfg.Redis, cfg.Security.RateLimit),
 		auditW:     cfg.Audit,
@@ -294,14 +294,14 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 		return nil, ErrUserNotFound
 	}
 
-	challenge, err := s.verifyMFAIfEnable(ctx, user.ID, req.TOTPCode)
+	challenge, err := s.verifyMFAIfEnable(ctx, user, req.MFACode, device)
 	if err != nil {
-		if errors.Is(err, ErrInvalidTOTP) {
-			s.logger.Warn("login failed: invalid totp code",
+		if errors.Is(err, ErrInvalidMFACode) {
+			s.logger.Warn("login failed: invalid mfa code",
 				zap.String("user_id", user.ID.String()),
 				zap.String("ip", device.IPAddress),
 			)
-			s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "invalid totp")
+			s.audit(ctx, AuditLoginFailed, audit.Failure, &user.ID, device, "invalid mfa")
 		}
 		return nil, err
 	}
@@ -310,7 +310,12 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, device DeviceInfo
 			zap.String("user_id", user.ID.String()),
 			zap.String("ip", device.IPAddress),
 		)
-		return &SessionResponse{RequiresTOTP: true}, nil
+		mfaUser := toUserResponse(user)
+		mfaUser.MFAEnabled = true
+		return &SessionResponse{
+			User:        mfaUser,
+			RequiresMFA: true,
+		}, nil
 	}
 
 	if err := s.reactiveIfDeactivated(ctx, user); err != nil {
@@ -732,88 +737,90 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	return nil
 }
 
-func (s *Service) SetupTOTP(ctx context.Context, userID uuid.UUID) (*TOTPSetupResponse, error) {
+func (s *Service) RequestMFAEnableCode(ctx context.Context, userID uuid.UUID) error {
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
+
+	if err := s.checkRate(ctx, rateMFA, userID.String(), &userID, DeviceInfo{}); err != nil {
+		return err
+	}
 
 	user, err := s.repo.FindUserByID(ctx, userID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if user == nil {
-		return nil, ErrUserNotFound
+		return ErrUserNotFound
 	}
 	mfa, err := s.repo.FindMFAConfig(ctx, userID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if mfa != nil && mfa.IsEnabled {
-		return nil, ErrTOTPAlreadyEnabled
+		return ErrMFAAlreadyEnabled
 	}
-	secret, err := generateTOTPSecret()
-	if err != nil {
-		return nil, err
-	}
-	stored, err := s.protectTOTPSecret(secret)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.storePendingTOTP(ctx, userID, stored); err != nil {
-		return nil, err
-	}
-	return &TOTPSetupResponse{
-		Secret:          secret,
-		ProvisioningURL: totpProvisioningURL(secret, user.Email, s.issuer),
-	}, nil
+	return s.issueMFACode(ctx, user, "enable")
 }
 
-func (s *Service) EnableTOTP(ctx context.Context, userID uuid.UUID, code string) error {
+func (s *Service) EnableMFA(ctx context.Context, userID uuid.UUID, code string) error {
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 
-	if err := s.checkRate(ctx, rateTOTP, userID.String(), &userID, DeviceInfo{}); err != nil {
+	if err := s.checkRate(ctx, rateMFA, userID.String(), &userID, DeviceInfo{}); err != nil {
 		return err
 	}
 
-	stored, err := s.loadPendingTOTP(ctx, userID)
+	ok, err := s.consumeMFACode(ctx, userID, code)
 	if err != nil {
 		return err
 	}
-	if stored == "" {
-		return ErrTOTPNotConfigured
-	}
-	secret, err := s.unprotectTOTPSecret(stored)
-	if err != nil {
-		return err
-	}
-	counter, ok := verifyTOTP(secret, code)
 	if !ok {
-		s.logger.Warn("totp enable failed: invalid code", zap.String("user_id", userID.String()))
-		s.audit(ctx, AuditTOTPEnabled, audit.Failure, &userID, DeviceInfo{}, "invalid_code")
-		return ErrInvalidTOTP
-	}
-	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
-		s.audit(ctx, AuditTOTPEnabled, audit.Failure, &userID, DeviceInfo{}, "replay")
-		return err
+		s.logger.Warn("mfa enable failed: invalid code", zap.String("user_id", userID.String()))
+		s.audit(ctx, AuditMFAEnabled, audit.Failure, &userID, DeviceInfo{}, "invalid_code")
+		return ErrInvalidMFACode
 	}
 	if err := s.repo.UpsertMFAConfig(ctx, &MFAConfig{
-		UserID:     userID,
-		TOTPSecret: stored,
-		IsEnabled:  true,
+		UserID:    userID,
+		Method:    "email",
+		IsEnabled: true,
 	}); err != nil {
 		return err
 	}
-	s.clearPendingTOTP(ctx, userID)
-	s.logger.Info("totp enabled", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditTOTPEnabled, audit.Success, &userID, DeviceInfo{}, "")
+	s.logger.Info("mfa enabled", zap.String("user_id", userID.String()))
+	s.audit(ctx, AuditMFAEnabled, audit.Success, &userID, DeviceInfo{}, "")
 	return nil
 }
 
-func (s *Service) DisableTOTP(ctx context.Context, userID uuid.UUID, code string) error {
+func (s *Service) RequestMFADisableCode(ctx context.Context, userID uuid.UUID) error {
 	ctx, cancel := s.withTimeout(ctx)
 	defer cancel()
 
-	if err := s.checkRate(ctx, rateTOTP, userID.String(), &userID, DeviceInfo{}); err != nil {
+	if err := s.checkRate(ctx, rateMFA, userID.String(), &userID, DeviceInfo{}); err != nil {
+		return err
+	}
+
+	user, err := s.repo.FindUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	mfa, err := s.repo.FindMFAConfig(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if mfa == nil || !mfa.IsEnabled {
+		return ErrMFANotConfigured
+	}
+	return s.issueMFACode(ctx, user, "disable")
+}
+
+func (s *Service) DisableMFA(ctx context.Context, userID uuid.UUID, code string) error {
+	ctx, cancel := s.withTimeout(ctx)
+	defer cancel()
+
+	if err := s.checkRate(ctx, rateMFA, userID.String(), &userID, DeviceInfo{}); err != nil {
 		return err
 	}
 
@@ -822,28 +829,22 @@ func (s *Service) DisableTOTP(ctx context.Context, userID uuid.UUID, code string
 		return err
 	}
 	if mfa == nil || !mfa.IsEnabled {
-		return ErrTOTPNotConfigured
+		return ErrMFANotConfigured
 	}
-	secret, err := s.unprotectTOTPSecret(mfa.TOTPSecret)
+	ok, err := s.consumeMFACode(ctx, userID, code)
 	if err != nil {
 		return err
 	}
-	counter, ok := verifyTOTP(secret, code)
 	if !ok {
-		s.logger.Warn("totp disable failed: invalid code", zap.String("user_id", userID.String()))
-		s.audit(ctx, AuditTOTPDisabled, audit.Failure, &userID, DeviceInfo{}, "invalid_code")
-		return ErrInvalidTOTP
-	}
-	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
-		s.audit(ctx, AuditTOTPDisabled, audit.Failure, &userID, DeviceInfo{}, "replay")
-		return err
+		s.logger.Warn("mfa disable failed: invalid code", zap.String("user_id", userID.String()))
+		s.audit(ctx, AuditMFADisabled, audit.Failure, &userID, DeviceInfo{}, "invalid_code")
+		return ErrInvalidMFACode
 	}
 	if err := s.repo.DeleteMFAConfig(ctx, userID); err != nil {
 		return err
 	}
-	s.clearPendingTOTP(ctx, userID)
-	s.logger.Info("totp disabled", zap.String("user_id", userID.String()))
-	s.audit(ctx, AuditTOTPDisabled, audit.Success, &userID, DeviceInfo{}, "")
+	s.logger.Info("mfa disabled", zap.String("user_id", userID.String()))
+	s.audit(ctx, AuditMFADisabled, audit.Success, &userID, DeviceInfo{}, "")
 	return nil
 }
 
@@ -873,6 +874,9 @@ func (s *Service) GetUser(ctx context.Context, userID uuid.UUID) (*UserResponse,
 		return nil, ErrUserNotFound
 	}
 	out := toUserResponse(user)
+	if mfa, err := s.repo.FindMFAConfig(ctx, userID); err == nil && mfa != nil {
+		out.MFAEnabled = mfa.IsEnabled
+	}
 	return &out, nil
 }
 
@@ -977,20 +981,6 @@ func checkPassword(hash, plain string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain)) == nil
 }
 
-func (s *Service) protectTOTPSecret(plain string) (string, error) {
-	if s.totpKey == "" {
-		return plain, nil
-	}
-	return encryptSecret(plain, s.totpKey)
-}
-
-func (s *Service) unprotectTOTPSecret(stored string) (string, error) {
-	if s.totpKey == "" {
-		return stored, nil
-	}
-	return decryptSecret(stored, s.totpKey)
-}
-
 func (s *Service) audit(ctx context.Context, action audit.Action, status audit.Status, userID *uuid.UUID, device DeviceInfo, detail string) {
 	if s.auditW == nil {
 		return
@@ -1090,8 +1080,8 @@ func (s *Service) reactiveIfDeactivated(ctx context.Context, user *User) error {
 	return nil
 }
 
-func (s *Service) verifyMFAIfEnable(ctx context.Context, userID uuid.UUID, code string) (bool, error) {
-	mfa, err := s.repo.FindMFAConfig(ctx, userID)
+func (s *Service) verifyMFAIfEnable(ctx context.Context, user *User, code string, device DeviceInfo) (bool, error) {
+	mfa, err := s.repo.FindMFAConfig(ctx, user.ID)
 	if err != nil {
 		return false, err
 	}
@@ -1099,67 +1089,89 @@ func (s *Service) verifyMFAIfEnable(ctx context.Context, userID uuid.UUID, code 
 		return false, nil
 	}
 	if code == "" {
+		if err := s.issueMFACode(ctx, user, "login"); err != nil {
+			s.logger.Warn("mfa: issue login code failed",
+				zap.Error(err),
+				zap.String("user_id", user.ID.String()),
+				zap.String("ip", device.IPAddress),
+			)
+		}
 		return true, nil
 	}
-	secret, err := s.unprotectTOTPSecret(mfa.TOTPSecret)
+	ok, err := s.consumeMFACode(ctx, user.ID, code)
 	if err != nil {
-		return false, nil
-	}
-	counter, ok := verifyTOTP(secret, code)
-	if !ok {
-		return false, ErrInvalidTOTP
-	}
-	if err := s.consumeTOTPStep(ctx, userID, counter); err != nil {
 		return false, err
+	}
+	if !ok {
+		return false, ErrInvalidMFACode
 	}
 	return false, nil
 }
 
-func (s *Service) storePendingTOTP(ctx context.Context, userID uuid.UUID, ciphertext string) error {
+func (s *Service) issueMFACode(ctx context.Context, user *User, purpose string) error {
 	if s.rdb == nil {
-		return ErrTOTPStoreUnavailable
+		return ErrMFAStoreUnavailable
 	}
-	return s.rdb.Set(ctx, totpPendingKeyPrefix+userID.String(), ciphertext, totpPendingTTL).Err()
-}
-
-func (s *Service) loadPendingTOTP(ctx context.Context, userID uuid.UUID) (string, error) {
-	if s.rdb == nil {
-		return "", ErrTOTPStoreUnavailable
-	}
-	v, err := s.rdb.Get(ctx, totpPendingKeyPrefix+userID.String()).Result()
-	if errors.Is(err, redis.Nil) {
-		return "", nil
-	}
-	return v, err
-}
-
-func (s *Service) clearPendingTOTP(ctx context.Context, userID uuid.UUID) {
-	if s.rdb == nil {
-		return
-	}
-	if err := s.rdb.Del(ctx, totpPendingKeyPrefix+userID.String()).Err(); err != nil {
-		s.logger.Warn("totp clear pending failed", zap.Error(err), zap.String("user_id", userID.String()))
-	}
-}
-
-func (s *Service) consumeTOTPStep(ctx context.Context, userID uuid.UUID, counter int64) error {
-	if s.rdb == nil {
-		return nil
-	}
-	key := totpUsedKeyPrefix + userID.String() + ":" + strconv.FormatInt(counter, 10)
-	ok, err := s.rdb.SetNX(ctx, key, "1", totpUsedTTL).Result()
+	code, err := generateNumericCode(mfaCodeDigits)
 	if err != nil {
-		s.logger.Warn("totp replay check failed; allowing", zap.Error(err))
-		return nil
+		return err
 	}
-	if !ok {
-		s.logger.Warn("totp replay detected",
-			zap.String("user_id", userID.String()),
-			zap.Int64("counter", counter),
-		)
-		return ErrInvalidTOTP
+	if err := s.rdb.Set(ctx, mfaCodeKey(user.ID), hashToken(code), mfaCodeTTL).Err(); err != nil {
+		return err
 	}
+	if s.mailer != nil {
+		if err := s.mailer.SendMFACodeEmail(ctx, user.Email, user.Name, code); err != nil {
+			s.logger.Warn("mfa code email send failed",
+				zap.Error(err),
+				zap.String("user_id", user.ID.String()),
+				zap.String("purpose", purpose),
+			)
+		}
+	}
+	s.audit(ctx, AuditMFACodeSent, audit.Success, &user.ID, DeviceInfo{}, purpose)
 	return nil
+}
+
+func (s *Service) consumeMFACode(ctx context.Context, userID uuid.UUID, code string) (bool, error) {
+	if s.rdb == nil {
+		return false, ErrMFAStoreUnavailable
+	}
+	key := mfaCodeKey(userID)
+	stored, err := s.rdb.GetDel(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if subtleCompare(stored, hashToken(code)) {
+		return true, nil
+	}
+	return false, nil
+}
+
+func mfaCodeKey(userID uuid.UUID) string {
+	return mfaCodeKeyPrefix + userID.String()
+}
+
+func generateNumericCode(digits int) (string, error) {
+	max := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(digits)), nil)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%0*d", digits, n.Int64()), nil
+}
+
+func subtleCompare(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	var v byte
+	for i := 0; i < len(a); i++ {
+		v |= a[i] ^ b[i]
+	}
+	return v == 0
 }
 
 func (s *Service) resolveOAuthUser(ctx context.Context, identity OAuthIdentity) (*User, bool, error) {
@@ -1308,11 +1320,15 @@ func (s *Service) createSession(ctx context.Context, user *User, device DeviceIn
 		return nil, nil, err
 	}
 
+	userResp := toUserResponse(user)
+	if mfa, err := s.repo.FindMFAConfig(ctx, user.ID); err == nil && mfa != nil {
+		userResp.MFAEnabled = mfa.IsEnabled
+	}
 	return &SessionResponse{
 		AccessToken:  accessTok,
 		RefreshToken: refreshRaw,
 		ExpiresIn:    int64(time.Until(accessEcp).Seconds()),
 		TokenType:    "Bearer",
-		User:         toUserResponse(user),
+		User:         userResp,
 	}, session, nil
 }

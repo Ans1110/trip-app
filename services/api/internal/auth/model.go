@@ -83,11 +83,11 @@ func (PasswordReset) TableName() string {
 }
 
 type MFAConfig struct {
-	UserID     uuid.UUID `gorm:"type:uuid;primaryKey"`
-	TOTPSecret string    `gorm:"column:totp_secret;not null"` // AES-GCM ciphertext (hex)
-	IsEnabled  bool      `gorm:"column:is_enabled;default:false"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	UserID    uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Method    string    `gorm:"column:method;size:32;not null;default:'email'"`
+	IsEnabled bool      `gorm:"column:is_enabled;default:false"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (MFAConfig) TableName() string {
@@ -145,8 +145,9 @@ const (
 	AuditLogout             audit.Action = "logout"
 	AuditPasswordReset      audit.Action = "password_reset"
 	AuditPasswordChange     audit.Action = "password_change"
-	AuditTOTPEnabled        audit.Action = "totp_enabled"
-	AuditTOTPDisabled       audit.Action = "totp_disabled"
+	AuditMFAEnabled         audit.Action = "mfa_enabled"
+	AuditMFADisabled        audit.Action = "mfa_disabled"
+	AuditMFACodeSent        audit.Action = "mfa_code_sent"
 	AuditAccountDeactivated audit.Action = "account_deactivated"
 	AuditAccountDeleted     audit.Action = "account_deleted"
 	AuditRateLimited        audit.Action = "rate_limited"

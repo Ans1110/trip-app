@@ -11,7 +11,7 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8,max=72"`
-	TOTPCode string `json:"totp_code"`
+	MFACode  string `json:"mfa_code"`
 }
 
 type GoogleOAuthRequest struct {
@@ -45,16 +45,12 @@ type UserResponse struct {
 	Name       string    `json:"name"`
 	AvatarURL  string    `json:"avatar_url,omitempty"`
 	IsVerified bool      `json:"is_verified"`
+	MFAEnabled bool      `json:"mfa_enabled"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-type TOTPSetupResponse struct {
-	Secret          string `json:"secret"`
-	ProvisioningURL string `json:"provisioning_url"`
-}
-
-type VerifyTOTPRequest struct {
-	TOTPCode string `json:"totp_code" binding:"required"`
+type VerifyMFARequest struct {
+	MFACode string `json:"mfa_code" binding:"required"`
 }
 
 type ForgotPasswordRequest struct {
@@ -89,6 +85,6 @@ type SessionResponse struct {
 	ExpiresIn            int64        `json:"expires_in"`
 	TokenType            string       `json:"token_type,omitempty"`
 	User                 UserResponse `json:"user"`
-	RequiresTOTP         bool         `json:"requires_totp,omitempty"`
+	RequiresMFA          bool         `json:"requires_mfa,omitempty"`
 	RequiresVerification bool         `json:"requires_verification,omitempty"`
 }

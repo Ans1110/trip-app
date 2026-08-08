@@ -35,9 +35,10 @@ type IHandler interface {
 	Logout(c *gin.Context)
 	LogoutAll(c *gin.Context)
 	ChangePassword(c *gin.Context)
-	SetupTOTP(c *gin.Context)
-	EnableTOTP(c *gin.Context)
-	DisableTOTP(c *gin.Context)
+	RequestMFAEnableCode(c *gin.Context)
+	EnableMFA(c *gin.Context)
+	RequestMFADisableCode(c *gin.Context)
+	DisableMFA(c *gin.Context)
 	ListSessions(c *gin.Context)
 	DeleteSession(c *gin.Context)
 	Me(c *gin.Context)
@@ -83,9 +84,10 @@ func (h *Handler) RegisterRoutes(public *gin.RouterGroup, protected *gin.RouterG
 		pri.POST("/logout", h.Logout)
 		pri.POST("/logout-all", h.LogoutAll)
 		pri.POST("/password", h.ChangePassword)
-		pri.POST("/totp/setup", h.SetupTOTP)
-		pri.POST("/totp/enable", h.EnableTOTP)
-		pri.POST("/totp/disable", h.DisableTOTP)
+		pri.POST("/mfa/enable/request", h.RequestMFAEnableCode)
+		pri.POST("/mfa/enable", h.EnableMFA)
+		pri.POST("/mfa/disable/request", h.RequestMFADisableCode)
+		pri.POST("/mfa/disable", h.DisableMFA)
 		pri.GET("/sessions", h.ListSessions)
 		pri.DELETE("/sessions/:id", h.DeleteSession)
 		pri.GET("/me", h.Me)
@@ -123,14 +125,14 @@ func (h *Handler) Register(c *gin.Context) {
 
 // Login godoc
 // @Summary      Log in with email + password
-// @Description  Returns access/refresh tokens. If TOTP is enabled and no code is provided, responds with requires_totp=true.
+// @Description  Returns access/refresh tokens. If MFA is enabled and no code is provided, emails a code and responds with requires_mfa=true.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
 // @Param        body  body      LoginRequest  true  "Login payload"
 // @Success      200   {object}  response.Response{data=SessionResponse}
 // @Failure      400   {object}  response.Response
-// @Failure      401   {object}  response.Response  "invalid credentials or TOTP"
+// @Failure      401   {object}  response.Response  "invalid credentials or MFA code"
 // @Failure      403   {object}  response.Response  "user blocked"
 // @Failure      429   {object}  response.Response
 // @Router       /auth/login [post]
@@ -402,83 +404,103 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	response.OK(c, nil)
 }
 
-// SetupTOTP godoc
-// @Summary      Generate a TOTP secret + provisioning URL
-// @Description  Secret is stored unverified; call /auth/totp/enable with a code to activate.
+// RequestMFAEnableCode godoc
+// @Summary      Email a 6-digit code to enable MFA
 // @Tags         auth
 // @Security     BearerAuth
 // @Produce      json
-// @Success      200  {object}  response.Response{data=TOTPSetupResponse}
+// @Success      200  {object}  response.Response
 // @Failure      401  {object}  response.Response
-// @Failure      409  {object}  response.Response  "totp already enabled"
-func (h *Handler) SetupTOTP(c *gin.Context) {
+// @Failure      409  {object}  response.Response  "mfa already enabled"
+// @Router       /auth/mfa/enable/request [post]
+func (h *Handler) RequestMFAEnableCode(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	if userID == uuid.Nil {
 		response.Unauthorized(c)
 		return
 	}
-	resp, err := h.svc.SetupTOTP(c.Request.Context(), userID)
-	if err != nil {
-		h.respondServiceError(c, err)
-		return
-	}
-	response.OK(c, resp)
-}
-
-// EnableTOTP godoc
-// @Summary      Activate TOTP after verifying a code
-// @Tags         auth
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Param        body  body      VerifyTOTPRequest  true  "TOTP code"
-// @Success      200   {object}  response.Response
-// @Failure      400   {object}  response.Response
-// @Failure      401   {object}  response.Response  "invalid code"
-// @Failure      404   {object}  response.Response  "totp not configured"
-// @Router       /auth/totp/enable [post]
-func (h *Handler) EnableTOTP(c *gin.Context) {
-	userID := middleware.GetUserID(c)
-	if userID == uuid.Nil {
-		response.Unauthorized(c)
-		return
-	}
-	var req VerifyTOTPRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-	if err := h.svc.EnableTOTP(c.Request.Context(), userID, req.TOTPCode); err != nil {
+	if err := h.svc.RequestMFAEnableCode(c.Request.Context(), userID); err != nil {
 		h.respondServiceError(c, err)
 		return
 	}
 	response.OK(c, nil)
 }
 
-// DisableTOTP godoc
-// @Summary      Disable TOTP after verifying a code
+// EnableMFA godoc
+// @Summary      Activate MFA after verifying an emailed code
 // @Tags         auth
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        body  body      VerifyTOTPRequest  true  "TOTP code"
+// @Param        body  body      VerifyMFARequest  true  "6-digit code"
 // @Success      200   {object}  response.Response
 // @Failure      400   {object}  response.Response
-// @Failure      401   {object}  response.Response
-// @Failure      404   {object}  response.Response  "totp not configured"
-// @Router       /auth/totp/disable [post]
-func (h *Handler) DisableTOTP(c *gin.Context) {
+// @Failure      401   {object}  response.Response  "invalid code"
+// @Router       /auth/mfa/enable [post]
+func (h *Handler) EnableMFA(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	if userID == uuid.Nil {
 		response.Unauthorized(c)
 		return
 	}
-	var req VerifyTOTPRequest
+	var req VerifyMFARequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err.Error())
 		return
 	}
-	if err := h.svc.DisableTOTP(c.Request.Context(), userID, req.TOTPCode); err != nil {
+	if err := h.svc.EnableMFA(c.Request.Context(), userID, req.MFACode); err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
+// RequestMFADisableCode godoc
+// @Summary      Email a 6-digit code to disable MFA
+// @Tags         auth
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  response.Response
+// @Failure      401  {object}  response.Response
+// @Failure      404  {object}  response.Response  "mfa not configured"
+// @Router       /auth/mfa/disable/request [post]
+func (h *Handler) RequestMFADisableCode(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	if userID == uuid.Nil {
+		response.Unauthorized(c)
+		return
+	}
+	if err := h.svc.RequestMFADisableCode(c.Request.Context(), userID); err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
+// DisableMFA godoc
+// @Summary      Disable MFA after verifying an emailed code
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      VerifyMFARequest  true  "6-digit code"
+// @Success      200   {object}  response.Response
+// @Failure      400   {object}  response.Response
+// @Failure      401   {object}  response.Response
+// @Failure      404   {object}  response.Response  "mfa not configured"
+// @Router       /auth/mfa/disable [post]
+func (h *Handler) DisableMFA(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	if userID == uuid.Nil {
+		response.Unauthorized(c)
+		return
+	}
+	var req VerifyMFARequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if err := h.svc.DisableMFA(c.Request.Context(), userID, req.MFACode); err != nil {
 		h.respondServiceError(c, err)
 		return
 	}
@@ -720,23 +742,23 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 		response.Conflict(c, err.Error())
 	case errors.Is(err, ErrInvalidCredentials),
 		errors.Is(err, ErrInvalidToken),
-		errors.Is(err, ErrInvalidTOTP),
+		errors.Is(err, ErrInvalidMFACode),
 		errors.Is(err, ErrInvalidOAuth):
 		response.Unauthorized(c)
 	case errors.Is(err, ErrUserBlocked):
 		response.Forbidden(c)
 	case errors.Is(err, ErrUserNotFound),
 		errors.Is(err, ErrSessionNotFound),
-		errors.Is(err, ErrTOTPNotConfigured):
+		errors.Is(err, ErrMFANotConfigured):
 		response.NotFound(c, err.Error())
-	case errors.Is(err, ErrTOTPAlreadyEnabled):
+	case errors.Is(err, ErrMFAAlreadyEnabled):
 		response.Conflict(c, err.Error())
 	case errors.Is(err, ErrPasswordNotSet):
 		response.BadRequest(c, err.Error())
 	case errors.Is(err, ErrOAuthNotConfigured):
 		response.Error(c, http.StatusServiceUnavailable, "oauth_unavailable", err.Error())
-	case errors.Is(err, ErrTOTPStoreUnavailable):
-		response.Error(c, http.StatusServiceUnavailable, "totp_unavailable", err.Error())
+	case errors.Is(err, ErrMFAStoreUnavailable):
+		response.Error(c, http.StatusServiceUnavailable, "mfa_unavailable", err.Error())
 	case errors.Is(err, ErrRateLimited):
 		response.TooManyRequests(c)
 	default:

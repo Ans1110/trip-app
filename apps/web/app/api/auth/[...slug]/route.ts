@@ -27,6 +27,14 @@ const POST_OPS: Record<string, Op> = {
     authClient.verifyEmail(body as never, auth),
   "resend-verification": (_req, body, auth) =>
     authClient.resendVerification(body as never, auth),
+  "mfa/enable/request": (_req, _body, auth) =>
+    authClient.requestMFAEnableCode(auth),
+  "mfa/enable": (_req, body, auth) =>
+    authClient.enableMFA(body as never, auth),
+  "mfa/disable/request": (_req, _body, auth) =>
+    authClient.requestMFADisableCode(auth),
+  "mfa/disable": (_req, body, auth) =>
+    authClient.disableMFA(body as never, auth),
 };
 
 const GET_OPS: Record<string, Op> = {

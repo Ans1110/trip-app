@@ -10,11 +10,10 @@ import {
   UpstreamResendVerificationRequest,
   UpstreamResetPasswordRequest,
   UpstreamSessionResponse,
-  UpstreamTOTPSetupResponse,
   UpstreamUserResponse,
   UpstreamUserSession,
   UpstreamVerifyEmailRequest,
-  UpstreamVerifyTOTPRequest,
+  UpstreamVerifyMFARequest,
 } from "../contracts/upstream";
 import { RequestContext } from "../request-context";
 import {
@@ -29,8 +28,6 @@ import { circuitOpenError } from "../errors";
 import {
   SessionView,
   toSessionView,
-  toTOTPSetupView,
-  TOTPSetupView,
   toUser,
   toUserSessionView,
   User,
@@ -52,12 +49,11 @@ export type ResendVerificationInput = UpstreamResendVerificationRequest;
 export type ForgotPasswordInput = UpstreamForgotPasswordRequest;
 export type ResetPasswordInput = UpstreamResetPasswordRequest;
 export type ChangePasswordInput = UpstreamChangePasswordRequest;
-export type VerifyTOTPInput = UpstreamVerifyTOTPRequest;
+export type VerifyMFAInput = UpstreamVerifyMFARequest;
 
 export type {
   JWKView,
   SessionView,
-  TOTPSetupView,
   User,
   UserSessionView,
 } from "../contracts/frontend";
@@ -199,34 +195,33 @@ export class AuthClient {
     );
   }
 
-  async setupTOTP(auth: AuthCtx): Promise<ApiResult<TOTPSetupView>> {
-    const res = await this.callProtected<UpstreamTOTPSetupResponse>(
-      auth,
-      (opts) =>
-        this.http.post<UpstreamTOTPSetupResponse>(
-          "/auth/totp/setup",
-          null,
-          opts,
-        ),
-    );
-    return mapData(res, toTOTPSetupView);
-  }
-
-  async enableTOTP(
-    input: VerifyTOTPInput,
-    auth: AuthCtx,
-  ): Promise<ApiResult<null>> {
+  async requestMFAEnableCode(auth: AuthCtx): Promise<ApiResult<null>> {
     return this.callProtected<null>(auth, (opts) =>
-      this.http.post<null>("/auth/totp/enable", input, opts),
+      this.http.post<null>("/auth/mfa/enable/request", null, opts),
     );
   }
 
-  async disableTOTP(
-    input: VerifyTOTPInput,
+  async enableMFA(
+    input: VerifyMFAInput,
     auth: AuthCtx,
   ): Promise<ApiResult<null>> {
     return this.callProtected<null>(auth, (opts) =>
-      this.http.post<null>("/auth/totp/disable", input, opts),
+      this.http.post<null>("/auth/mfa/enable", input, opts),
+    );
+  }
+
+  async requestMFADisableCode(auth: AuthCtx): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.post<null>("/auth/mfa/disable/request", null, opts),
+    );
+  }
+
+  async disableMFA(
+    input: VerifyMFAInput,
+    auth: AuthCtx,
+  ): Promise<ApiResult<null>> {
+    return this.callProtected<null>(auth, (opts) =>
+      this.http.post<null>("/auth/mfa/disable", input, opts),
     );
   }
 
@@ -314,7 +309,7 @@ export class AuthClient {
   ): Promise<ApiResult<SessionView>> {
     if (!result.ok) return result;
     const session = result.data;
-    if (session && !session.requires_totp && !session.requires_verification) {
+    if (session && !session.requires_mfa && !session.requires_verification) {
       await persistSession(session);
     }
     return {

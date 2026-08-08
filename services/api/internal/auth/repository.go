@@ -180,7 +180,7 @@ func (r *repository) InvalidatePendingPasswordResets(ctx context.Context, userID
 func (r *repository) UpsertMFAConfig(ctx context.Context, config *MFAConfig) error {
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "user_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"totp_secret", "is_enabled", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"method", "is_enabled", "updated_at"}),
 	}).Create(config).Error
 }
 

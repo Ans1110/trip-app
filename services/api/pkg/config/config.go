@@ -63,16 +63,15 @@ type JWTConfig struct {
 }
 
 type SecurityConfig struct {
-	TOTPEncryptionKey string          `mapstructure:"totp_encryption_key"` // 32-byte hex (64 chars)
-	OperationTimeout  time.Duration   `mapstructure:"operation_timeout"`
-	RateLimit         RateLimitConfig `mapstructure:"rate_limit"`
+	OperationTimeout time.Duration   `mapstructure:"operation_timeout"`
+	RateLimit        RateLimitConfig `mapstructure:"rate_limit"`
 }
 
 type RateLimitConfig struct {
 	Login          RateLimitRule `mapstructure:"login"`
 	Register       RateLimitRule `mapstructure:"register"`
 	ForgotPassword RateLimitRule `mapstructure:"forgot_password"`
-	TOTP           RateLimitRule `mapstructure:"totp"`
+	MFA            RateLimitRule `mapstructure:"mfa"`
 }
 
 type RateLimitRule struct {

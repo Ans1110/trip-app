@@ -14,6 +14,7 @@ import (
 type Mailer interface {
 	SendVerificationEmail(ctx context.Context, to, name, token string) error
 	SendPasswordResetEmail(ctx context.Context, to, name, token string) error
+	SendMFACodeEmail(ctx context.Context, to, name, code string) error
 }
 
 func New(cfg config.NotificationConfig, logger *zap.Logger) Mailer {
@@ -75,6 +76,15 @@ func (m *logMailer) SendPasswordResetEmail(_ context.Context, to, name, token st
 	return nil
 }
 
+func (m *logMailer) SendMFACodeEmail(_ context.Context, to, name, code string) error {
+	m.logger.Info("mfa code email (dev log)",
+		zap.String("to", to),
+		zap.String("name", name),
+		zap.String("code", code),
+	)
+	return nil
+}
+
 type smtpMailer struct {
 	cfg    config.SMTPConfig
 	webURL string
@@ -89,6 +99,10 @@ func (m *smtpMailer) SendVerificationEmail(_ context.Context, to, name, token st
 func (m *smtpMailer) SendPasswordResetEmail(_ context.Context, to, name, token string) error {
 	link := buildLink(m.webURL, "/reset-password", token)
 	return m.send(to, "Reset your TripCraft password", renderPasswordReset(name, link))
+}
+
+func (m *smtpMailer) SendMFACodeEmail(_ context.Context, to, name, code string) error {
+	return m.send(to, "Your TripCraft sign-in code", renderMFACode(name, code))
 }
 
 func (m *smtpMailer) send(to, subject, htmlBody string) error {
@@ -153,6 +167,20 @@ func renderPasswordReset(name, link string) string {
     <p style="margin:24px 0 0;color:#6B7A6F;font-size:12px;">If you didn't request this, you can safely ignore it.</p>
   </div>
 </body></html>`, greeting, link, link)
+}
+
+func renderMFACode(name, code string) string {
+	greeting := greet(name)
+	return fmt.Sprintf(`<!doctype html>
+<html><body style="margin:0;background:#0B100D;color:#ECEFEA;font-family:Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+    <h1 style="font-family:Georgia,serif;font-weight:400;font-size:28px;margin:0 0 24px;">Your sign-in code</h1>
+    <p style="margin:0 0 8px;">%s,</p>
+    <p style="margin:0 0 24px;color:#8B9A8E;">Use this code to finish signing in. It expires in a few minutes.</p>
+    <p style="margin:0 0 24px;font-size:32px;letter-spacing:12px;font-weight:600;color:#A8E0B4;">%s</p>
+    <p style="margin:24px 0 0;color:#6B7A6F;font-size:12px;">If you didn't try to sign in, you can ignore this email.</p>
+  </div>
+</body></html>`, greeting, code)
 }
 
 func greet(name string) string {

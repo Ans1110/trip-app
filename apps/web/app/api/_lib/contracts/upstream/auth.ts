@@ -9,7 +9,7 @@ export type UpstreamRegisterRequest = {
 export type UpstreamLoginRequest = {
   email: string;
   password: string;
-  totp_code?: string;
+  mfa_code?: string;
 };
 
 export type UpstreamGoogleOAuthRequest = { id_token: string };
@@ -28,7 +28,7 @@ export type UpstreamChangePasswordRequest = {
   new_password: string;
 };
 
-export type UpstreamVerifyTOTPRequest = { totp_code: string };
+export type UpstreamVerifyMFARequest = { mfa_code: string };
 
 export type UpstreamUserResponse = {
   id: string;
@@ -36,6 +36,7 @@ export type UpstreamUserResponse = {
   name: string;
   avatar_url?: string;
   is_verified: boolean;
+  mfa_enabled?: boolean;
   created_at: string;
 };
 
@@ -45,13 +46,8 @@ export type UpstreamSessionResponse = {
   expires_in: number;
   token_type?: string;
   user: UpstreamUserResponse;
-  requires_totp?: boolean;
+  requires_mfa?: boolean;
   requires_verification?: boolean;
-};
-
-export type UpstreamTOTPSetupResponse = {
-  secret: string;
-  provisioning_url: string;
 };
 
 export type UpstreamUserSession = {
