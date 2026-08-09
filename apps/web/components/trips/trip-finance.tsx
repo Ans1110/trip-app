@@ -372,6 +372,7 @@ function ParticipantAvatars({
           <Avatar
             key={s.user_id}
             label={initials(name)}
+            avatarUrl={user?.avatar_url}
             title={`${name}${isPayer ? " (payer)" : paid ? " · paid" : ""}`}
             paid={paid}
             isPayer={isPayer}
@@ -386,6 +387,7 @@ function ParticipantAvatars({
 
 function Avatar({
   label,
+  avatarUrl,
   title,
   paid,
   isPayer,
@@ -393,6 +395,7 @@ function Avatar({
   onClick,
 }: {
   label: string;
+  avatarUrl?: string;
   title: string;
   paid: boolean;
   isPayer: boolean;
@@ -400,7 +403,7 @@ function Avatar({
   onClick: () => void;
 }) {
   const common =
-    "inline-flex items-center justify-center size-7 rounded-full text-[10px] font-medium select-none season-transition";
+    "inline-flex items-center justify-center size-7 rounded-full text-[10px] font-medium select-none season-transition overflow-hidden";
   const style: React.CSSProperties = {
     backgroundColor: paid
       ? "#1F2A24"
@@ -412,10 +415,16 @@ function Avatar({
     opacity: paid ? 0.55 : 1,
     textDecoration: paid && !isPayer ? "line-through" : "none",
   };
+  const content = avatarUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={avatarUrl} alt="" className="size-full object-cover" />
+  ) : (
+    label
+  );
   if (!interactive) {
     return (
       <span className={common} title={title} style={style}>
-        {label}
+        {content}
       </span>
     );
   }
@@ -428,7 +437,7 @@ function Avatar({
       className={`${common} hover:brightness-110`}
       style={style}
     >
-      {label}
+      {content}
     </button>
   );
 }

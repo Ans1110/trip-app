@@ -101,7 +101,21 @@ func (r *repository) FindUserByID(ctx context.Context, id uuid.UUID) (*auth.User
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
-	return &u, err
+	if err != nil {
+		return nil, err
+	}
+	var profileAvatar string
+	if err := r.db.WithContext(ctx).
+		Table("profile.profiles").
+		Select("avatar_url").
+		Where("user_id = ? AND avatar_url <> ''", id).
+		Scan(&profileAvatar).Error; err != nil {
+		return nil, err
+	}
+	if profileAvatar != "" {
+		u.AvatarURL = profileAvatar
+	}
+	return &u, nil
 }
 
 func (r *repository) FindUsersByIDs(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]auth.User, error) {
@@ -113,7 +127,26 @@ func (r *repository) FindUsersByIDs(ctx context.Context, ids []uuid.UUID) (map[u
 	if err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&users).Error; err != nil {
 		return nil, err
 	}
+
+	var profiles []struct {
+		UserID    uuid.UUID
+		AvatarURL string
+	}
+	if err := r.db.WithContext(ctx).
+		Table("profile.profiles").
+		Select("user_id, avatar_url").
+		Where("user_id IN ? AND avatar_url <> ''", ids).
+		Scan(&profiles).Error; err != nil {
+		return nil, err
+	}
+	avatarByID := make(map[uuid.UUID]string, len(profiles))
+	for _, p := range profiles {
+		avatarByID[p.UserID] = p.AvatarURL
+	}
 	for _, u := range users {
+		if a, ok := avatarByID[u.ID]; ok {
+			u.AvatarURL = a
+		}
 		out[u.ID] = u
 	}
 	return out, nil

@@ -34,6 +34,8 @@ import {
   type AddOptionFormInput,
 } from "@/lib/schemas/vote-schemas";
 
+import { Modal } from "./modal";
+
 type MemberLookup = Map<string, UserSummary>;
 
 const typeBadge: Record<Poll["type"], string> = {
@@ -107,18 +109,32 @@ export function PollCard({
     }
   };
 
-  const handleRemoveOption = (optId: string) => {
-    if (!window.confirm("Remove this option?")) return;
-    delOption.mutate({ tripId, pollId: poll.id, optionId: optId });
-  };
+  const [confirm, setConfirm] = useState<
+    | { kind: "none" }
+    | { kind: "delete-poll" }
+    | { kind: "delete-option"; optionId: string; optionText: string }
+  >({ kind: "none" });
+
+  const closeConfirm = () => setConfirm({ kind: "none" });
 
   const handleClose = () => {
     if (!window.confirm("Close this poll? Voting will stop immediately.")) return;
     closeMut.mutate({ tripId, pollId: poll.id });
   };
-  const handleDelete = () => {
-    if (!window.confirm("Delete this poll and all its votes?")) return;
-    removeMut.mutate({ tripId, pollId: poll.id });
+
+  const confirmDeletePoll = () => {
+    removeMut.mutate(
+      { tripId, pollId: poll.id },
+      { onSuccess: closeConfirm },
+    );
+  };
+
+  const confirmDeleteOption = () => {
+    if (confirm.kind !== "delete-option") return;
+    delOption.mutate(
+      { tripId, pollId: poll.id, optionId: confirm.optionId },
+      { onSuccess: closeConfirm },
+    );
   };
 
   return (
@@ -164,7 +180,7 @@ export function PollCard({
             )}
             <IconButton
               aria-label="Delete poll"
-              onClick={handleDelete}
+              onClick={() => setConfirm({ kind: "delete-poll" })}
               busy={removeMut.isPending}
               color="#FCA5A5"
             >
@@ -189,7 +205,12 @@ export function PollCard({
             onPick={() => handlePick(opt.id)}
             onDelete={
               (isCreator || opt.added_by === meId) && !isClosed
-                ? () => handleRemoveOption(opt.id)
+                ? () =>
+                    setConfirm({
+                      kind: "delete-option",
+                      optionId: opt.id,
+                      optionText: opt.text,
+                    })
                 : undefined
             }
           />
@@ -237,12 +258,99 @@ export function PollCard({
       {cast.isError && (
         <p className="text-[11px] text-[#FCA5A5]">{errorMessage(cast.error)}</p>
       )}
-      {delOption.isError && (
+      {delOption.isError && confirm.kind !== "delete-option" && (
         <p className="text-[11px] text-[#FCA5A5]">
           {errorMessage(delOption.error)}
         </p>
       )}
+
+      {confirm.kind === "delete-poll" && (
+        <ConfirmDeleteModal
+          title="Delete poll?"
+          body={
+            <>
+              <span className="text-[#ECEFEA] font-medium">
+                &ldquo;{poll.title}&rdquo;
+              </span>{" "}
+              and every vote cast on it will be permanently removed. This
+              can&apos;t be undone.
+            </>
+          }
+          confirmLabel="Delete poll"
+          pending={removeMut.isPending}
+          error={errorMessage(removeMut.error)}
+          onConfirm={confirmDeletePoll}
+          onClose={closeConfirm}
+        />
+      )}
+      {confirm.kind === "delete-option" && (
+        <ConfirmDeleteModal
+          title="Remove option?"
+          body={
+            <>
+              <span className="text-[#ECEFEA] font-medium">
+                &ldquo;{confirm.optionText}&rdquo;
+              </span>{" "}
+              and any votes for it will be removed from this poll.
+            </>
+          }
+          confirmLabel="Remove option"
+          pending={delOption.isPending}
+          error={errorMessage(delOption.error)}
+          onConfirm={confirmDeleteOption}
+          onClose={closeConfirm}
+        />
+      )}
     </article>
+  );
+}
+
+function ConfirmDeleteModal({
+  title,
+  body,
+  confirmLabel,
+  pending,
+  error,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  body: React.ReactNode;
+  confirmLabel: string;
+  pending: boolean;
+  error: string | null;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal title={title} onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+          {body}
+        </p>
+        {error && <p className="text-sm text-[#FCA5A5]">{error}</p>}
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={pending}
+            className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={pending}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
+            style={{ backgroundColor: "#7F1D1D", color: "#FEE2E2" }}
+          >
+            {pending && <Loader2 className="size-3.5 animate-spin" />}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

@@ -109,14 +109,19 @@ function UploaderAvatar({ user }: { user: UserSummary }) {
     <span
       title={`Uploaded by ${user.name}`}
       aria-label={`Uploaded by ${user.name}`}
-      className="inline-flex items-center justify-center size-6 rounded-full text-[10px] font-semibold backdrop-blur"
+      className="inline-flex items-center justify-center size-6 rounded-full text-[10px] font-semibold backdrop-blur overflow-hidden"
       style={{
         backgroundColor: "rgba(11,16,13,0.72)",
         color: "#ECEFEA",
         border: "1px solid #1F2A24",
       }}
     >
-      {initial}
+      {user.avatar_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={user.avatar_url} alt="" className="size-full object-cover" />
+      ) : (
+        initial
+      )}
     </span>
   );
 }

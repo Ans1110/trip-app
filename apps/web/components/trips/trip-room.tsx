@@ -227,23 +227,26 @@ function MemberRow({
 
 function Avatar({ user }: { user: UserSummary }) {
   const initial = (user.name || user.email || "?").charAt(0).toUpperCase();
-  return user.avatar_url ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={user.avatar_url}
-      alt=""
-      className="size-9 rounded-full object-cover shrink-0"
-    />
-  ) : (
-    <div
-      className="size-9 rounded-full flex items-center justify-center shrink-0 text-sm font-medium"
+  return (
+    <span
+      className="size-9 rounded-full inline-flex items-center justify-center shrink-0 text-sm font-medium overflow-hidden"
       style={{
-        backgroundColor:
-          "color-mix(in srgb, var(--season-button) 22%, transparent)",
+        backgroundColor: user.avatar_url
+          ? "transparent"
+          : "color-mix(in srgb, var(--season-button) 22%, transparent)",
         color: "#ECEFEA",
       }}
     >
-      {initial}
-    </div>
+      {user.avatar_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={user.avatar_url}
+          alt=""
+          className="size-full object-cover"
+        />
+      ) : (
+        <span aria-hidden>{initial}</span>
+      )}
+    </span>
   );
 }
