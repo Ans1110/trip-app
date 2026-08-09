@@ -336,8 +336,4 @@ export function useReorderTodos(options?: MutOpts<null, ReorderTodosVars>) {
   });
 }
 
-export function errorMessage(err: unknown): string | null {
-  if (!err) return null;
-  if (err instanceof ApiError) return err.message;
-  return "Network error";
-}
+export { errorMessage } from "@/lib/utils";

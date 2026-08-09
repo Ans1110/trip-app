@@ -744,7 +744,7 @@ func (h *Handler) respondServiceError(c *gin.Context, err error) {
 		errors.Is(err, ErrInvalidToken),
 		errors.Is(err, ErrInvalidMFACode),
 		errors.Is(err, ErrInvalidOAuth):
-		response.Unauthorized(c)
+		response.Error(c, http.StatusUnauthorized, "unauthorized", err.Error())
 	case errors.Is(err, ErrUserBlocked):
 		response.Forbidden(c)
 	case errors.Is(err, ErrUserNotFound),
