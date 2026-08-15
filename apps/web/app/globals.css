@@ -145,6 +145,13 @@
   }
 }
 
+/* Leaflet's internal panes/controls use z-indexes up to 800. Without an
+   explicit stacking context, they escape the map wrapper and can cover
+   dialogs/toasts. Isolating the container confines them. */
+.leaflet-container {
+  isolation: isolate;
+}
+
 /* Chat scroll surface. Uses @utility (Tailwind v4) so the rules are always
    emitted regardless of layer order — some containers (message list, rooms
    list) render on macOS overlay scrollbars that only show custom styling

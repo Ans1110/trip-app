@@ -15,3 +15,4 @@ export * from "./frontend/post";
 export * from "./frontend/feed";
 export * from "./frontend/search";
 export * from "./frontend/admin";
+export * from "./frontend/location";

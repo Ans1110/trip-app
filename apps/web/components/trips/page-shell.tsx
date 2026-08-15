@@ -50,6 +50,20 @@ export function PageShell({
             Calendar
           </Link>
           <Link
+            href="/location"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
+            style={{ color: "#ECEFEA" }}
+          >
+            Places
+          </Link>
+          <Link
+            href="/weather"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
+            style={{ color: "#ECEFEA" }}
+          >
+            Weather
+          </Link>
+          <Link
             href="/feed"
             className="px-3 py-1.5 rounded-lg hover:bg-white/5"
             style={{ color: "#ECEFEA" }}

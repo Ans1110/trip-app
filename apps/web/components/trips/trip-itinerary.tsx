@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GripVertical, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, MapPin, Plus, Trash2, X } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -24,6 +24,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { ControlledInput } from "@/components/ui/controlled-input";
+import { ControlledSelect } from "@/components/ui/controlled-select";
 import { ControlledTextarea } from "@/components/ui/controlled-textarea";
 import {
   errorMessage,
@@ -40,6 +41,8 @@ import {
   type CreateItineraryFormInput,
   type UpdateItineraryFormInput,
 } from "@/lib/schemas/trip-schemas";
+import { PlaceSearchPicker, type PickedPlace } from "./place-search-picker";
+import type { ItineraryStop } from "./itinerary-map";
 
 const ItineraryMap = dynamic(() => import("./itinerary-map"), { ssr: false });
 
@@ -61,7 +64,7 @@ export function TripItinerary({ trip }: { trip: Trip }) {
     return [...byDay.entries()].sort(([a], [b]) => a - b);
   }, [query.data]);
 
-  const mapMarkers = useMemo(() => {
+  const stops = useMemo<ItineraryStop[]>(() => {
     const items = query.data ?? [];
     return items
       .filter(
@@ -70,9 +73,11 @@ export function TripItinerary({ trip }: { trip: Trip }) {
       )
       .map((i) => ({
         id: i.id,
+        day: i.day,
         lat: i.latitude,
         lng: i.longitude,
-        label: i.title || i.location || "Stop",
+        title: i.title || i.location || "Stop",
+        order: i.sort_order,
       }));
   }, [query.data]);
 
@@ -80,9 +85,9 @@ export function TripItinerary({ trip }: { trip: Trip }) {
 
   return (
     <section className="flex flex-col gap-6">
-      <NewItemForm tripId={tripId} />
+      <NewItemForm trip={trip} />
 
-      {mapMarkers.length > 0 && <ItineraryMap markers={mapMarkers} />}
+      {stops.length > 0 && <ItineraryMap stops={stops} />}
 
       {query.isLoading && <p className="text-sm text-[#8B9A8E]">Loading…</p>}
       {query.isError && (
@@ -168,12 +173,38 @@ function DayGroup({
   );
 }
 
-function NewItemForm({ tripId }: { tripId: string }) {
+function NewItemForm({ trip }: { trip: Trip }) {
+  const tripId = trip.id;
   const create = useCreateItinerary();
+  const [pickedCoord, setPickedCoord] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const totalDays = useMemo(
+    () => Math.max(1, tripDayCount(trip.start_date, trip.end_date)),
+    [trip.start_date, trip.end_date],
+  );
+  const dayOptions = useMemo(
+    () =>
+      Array.from({ length: totalDays }, (_, i) => ({
+        value: String(i + 1),
+        label: `Day ${i + 1}`,
+      })),
+    [totalDays],
+  );
   const form = useForm<CreateItineraryFormInput>({
     resolver: zodResolver(createItinerarySchema),
     defaultValues: { day: "1", title: "", location: "" },
   });
+
+  const handlePick = (p: PickedPlace) => {
+    setPickedCoord({ lat: p.lat, lng: p.lng });
+    const label = p.address ? `${p.name} — ${p.address}` : p.name;
+    form.setValue("location", label, { shouldDirty: true });
+    if (!form.getValues("title")) {
+      form.setValue("title", p.name, { shouldDirty: true });
+    }
+  };
 
   const onSubmit = (v: CreateItineraryFormInput) => {
     create.mutate(
@@ -183,10 +214,15 @@ function NewItemForm({ tripId }: { tripId: string }) {
           day: Number(v.day),
           title: v.title || undefined,
           location: v.location || undefined,
+          latitude: pickedCoord?.lat,
+          longitude: pickedCoord?.lng,
         },
       },
       {
-        onSuccess: () => form.reset({ day: v.day, title: "", location: "" }),
+        onSuccess: () => {
+          form.reset({ day: v.day, title: "", location: "" });
+          setPickedCoord(null);
+        },
       },
     );
   };
@@ -199,11 +235,11 @@ function NewItemForm({ tripId }: { tripId: string }) {
         className="flex flex-col gap-3 p-4 rounded-xl bg-[#121814] border border-[#1F2A24]"
       >
         <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr_auto] gap-2 items-end">
-          <ControlledInput<CreateItineraryFormInput>
+          <ControlledSelect<CreateItineraryFormInput>
             name="day"
             label="Day"
-            inputMode="numeric"
-            placeholder="1"
+            options={dayOptions}
+            placeholder="Day"
           />
           <ControlledInput<CreateItineraryFormInput>
             name="title"
@@ -228,6 +264,28 @@ function NewItemForm({ tripId }: { tripId: string }) {
             )}
             Add
           </button>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] uppercase tracking-wider text-[#8B9A8E]">
+            Pin a place (optional)
+          </label>
+          <PlaceSearchPicker
+            onPick={handlePick}
+            placeholder="Search a specific place to pin on the map"
+          />
+          {pickedCoord && (
+            <p className="text-[11px] text-[#8B9A8E] inline-flex items-center gap-1.5">
+              <MapPin className="size-3" style={{ color: "var(--season-button)" }} />
+              Pinned {pickedCoord.lat.toFixed(4)}, {pickedCoord.lng.toFixed(4)}
+              <button
+                type="button"
+                onClick={() => setPickedCoord(null)}
+                className="inline-flex items-center gap-0.5 text-[#8B9A8E] hover:text-[#ECEFEA]"
+              >
+                <X className="size-3" /> clear
+              </button>
+            </p>
+          )}
         </div>
         {create.isError && (
           <p className="text-xs text-[#FCA5A5]">{errorMessage(create.error)}</p>
@@ -441,4 +499,20 @@ function ItemRow({
       </div>
     </div>
   );
+}
+
+function tripDayCount(startISO: string, endISO: string): number {
+  const start = parseDateOnly(startISO);
+  const end = parseDateOnly(endISO);
+  if (!start || !end) return 1;
+  const ms = end.getTime() - start.getTime();
+  return Math.floor(ms / 86_400_000) + 1;
+}
+
+function parseDateOnly(s: string): Date | null {
+  if (!s) return null;
+  const iso = s.length >= 10 ? s.slice(0, 10) : s;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
 }

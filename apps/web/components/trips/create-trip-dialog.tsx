@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin, X } from "lucide-react";
 
 import { ControlledDatePicker } from "@/components/ui/controlled-date-picker";
 import { ControlledInput } from "@/components/ui/controlled-input";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/schemas/trip-schemas";
 
 import { Modal } from "./modal";
+import { PlaceSearchPicker, type PickedPlace } from "./place-search-picker";
 
 export function CreateTripDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -26,9 +28,20 @@ export function CreateTripDialog({ onClose }: { onClose: () => void }) {
       description: "",
       start_date: "",
       end_date: "",
+      location: "",
     },
   });
   const startDate = form.watch("start_date");
+  const [picked, setPicked] = useState<PickedPlace | null>(null);
+
+  const handlePick = (p: PickedPlace) => {
+    setPicked(p);
+    form.setValue("location", p.name, { shouldValidate: true });
+  };
+  const clearPick = () => {
+    setPicked(null);
+    form.setValue("location", "", { shouldValidate: true });
+  };
 
   const onSubmit = (v: CreateTripFormInput) => {
     create.mutate(
@@ -37,6 +50,9 @@ export function CreateTripDialog({ onClose }: { onClose: () => void }) {
         description: v.description || undefined,
         start_date: v.start_date,
         end_date: v.end_date,
+        location: v.location || undefined,
+        latitude: picked?.lat,
+        longitude: picked?.lng,
       },
       {
         onSuccess: (trip) => {
@@ -57,11 +73,39 @@ export function CreateTripDialog({ onClose }: { onClose: () => void }) {
           onSubmit={form.handleSubmit(onSubmit)}
           noValidate
         >
-          <ControlledInput<CreateTripFormInput>
-            name="title"
-            label="Title"
-            placeholder="Japan · Spring 2026"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <ControlledInput<CreateTripFormInput>
+              name="title"
+              label="Title"
+              placeholder="Japan · Spring 2026"
+            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-[#8B9A8E]">
+                Location (optional)
+              </label>
+              {picked ? (
+                <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-[#0B100D] border border-[#1F2A24]">
+                  <MapPin className="size-4 text-[#8B9A8E] shrink-0" />
+                  <span className="text-sm text-[#ECEFEA] truncate flex-1">
+                    {picked.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearPick}
+                    className="text-[#8B9A8E] hover:text-[#ECEFEA]"
+                    aria-label="Clear location"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <PlaceSearchPicker
+                  onPick={handlePick}
+                  placeholder="Search a city or place"
+                />
+              )}
+            </div>
+          </div>
 
           <ControlledTextarea<CreateTripFormInput>
             name="description"

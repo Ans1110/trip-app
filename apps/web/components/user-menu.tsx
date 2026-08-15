@@ -44,6 +44,10 @@ export function UserMenu({
   async function signOut() {
     setSigningOut(true);
     try {
+      // Fires before we drop the auth cookie so listeners (e.g. active
+      // location-sharing) can send keepalive cleanup requests while still
+      // authenticated.
+      window.dispatchEvent(new Event("app:before-logout"));
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",

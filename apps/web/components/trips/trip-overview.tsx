@@ -19,6 +19,7 @@ import {
 
 import { CoverImageDrawer } from "./cover-image-drawer";
 import { Modal } from "./modal";
+import { TripForecastStrip } from "./trip-forecast-strip";
 
 const statusOptions = [
   { value: "planning", label: "Planning" },
@@ -45,6 +46,7 @@ export function TripOverview({
     status: (trip.status === "completed"
       ? "ongoing"
       : trip.status) as TripUpdatableStatus,
+    location: trip.location ?? "",
   };
   const form = useForm<UpdateTripFormInput>({
     resolver: zodResolver(updateTripSchema),
@@ -198,9 +200,14 @@ export function TripOverview({
         )}
       </div>
 
+      <TripForecastStrip trip={trip} />
+
       <Stat label="Dates" value={formatRange(trip.start_date, trip.end_date)} />
       <Stat label="Owner" value={trip.owner.name || trip.owner.email} />
       <Stat label="Members" value={String(trip.member_count)} />
+      {trip.location && (
+        <Stat label="Location" value={trip.location} />
+      )}
       {trip.description && (
         <div>
           <p className="text-xs font-medium mb-2 text-[#8B9A8E]">Description</p>

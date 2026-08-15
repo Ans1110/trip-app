@@ -28,6 +28,9 @@ export type TripView = {
   start_date: string;
   end_date: string;
   status: TripStatusView;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
   member_count: number;
   my_role?: string;
   room?: RoomBriefView;
@@ -117,6 +120,9 @@ export const toTripView = (t: UpstreamTripResponse): TripView => ({
   start_date: t.start_date,
   end_date: t.end_date,
   status: t.status,
+  location: t.location,
+  latitude: t.latitude,
+  longitude: t.longitude,
   member_count: t.member_count,
   my_role: t.my_role,
   room: t.room ? toRoomBriefView(t.room) : undefined,

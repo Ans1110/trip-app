@@ -8,6 +8,7 @@ export const createTripSchema = z
     description: z.string().trim().max(1000, "Too long"),
     start_date: z.string().min(1, "Required"),
     end_date: z.string().min(1, "Required"),
+    location: z.string().trim().max(200, "Too long"),
   })
   .refine((d) => d.end_date >= d.start_date, {
     message: "End date must be on or after start date",
@@ -23,6 +24,7 @@ export const updateTripSchema = z
     start_date: z.string().min(1, "Required"),
     end_date: z.string().min(1, "Required"),
     status: tripStatusEnum,
+    location: z.string().trim().max(200, "Too long"),
   })
   .refine((d) => d.end_date >= d.start_date, {
     message: "End date must be on or after start date",
@@ -54,7 +56,7 @@ export const createItinerarySchema = z.object({
       return Number.isInteger(n) && n >= 1;
     }, "Min 1"),
   title: z.string().trim().max(120, "Too long"),
-  location: z.string().trim().max(120, "Too long"),
+  location: z.string().trim().max(200, "Too long"),
 });
 export type CreateItineraryFormInput = z.infer<typeof createItinerarySchema>;
 
@@ -73,7 +75,7 @@ const optionalCoord = (min: number, max: number, label: string) =>
 
 export const updateItinerarySchema = z.object({
   title: z.string().trim().max(120, "Too long"),
-  location: z.string().trim().max(120, "Too long"),
+  location: z.string().trim().max(200, "Too long"),
   description: z.string().trim().max(1000, "Too long"),
   latitude: optionalCoord(-90, 90, "Latitude must be between -90 and 90"),
   longitude: optionalCoord(-180, 180, "Longitude must be between -180 and 180"),

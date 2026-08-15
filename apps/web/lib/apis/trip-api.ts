@@ -23,6 +23,9 @@ export type Trip = {
   start_date: string;
   end_date: string;
   status: TripStatus;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
   member_count: number;
   my_role?: string;
   room?: RoomBrief;
@@ -104,6 +107,9 @@ export type CreateTripInput = {
   cover_image?: string;
   start_date: string;
   end_date: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type UpdateTripInput = {
@@ -113,6 +119,9 @@ export type UpdateTripInput = {
   start_date?: string;
   end_date?: string;
   status?: TripUpdatableStatus;
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type ListTripsQuery = {

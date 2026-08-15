@@ -8,6 +8,7 @@ import { AlbumPanel } from "./album/album-panel";
 import { TripCalendar } from "./trip-calendar";
 import { TripFinance } from "./trip-finance";
 import { TripItinerary } from "./trip-itinerary";
+import { TripLocation } from "./trip-location";
 import { TripOverview } from "./trip-overview";
 import { TripRoom } from "./trip-room";
 import { TripTodos } from "./trip-todos";
@@ -21,6 +22,7 @@ type Tab =
   | "vote"
   | "finance"
   | "album"
+  | "location"
   | "room";
 
 const tabs: { value: Tab; label: string }[] = [
@@ -31,6 +33,7 @@ const tabs: { value: Tab; label: string }[] = [
   { value: "vote", label: "Vote" },
   { value: "finance", label: "Finance" },
   { value: "album", label: "Album" },
+  { value: "location", label: "Location" },
   { value: "room", label: "Room" },
 ];
 
@@ -94,6 +97,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
       {tab === "vote" && <TripVote tripId={trip.id} />}
       {tab === "finance" && <TripFinance tripId={trip.id} />}
       {tab === "album" && <AlbumPanel tripId={trip.id} />}
+      {tab === "location" && <TripLocation tripId={trip.id} />}
       {tab === "room" && <TripRoom tripId={trip.id} canManage={canManage} />}
     </div>
   );

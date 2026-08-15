@@ -17,6 +17,9 @@ export type UpstreamTripResponse = {
   start_date: string;
   end_date: string;
   status: UpstreamTripStatus;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
   member_count: number;
   my_role?: string;
   room?: UpstreamRoomBrief;
@@ -30,6 +33,9 @@ export type UpstreamCreateTripPayload = {
   cover_image?: string;
   start_date: string;
   end_date: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type UpstreamUpdateTripPayload = {
@@ -39,6 +45,9 @@ export type UpstreamUpdateTripPayload = {
   start_date?: string;
   end_date?: string;
   status?: UpstreamTripStatus;
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type UpstreamListTripsQuery = {
