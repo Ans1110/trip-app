@@ -527,6 +527,9 @@ func (s *Service) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 	}
 	s.logger.Info("all session revoked", zap.String("user_id", userID.String()))
 	s.audit(ctx, AuditLogin, audit.Success, &userID, DeviceInfo{}, "all")
+	s.publish(ctx, event.EventUserLoggedOut, userID, userID, map[string]any{
+		"scope": "all",
+	})
 	return nil
 }
 

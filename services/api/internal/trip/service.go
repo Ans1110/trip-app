@@ -125,6 +125,9 @@ func (s *service) CreateTrip(ctx context.Context, ownerID uuid.UUID, p CreateTri
 		EndDate:     end,
 		TimeZone:    tz,
 		Status:      TripPlanning,
+		Location:    strings.TrimSpace(p.Location),
+		Latitude:    p.Latitude,
+		Longitude:   p.Longitude,
 	}
 
 	var (
@@ -260,6 +263,15 @@ func (s *service) UpdateTrip(ctx context.Context, userID, tripID uuid.UUID, p Up
 			return nil, err
 		}
 		patch["time_zone"] = tz
+	}
+	if p.Location != nil {
+		patch["location"] = strings.TrimSpace(*p.Location)
+	}
+	if p.Latitude != nil {
+		patch["latitude"] = *p.Latitude
+	}
+	if p.Longitude != nil {
+		patch["longitude"] = *p.Longitude
 	}
 
 	if len(patch) > 0 {
@@ -1053,6 +1065,9 @@ func (s *service) buildTripResponse(ctx context.Context, t Trip, room *Room, mem
 		TimeZone:    t.TimeZone,
 		Status:      string(effectiveStatus(t)),
 		Visibility:  string(effectiveVisibility(t)),
+		Location:    t.Location,
+		Latitude:    t.Latitude,
+		Longitude:   t.Longitude,
 		MemberCount: memberCount,
 		MyRole:      role,
 		CreatedAt:   t.CreatedAt,

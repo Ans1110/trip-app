@@ -31,10 +31,11 @@ import (
 	authoauth "github.com/Ans1110/trip-app/internal/auth/oauth"
 	"github.com/Ans1110/trip-app/internal/calendar"
 	"github.com/Ans1110/trip-app/internal/chat"
+	"github.com/Ans1110/trip-app/internal/feed"
 	"github.com/Ans1110/trip-app/internal/finance"
 	"github.com/Ans1110/trip-app/internal/friend"
+	"github.com/Ans1110/trip-app/internal/location"
 	"github.com/Ans1110/trip-app/internal/media"
-	"github.com/Ans1110/trip-app/internal/feed"
 	"github.com/Ans1110/trip-app/internal/outbox"
 	"github.com/Ans1110/trip-app/internal/post"
 	"github.com/Ans1110/trip-app/internal/profile"
@@ -123,6 +124,8 @@ func main() {
 	// start background services
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	database.StartPoolStatsLogger(ctx, db, logger, 60*time.Second)
 	go func() {
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
@@ -329,6 +332,29 @@ func main() {
 	})
 	searchHandler := search.NewHandler(searchSvc, logger)
 
+	// Location wiring — user-scoped saved places + Google Places / Routes +
+	// OpenWeatherMap forecast proxies, all cached in Redis.
+	locationRepo := location.NewRepository(db)
+	locationGoogle := location.NewGoogleMapsProvider(cfg.External.GoogleMapsAPIKey, logger)
+	locationWeather := location.NewOpenWeatherProvider(cfg.External.OpenWeatherAPIKey, logger)
+	locationSvc := location.NewService(location.ServiceConfig{
+		Repo:      locationRepo,
+		TripAuth:  tripRepo,
+		Places:    locationGoogle,
+		Routes:    locationGoogle,
+		Weather:   locationWeather,
+		Cache:     location.NewCache(rdb, "location:cache:"),
+		Positions: location.NewPositionStore(rdb),
+		Audit:     auditRepo,
+		Logger:    logger,
+	})
+	locationHandler := location.NewHandler(locationSvc, logger)
+
+	// Wipe active location broadcasts when a user signs out
+	bus.Subscribe(event.EventUserLoggedOut, func(ctx context.Context, e event.Event) error {
+		return locationSvc.RevokeAllUserPositions(ctx, e.UserID)
+	})
+
 	adminRepo := admin.NewRepository(db)
 	adminSvc := admin.NewService(admin.ServiceConfig{
 		Repo:   adminRepo,
@@ -391,6 +417,7 @@ func main() {
 		feedHandler,
 		searchHandler,
 		adminHandler,
+		locationHandler,
 	)
 
 	srv := &http.Server{
@@ -444,6 +471,7 @@ func setupRouter(
 	feedHandler feed.IHandler,
 	searchHandler search.IHandler,
 	adminHandler admin.IHandler,
+	locationHandler location.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -512,6 +540,7 @@ func setupRouter(
 	feedHandler.RegisterRoutes(protected)
 	searchHandler.RegisterRoutes(protected)
 	adminHandler.RegisterRoutes(protected)
+	locationHandler.RegisterRoutes(protected)
 
 	ws := r.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)

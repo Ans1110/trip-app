@@ -5,21 +5,29 @@ CREATE SCHEMA IF NOT EXISTS trip;
 -- which fans out a TRIP_PUBLISHED event via platform.outbox that the profile
 -- module consumes to build follower feeds.
 CREATE TABLE IF NOT EXISTS trip.trip (
-    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id      UUID        NOT NULL,
-    title         TEXT        NOT NULL,
-    description   TEXT        NOT NULL DEFAULT '',
-    cover_image   TEXT        NOT NULL DEFAULT '',
-    start_date    DATE        NOT NULL,
-    end_date      DATE        NOT NULL,
-    status        TEXT        NOT NULL DEFAULT 'planning',
-    visibility    TEXT        NOT NULL DEFAULT 'private',
-    time_zone     VARCHAR(64) NOT NULL DEFAULT 'UTC',
-    base_currency CHAR(3)     NOT NULL DEFAULT 'TWD',
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    id            UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_id      UUID             NOT NULL,
+    title         TEXT             NOT NULL,
+    description   TEXT             NOT NULL DEFAULT '',
+    cover_image   TEXT             NOT NULL DEFAULT '',
+    start_date    DATE             NOT NULL,
+    end_date      DATE             NOT NULL,
+    status        TEXT             NOT NULL DEFAULT 'planning',
+    visibility    TEXT             NOT NULL DEFAULT 'private',
+    time_zone     VARCHAR(64)      NOT NULL DEFAULT 'UTC',
+    base_currency CHAR(3)          NOT NULL DEFAULT 'TWD',
+    -- Trip-level location: single place the trip is centered on (used by the
+    -- forecast strip on the trip detail page and shown next to the title on
+    -- create/edit). Optional.
+    location      TEXT             NOT NULL DEFAULT '',
+    latitude      DOUBLE PRECISION,
+    longitude     DOUBLE PRECISION,
+    created_at    TIMESTAMPTZ      NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ      NOT NULL DEFAULT now(),
     deleted_at    TIMESTAMPTZ,
-    CONSTRAINT trip_visibility_check CHECK (visibility IN ('private', 'public'))
+    CONSTRAINT trip_visibility_check CHECK (visibility IN ('private', 'public')),
+    CONSTRAINT trip_latitude_check   CHECK (latitude  IS NULL OR (latitude  >= -90  AND latitude  <= 90)),
+    CONSTRAINT trip_longitude_check  CHECK (longitude IS NULL OR (longitude >= -180 AND longitude <= 180))
 );
 
 CREATE INDEX IF NOT EXISTS idx_trip_owner_id   ON trip.trip(owner_id);

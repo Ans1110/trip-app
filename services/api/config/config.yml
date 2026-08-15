@@ -88,7 +88,7 @@ media:
 
 external:
   google_maps_api_key: ${GOOGLE_MAPS_API_KEY}
-  openweathermap_api_key: ${OPENWEATHERMAP_API_KEY}
+  open_weather_api_key: ${OPEN_WEATHER_API_KEY}
 
 notifications:
   fcm_credentials_file: ${NOTIFICATION_FCM_CREDENTIALS_PATH}

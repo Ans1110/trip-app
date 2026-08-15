@@ -53,6 +53,9 @@ type Trip struct {
 	BaseCurrency string         `gorm:"column:base_currency;type:char(3);not null;default:'TWD'"`
 	Status       TripStatus     `gorm:"column:status;not null;default:'planning'"`
 	Visibility   TripVisibility `gorm:"column:visibility;not null;default:'private'"`
+	Location     string         `gorm:"column:location;not null;default:''"`
+	Latitude     *float64       `gorm:"column:latitude"`
+	Longitude    *float64       `gorm:"column:longitude"`
 	CreatedAt    time.Time      `gorm:"column:created_at"`
 	UpdatedAt    time.Time      `gorm:"column:updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at;index"`

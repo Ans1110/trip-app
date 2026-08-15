@@ -12,23 +12,29 @@ type UserSummary struct {
 // ---- Trip ----
 
 type CreateTripPayload struct {
-	Title       string `json:"title" binding:"required,min=1,max=120"`
-	Description string `json:"description" binding:"max=2000"`
-	CoverImage  string `json:"cover_image" binding:"max=500"`
-	StartDate   string `json:"start_date" binding:"required"` // YYYY-MM-DD
-	EndDate     string `json:"end_date" binding:"required"`   // YYYY-MM-DD
-	TimeZone    string `json:"time_zone" binding:"omitempty,max=64"`
+	Title       string   `json:"title" binding:"required,min=1,max=120"`
+	Description string   `json:"description" binding:"max=2000"`
+	CoverImage  string   `json:"cover_image" binding:"max=500"`
+	StartDate   string   `json:"start_date" binding:"required"` // YYYY-MM-DD
+	EndDate     string   `json:"end_date" binding:"required"`   // YYYY-MM-DD
+	TimeZone    string   `json:"time_zone" binding:"omitempty,max=64"`
+	Location    string   `json:"location" binding:"max=200"`
+	Latitude    *float64 `json:"latitude" binding:"omitempty,min=-90,max=90"`
+	Longitude   *float64 `json:"longitude" binding:"omitempty,min=-180,max=180"`
 }
 
 type UpdateTripPayload struct {
-	Title       *string `json:"title" binding:"omitempty,min=1,max=120"`
-	Description *string `json:"description" binding:"omitempty,max=2000"`
-	CoverImage  *string `json:"cover_image" binding:"omitempty,max=500"`
-	StartDate   *string `json:"start_date"`
-	EndDate     *string `json:"end_date"`
-	TimeZone    *string `json:"time_zone" binding:"omitempty,max=64"`
-	Status      *string `json:"status" binding:"omitempty,oneof=planning ongoing completed"`
-	Visibility  *string `json:"visibility" binding:"omitempty,oneof=private public"`
+	Title       *string  `json:"title" binding:"omitempty,min=1,max=120"`
+	Description *string  `json:"description" binding:"omitempty,max=2000"`
+	CoverImage  *string  `json:"cover_image" binding:"omitempty,max=500"`
+	StartDate   *string  `json:"start_date"`
+	EndDate     *string  `json:"end_date"`
+	TimeZone    *string  `json:"time_zone" binding:"omitempty,max=64"`
+	Status      *string  `json:"status" binding:"omitempty,oneof=planning ongoing completed"`
+	Visibility  *string  `json:"visibility" binding:"omitempty,oneof=private public"`
+	Location    *string  `json:"location" binding:"omitempty,max=200"`
+	Latitude    *float64 `json:"latitude" binding:"omitempty,min=-90,max=90"`
+	Longitude   *float64 `json:"longitude" binding:"omitempty,min=-180,max=180"`
 }
 
 type TripResponse struct {
@@ -42,6 +48,9 @@ type TripResponse struct {
 	TimeZone    string      `json:"time_zone,omitempty"`
 	Status      string      `json:"status"`
 	Visibility  string      `json:"visibility"`
+	Location    string      `json:"location,omitempty"`
+	Latitude    *float64    `json:"latitude,omitempty"`
+	Longitude   *float64    `json:"longitude,omitempty"`
 	MemberCount int         `json:"member_count"`
 	MyRole      string      `json:"my_role,omitempty"`
 	Room        *RoomBrief  `json:"room,omitempty"`
