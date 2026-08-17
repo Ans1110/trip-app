@@ -30,7 +30,8 @@ type UpdateSavedPlacePayload struct {
 }
 
 type ListSavedPlacesQuery struct {
-	TripID *string
+	TripID   *string
+	Category *string
 }
 
 type SavedPlaceResponse struct {

@@ -15,15 +15,17 @@ import (
 )
 
 const (
-	openWeatherCurrentURL  = "https://api.openweathermap.org/data/2.5/weather"
-	openWeatherTimelineURL = "https://api.openweathermap.org/data/4.0/onecall/timeline/1day"
+	openWeatherCurrentURL        = "https://api.openweathermap.org/data/2.5/weather"
+	openWeatherHourlyTimelineURL = "https://api.openweathermap.org/data/4.0/onecall/timeline/1h"
+	openWeatherTimelineURL       = "https://api.openweathermap.org/data/4.0/onecall/timeline/1day"
 
-	openWeatherTimeout  = 8 * time.Second
-	openWeatherAgent    = "trip-app/1.0"
-	openWeatherPerPage  = 10
-	openWeatherPagesMax = 3 // 3 × 10 = 30 days
-	openWeatherDaysMax  = openWeatherPerPage * openWeatherPagesMax
-	openWeatherDayEpoch = int64(86_400)
+	openWeatherTimeout       = 8 * time.Second
+	openWeatherAgent         = "trip-app/1.0"
+	openWeatherPerPage       = 10
+	openWeatherPagesMax      = 3 // 3 × 10 = 30 days
+	openWeatherDaysMax       = openWeatherPerPage * openWeatherPagesMax
+	openWeatherDayEpoch      = int64(86_400)
+	openWeatherHourlyHorizon = 24 * time.Hour
 )
 
 type OpenWeatherProvider struct {
@@ -71,6 +73,24 @@ type owCurrentResp struct {
 	Weather  []owWeather `json:"weather"`
 	Wind     owWind      `json:"wind"`
 	Timezone int         `json:"timezone"`
+}
+
+type owHourlyTimelineEntry struct {
+	Dt        int64       `json:"dt"`
+	Temp      float64     `json:"temp"`
+	FeelsLike float64     `json:"feels_like"`
+	Humidity  int         `json:"humidity"`
+	WindSpeed float64     `json:"wind_speed"`
+	Weather   []owWeather `json:"weather"`
+	Pop       float64     `json:"pop"`
+}
+
+type owHourlyTimelineResp struct {
+	Lat            float64                 `json:"lat"`
+	Lon            float64                 `json:"lon"`
+	Timezone       string                  `json:"timezone"`
+	TimezoneOffset int                     `json:"timezone_offset"`
+	Data           []owHourlyTimelineEntry `json:"data"`
 }
 
 // One Call 4.0 daily timeline shapes.
@@ -123,6 +143,13 @@ func (o *OpenWeatherProvider) Forecast(ctx context.Context, at LatLng, lang, uni
 		tz = time.FixedZone("owm", current.Timezone)
 	}
 
+	hourly, err := o.fetchHourlyTimeline(ctx, at, unitSystem, lang, tz)
+	if err != nil {
+		// Hourly is best-effort — surface a warning but don't fail the whole call.
+		o.logger.Warn("openweather hourly forecast failed", zap.Error(err))
+		hourly = nil
+	}
+
 	out := &WeatherForecast{
 		Location: at,
 		Timezone: tz.String(),
@@ -135,7 +162,47 @@ func (o *OpenWeatherProvider) Forecast(ctx context.Context, at LatLng, lang, uni
 			Icon:     owIconURL(firstWeather(current.Weather).Icon),
 			Summary:  firstWeather(current.Weather).Description,
 		},
-		Daily: daily,
+		Hourly: hourly,
+		Daily:  daily,
+	}
+	return out, nil
+}
+
+// One Call 4.0 `/timeline/1h` — true 1-hour granularity. Free-tier accounts
+// need to be subscribed to One Call by Call for this to succeed; upstream will
+// 401 otherwise and we log-and-continue.
+func (o *OpenWeatherProvider) fetchHourlyTimeline(ctx context.Context, at LatLng, units, lang string, tz *time.Location) ([]WeatherPoint, error) {
+	q := o.baseQuery(at, units, lang)
+	var resp owHourlyTimelineResp
+	if err := o.getJSON(ctx, openWeatherHourlyTimelineURL+"?"+q.Encode(), &resp); err != nil {
+		return nil, err
+	}
+	if len(resp.Data) == 0 {
+		return nil, nil
+	}
+	if tz == nil {
+		tz = time.FixedZone(resp.Timezone, resp.TimezoneOffset)
+	}
+	now := time.Now()
+	horizon := now.Add(openWeatherHourlyHorizon)
+	minTime := now.Add(-1 * time.Hour)
+	out := make([]WeatherPoint, 0, len(resp.Data))
+	for _, e := range resp.Data {
+		ts := time.Unix(e.Dt, 0)
+		if ts.Before(minTime) || ts.After(horizon) {
+			continue
+		}
+		w := firstWeather(e.Weather)
+		out = append(out, WeatherPoint{
+			Time:     ts.In(tz),
+			TempC:    normalizeTemp(e.Temp, units),
+			FeelsLC:  normalizeTemp(e.FeelsLike, units),
+			Humidity: e.Humidity,
+			WindKph:  windToKph(e.WindSpeed, units),
+			Icon:     owIconURL(w.Icon),
+			Summary:  w.Description,
+			PopPct:   e.Pop * 100,
+		})
 	}
 	return out, nil
 }

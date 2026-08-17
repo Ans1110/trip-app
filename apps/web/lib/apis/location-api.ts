@@ -147,6 +147,7 @@ export type NearbyPlacesQuery = {
 
 export type ListSavedPlacesQuery = {
   trip_id?: string;
+  category?: string;
 };
 
 export type WeatherQuery = {
@@ -181,7 +182,10 @@ const buildQS = (params: Record<string, string | number | undefined>) => {
 
 export const locationApi = {
   listSaved: (query: ListSavedPlacesQuery = {}, signal?: AbortSignal) => {
-    const qs = buildQS({ trip_id: query.trip_id });
+    const qs = buildQS({
+      trip_id: query.trip_id,
+      category: query.category,
+    });
     const path = qs ? `/api/location/saved?${qs}` : "/api/location/saved";
     return request<SavedPlace[]>(path, { signal });
   },

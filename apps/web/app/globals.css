@@ -196,3 +196,39 @@
     background: transparent;
   }
 }
+
+/* Horizontal scrollbar for the weather hourly strip — themed with the
+   season palette so it matches the accent used elsewhere on the page.
+   Written as a plain class (not @utility) so the nested WebKit rules are
+   guaranteed to emit and win over macOS overlay scrollbar styles. */
+.hourly-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--season-button)
+    color-mix(in srgb, var(--season-button) 18%, transparent);
+  overflow-x: auto;
+}
+.hourly-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+.hourly-scroll::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--season-button) 15%, transparent);
+  border-radius: 9999px;
+  margin: 4px;
+}
+.hourly-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--season-button);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  min-width: 32px;
+  transition: background-color 180ms ease;
+}
+.hourly-scroll::-webkit-scrollbar-thumb:hover,
+.hourly-scroll::-webkit-scrollbar-thumb:active {
+  background-color: color-mix(in srgb, var(--season-button) 80%, #ffffff);
+}
+.hourly-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}

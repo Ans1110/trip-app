@@ -151,6 +151,7 @@ export type UpstreamNearbyPlacesQuery = {
 
 export type UpstreamListSavedPlacesQuery = {
   trip_id?: string;
+  category?: string;
 };
 
 export type UpstreamWeatherQuery = {

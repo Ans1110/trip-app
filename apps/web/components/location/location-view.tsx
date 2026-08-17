@@ -63,12 +63,17 @@ const MODE_OPTIONS = [
 export function LocationView() {
   const [tab, setTab] = useState<Tab>("search");
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [center, setCenter] = useState<{ lat: number; lng: number } | undefined>();
+  const [center, setCenter] = useState<
+    { lat: number; lng: number } | undefined
+  >();
   const [showWeather, setShowWeather] = useState(false);
   const [route, setRoute] = useState<Route | null>(null);
 
   const saved = useSavedPlaces();
-  const savedList = useMemo(() => saved.data ?? [], [saved.data]);
+  const savedList = useMemo(
+    () => (saved.data ?? []).filter((p) => p.category !== "weather"),
+    [saved.data],
+  );
   const del = useDeleteSavedPlace();
   const createSaved = useCreateSavedPlace();
   const savedPlaceIds = useMemo(() => {
@@ -191,8 +196,20 @@ export function LocationView() {
     if (route?.legs && route.legs.length > 0) {
       const first = route.legs[0].start_location;
       const last = route.legs[route.legs.length - 1].end_location;
-      acc.push({ id: "route-origin", lat: first.lat, lng: first.lng, kind: "origin", label: "Start" });
-      acc.push({ id: "route-dest", lat: last.lat, lng: last.lng, kind: "destination", label: "End" });
+      acc.push({
+        id: "route-origin",
+        lat: first.lat,
+        lng: first.lng,
+        kind: "origin",
+        label: "Start",
+      });
+      acc.push({
+        id: "route-dest",
+        lat: last.lat,
+        lng: last.lng,
+        kind: "destination",
+        label: "End",
+      });
     }
     return acc;
   }, [savedList, selection, route]);
@@ -248,6 +265,7 @@ export function LocationView() {
                       error: weather.isError
                         ? errorMessage(weather.error)
                         : null,
+                      hourly: weather.data?.hourly ?? [],
                       daily: weather.data?.daily ?? [],
                     }
                   : null
@@ -298,17 +316,31 @@ export function LocationView() {
 function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   const cls = (t: Tab) =>
     `flex-1 text-sm px-3 py-1.5 rounded-full ${
-      tab === t ? "bg-white/10 text-[#ECEFEA]" : "text-[#8B9A8E] hover:bg-white/5"
+      tab === t
+        ? "bg-white/10 text-[#ECEFEA]"
+        : "text-[#8B9A8E] hover:bg-white/5"
     }`;
   return (
     <div className="flex items-center gap-1 p-1 rounded-full bg-[#0B100D] border border-[#1F2A24]">
-      <button type="button" onClick={() => setTab("search")} className={cls("search")}>
+      <button
+        type="button"
+        onClick={() => setTab("search")}
+        className={cls("search")}
+      >
         Search
       </button>
-      <button type="button" onClick={() => setTab("saved")} className={cls("saved")}>
+      <button
+        type="button"
+        onClick={() => setTab("saved")}
+        className={cls("saved")}
+      >
         Saved
       </button>
-      <button type="button" onClick={() => setTab("route")} className={cls("route")}>
+      <button
+        type="button"
+        onClick={() => setTab("route")}
+        className={cls("route")}
+      >
         Route
       </button>
     </div>
@@ -626,6 +658,13 @@ function SelectionCard({
   weather: {
     isLoading: boolean;
     error: string | null;
+    hourly: {
+      time: string;
+      temp_c: number;
+      icon?: string;
+      summary?: string;
+      pop_pct?: number;
+    }[];
     daily: {
       date: string;
       temp_min_c: number;
@@ -749,6 +788,7 @@ function SelectionCard({
         <WeatherBottomBar
           isLoading={weather.isLoading}
           error={weather.error}
+          hourly={weather.hourly}
           daily={weather.daily}
         />
       )}
@@ -759,10 +799,18 @@ function SelectionCard({
 function WeatherBottomBar({
   isLoading,
   error,
+  hourly,
   daily,
 }: {
   isLoading: boolean;
   error: string | null;
+  hourly: {
+    time: string;
+    temp_c: number;
+    icon?: string;
+    summary?: string;
+    pop_pct?: number;
+  }[];
   daily: {
     date: string;
     temp_min_c: number;
@@ -779,68 +827,131 @@ function WeatherBottomBar({
   return (
     <div
       ref={ref}
-      className="mt-2 -mx-3 -mb-3 rounded-b-xl px-3 py-2.5 border-t"
+      className="mt-2 -mx-3 -mb-3 rounded-b-xl px-3 py-2.5 border-t flex flex-col gap-2.5"
       style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
     >
-      <div className="flex items-center justify-between mb-1.5">
-        <p
-          className="text-[10px] font-medium tracking-[0.18em] uppercase"
-          style={{ color: "var(--season-button)" }}
-        >
-          Forecast
-        </p>
-        {isLoading && (
-          <Loader2 className="size-3 animate-spin text-[#8B9A8E]" />
-        )}
-      </div>
       {error && <p className="text-xs text-[#FCA5A5]">{error}</p>}
-      {!isLoading && !error && daily.length > 0 && (
-        <ul className="grid grid-flow-col auto-cols-fr gap-1.5">
-          {daily.slice(0, 5).map((d) => (
-            <li
-              key={d.date}
-              className="flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1.5 border"
-              style={{
-                backgroundColor: "#0B100D",
-                borderColor: "#1F2A24",
-              }}
+      {!error && hourly.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p
+              className="text-[10px] font-medium tracking-[0.18em] uppercase"
+              style={{ color: "var(--season-button)" }}
             >
-              <span className="text-[10px] uppercase tracking-wider text-[#8B9A8E]">
-                {shortDate(d.date)}
-              </span>
-              {d.icon ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={d.icon}
-                  alt={d.summary ?? ""}
-                  width={28}
-                  height={28}
-                  loading="lazy"
-                  style={{ width: 28, height: 28 }}
-                />
-              ) : (
-                <span className="h-7" />
-              )}
-              <span className="text-[11px] text-[#ECEFEA]">
-                {Math.round(d.temp_max_c)}°
-                <span className="text-[#8B9A8E]">
-                  /{Math.round(d.temp_min_c)}°
+              Today · hourly
+            </p>
+            {isLoading && (
+              <Loader2 className="size-3 animate-spin text-[#8B9A8E]" />
+            )}
+          </div>
+          <ul className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+            {hourly.map((h) => (
+              <li
+                key={h.time}
+                className="flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 border shrink-0"
+                style={{
+                  backgroundColor: "#0B100D",
+                  borderColor: "#1F2A24",
+                  minWidth: 56,
+                }}
+              >
+                <span className="text-[10px] tracking-wider text-[#8B9A8E]">
+                  {shortHour(h.time)}
                 </span>
-              </span>
-              {d.pop_pct !== undefined && (
-                <span className="text-[10px] text-[#79B4E6]">
-                  {Math.round(d.pop_pct)}%
+                {h.icon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={h.icon}
+                    alt={h.summary ?? ""}
+                    width={28}
+                    height={28}
+                    loading="lazy"
+                    style={{ width: 28, height: 28 }}
+                  />
+                ) : (
+                  <span className="h-7" />
+                )}
+                <span className="text-[11px] text-[#ECEFEA]">
+                  {Math.round(h.temp_c)}°
                 </span>
-              )}
-            </li>
-          ))}
-        </ul>
+                {h.pop_pct !== undefined && h.pop_pct > 0 && (
+                  <span className="text-[10px] text-[#79B4E6]">
+                    {Math.round(h.pop_pct)}%
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!error && daily.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p
+              className="text-[10px] font-medium tracking-[0.18em] uppercase"
+              style={{ color: "var(--season-button)" }}
+            >
+              5-day
+            </p>
+            {isLoading && hourly.length === 0 && (
+              <Loader2 className="size-3 animate-spin text-[#8B9A8E]" />
+            )}
+          </div>
+          <ul className="grid grid-flow-col auto-cols-fr gap-1.5">
+            {daily.slice(0, 5).map((d) => (
+              <li
+                key={d.date}
+                className="flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1.5 border"
+                style={{
+                  backgroundColor: "#0B100D",
+                  borderColor: "#1F2A24",
+                }}
+              >
+                <span className="text-[10px] uppercase tracking-wider text-[#8B9A8E]">
+                  {shortDate(d.date)}
+                </span>
+                {d.icon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={d.icon}
+                    alt={d.summary ?? ""}
+                    width={28}
+                    height={28}
+                    loading="lazy"
+                    style={{ width: 28, height: 28 }}
+                  />
+                ) : (
+                  <span className="h-7" />
+                )}
+                <span className="text-[11px] text-[#ECEFEA]">
+                  {Math.round(d.temp_max_c)}°
+                  <span className="text-[#8B9A8E]">
+                    /{Math.round(d.temp_min_c)}°
+                  </span>
+                </span>
+                {d.pop_pct !== undefined && (
+                  <span className="text-[10px] text-[#79B4E6]">
+                    {Math.round(d.pop_pct)}%
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {isLoading && daily.length === 0 && hourly.length === 0 && !error && (
+        <p className="text-xs text-[#8B9A8E] flex items-center gap-1.5">
+          <Loader2 className="size-3 animate-spin" />
+          Loading forecast…
+        </p>
       )}
     </div>
   );
 }
 
-function coordOf(sel: Selection | null): { lat: number; lng: number } | undefined {
+function coordOf(
+  sel: Selection | null,
+): { lat: number; lng: number } | undefined {
   if (!sel) return undefined;
   if (sel.kind === "place") return sel.place.location;
   if (sel.kind === "saved") return { lat: sel.place.lat, lng: sel.place.lng };
@@ -864,4 +975,10 @@ function shortDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
+}
+
+function shortHour(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleTimeString(undefined, { hour: "numeric" });
 }

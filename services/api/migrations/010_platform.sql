@@ -29,6 +29,13 @@ CREATE INDEX IF NOT EXISTS idx_platform_outbox_pending
     ON platform.outbox (created_at)
     WHERE dispatched_at IS NULL;
 
+-- PruneDispatched in internal/outbox/repository.go scans for rows where
+-- dispatched_at IS NOT NULL AND dispatched_at < cutoff. The pending index
+-- above only covers dispatched_at IS NULL, so the prune needs its own.
+CREATE INDEX IF NOT EXISTS idx_platform_outbox_dispatched
+    ON platform.outbox (dispatched_at)
+    WHERE dispatched_at IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_platform_outbox_aggregate
     ON platform.outbox (aggregate_type, aggregate_id);
 

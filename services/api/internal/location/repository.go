@@ -12,9 +12,10 @@ import (
 type IRepository interface {
 	CreateSavedPlace(ctx context.Context, sp *SavedPlace) error
 	FindSavedPlaceByID(ctx context.Context, id uuid.UUID) (*SavedPlace, error)
+	FindSavedPlaceByUserTripPlaceID(ctx context.Context, userID uuid.UUID, tripID *uuid.UUID, placeID, category string) (*SavedPlace, error)
 	UpdateSavedPlace(ctx context.Context, id uuid.UUID, patch map[string]any) error
 	SoftDeleteSavedPlace(ctx context.Context, id uuid.UUID) error
-	ListSavedPlacesForUser(ctx context.Context, userID uuid.UUID, tripID *uuid.UUID) ([]SavedPlace, error)
+	ListSavedPlacesForUser(ctx context.Context, userID uuid.UUID, tripID *uuid.UUID, category *string) ([]SavedPlace, error)
 }
 
 type repository struct {
@@ -39,6 +40,27 @@ func (r *repository) FindSavedPlaceByID(ctx context.Context, id uuid.UUID) (*Sav
 	return &sp, err
 }
 
+func (r *repository) FindSavedPlaceByUserTripPlaceID(ctx context.Context, userID uuid.UUID, tripID *uuid.UUID, placeID, category string) (*SavedPlace, error) {
+	if placeID == "" {
+		return nil, nil
+	}
+	tx := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Where("place_id = ?", placeID).
+		Where("category = ?", category)
+	if tripID == nil {
+		tx = tx.Where("trip_id IS NULL")
+	} else {
+		tx = tx.Where("trip_id = ?", *tripID)
+	}
+	var sp SavedPlace
+	err := tx.First(&sp).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &sp, err
+}
+
 func (r *repository) UpdateSavedPlace(ctx context.Context, id uuid.UUID, patch map[string]any) error {
 	if len(patch) == 0 {
 		return nil
@@ -51,12 +73,15 @@ func (r *repository) SoftDeleteSavedPlace(ctx context.Context, id uuid.UUID) err
 	return r.db.WithContext(ctx).Delete(&SavedPlace{}, "id = ?", id).Error
 }
 
-func (r *repository) ListSavedPlacesForUser(ctx context.Context, userID uuid.UUID, tripID *uuid.UUID) ([]SavedPlace, error) {
+func (r *repository) ListSavedPlacesForUser(ctx context.Context, userID uuid.UUID, tripID *uuid.UUID, category *string) ([]SavedPlace, error) {
 	tx := r.db.WithContext(ctx).
 		Model(&SavedPlace{}).
 		Where("user_id = ?", userID)
 	if tripID != nil {
 		tx = tx.Where("trip_id = ?", *tripID)
+	}
+	if category != nil {
+		tx = tx.Where("category = ?", *category)
 	}
 	var rows []SavedPlace
 	err := tx.Order("created_at DESC").Find(&rows).Error

@@ -203,10 +203,7 @@ export class LocationClient {
     const res = await this.callProtected<UpstreamWeatherForecast>(
       auth,
       (opts) =>
-        this.http.get<UpstreamWeatherForecast>(
-          `/location/weather?${qs}`,
-          opts,
-        ),
+        this.http.get<UpstreamWeatherForecast>(`/location/weather?${qs}`, opts),
     );
     return mapData(res, toWeatherForecastView);
   }
@@ -291,6 +288,7 @@ export class LocationClient {
 const buildSavedListQuery = (q: ListSavedPlacesQueryInput): string => {
   const qs = new URLSearchParams();
   if (q.trip_id) qs.set("trip_id", q.trip_id);
+  if (q.category) qs.set("category", q.category);
   return qs.toString();
 };
 

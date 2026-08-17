@@ -173,6 +173,9 @@ func (h *Handler) ListSavedPlaces(c *gin.Context) {
 	if raw := c.Query("trip_id"); raw != "" {
 		q.TripID = &raw
 	}
+	if raw := c.Query("category"); raw != "" {
+		q.Category = &raw
+	}
 	out, err := h.svc.ListSavedPlaces(c.Request.Context(), uid, q)
 	if err != nil {
 		h.respondServiceError(c, err)

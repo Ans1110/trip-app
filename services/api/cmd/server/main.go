@@ -125,7 +125,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	database.StartPoolStatsLogger(ctx, db, logger, 60*time.Second)
+	// database.StartPoolStatsLogger(ctx, db, logger, 60*time.Second)
 	go func() {
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()

@@ -166,6 +166,8 @@ const readListSavedQuery = (req: NextRequest): ListSavedPlacesQueryInput => {
   const out: ListSavedPlacesQueryInput = {};
   const trip = url.searchParams.get("trip_id");
   if (trip) out.trip_id = trip;
+  const category = url.searchParams.get("category");
+  if (category) out.category = category;
   return out;
 };
 

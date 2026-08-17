@@ -28,7 +28,8 @@ func InitDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: gormLogger,
+		Logger:         gormLogger,
+		TranslateError: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("connect to database: %w", err)

@@ -11,6 +11,7 @@ import (
 	"github.com/Ans1110/trip-app/pkg/middleware"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 var (
@@ -119,6 +120,15 @@ func (s *service) CreateSavedPlace(ctx context.Context, userID uuid.UUID, p Crea
 		Color:    p.Color,
 	}
 	if err := s.repo.CreateSavedPlace(ctx, sp); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) && sp.PlaceID != "" {
+			existing, ferr := s.repo.FindSavedPlaceByUserTripPlaceID(ctx, userID, tripID, sp.PlaceID, sp.Category)
+			if ferr != nil {
+				return nil, ferr
+			}
+			if existing != nil {
+				return toSavedPlaceResponse(existing), nil
+			}
+		}
 		return nil, err
 	}
 	s.recordAudit(ctx, AuditSavedPlaceCreated, audit.Success, userID, sp.ID.String(), nil)
@@ -240,7 +250,12 @@ func (s *service) ListSavedPlaces(ctx context.Context, userID uuid.UUID, q ListS
 		}
 		tripID = &tid
 	}
-	rows, err := s.repo.ListSavedPlacesForUser(ctx, userID, tripID)
+	var category *string
+	if q.Category != nil {
+		v := strings.TrimSpace(*q.Category)
+		category = &v
+	}
+	rows, err := s.repo.ListSavedPlacesForUser(ctx, userID, tripID, category)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +423,9 @@ func (s *service) Forecast(ctx context.Context, q WeatherQuery) (*WeatherForecas
 	if units == "" {
 		units = "metric"
 	}
-	key := "weather:" + hashKey(fmt.Sprintf("%f,%f", at.Lat, at.Lng), q.Lang, units)
+	// v4: hourly source switched from 2.5/forecast (3h buckets) to
+	// One Call 4.0 /timeline/1h (true 1-hour granularity).
+	key := "weather:v4:" + hashKey(fmt.Sprintf("%f,%f", at.Lat, at.Lng), q.Lang, units)
 	var cached WeatherForecast
 	if hit, _ := s.cache.Get(ctx, key, &cached); hit {
 		return &cached, nil
