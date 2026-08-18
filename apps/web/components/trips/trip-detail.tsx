@@ -10,6 +10,7 @@ import { TripFinance } from "./trip-finance";
 import { TripItinerary } from "./trip-itinerary";
 import { TripLocation } from "./trip-location";
 import { TripOverview } from "./trip-overview";
+import { TripPacking } from "./trip-packing";
 import { TripRoom } from "./trip-room";
 import { TripTodos } from "./trip-todos";
 import { TripVote } from "./trip-vote";
@@ -20,6 +21,7 @@ type Tab =
   | "todos"
   | "calendar"
   | "vote"
+  | "packing"
   | "finance"
   | "album"
   | "location"
@@ -31,6 +33,7 @@ const tabs: { value: Tab; label: string }[] = [
   { value: "todos", label: "Todos" },
   { value: "calendar", label: "Calendar" },
   { value: "vote", label: "Vote" },
+  { value: "packing", label: "Packing" },
   { value: "finance", label: "Finance" },
   { value: "album", label: "Album" },
   { value: "location", label: "Location" },
@@ -95,6 +98,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
       {tab === "todos" && <TripTodos tripId={trip.id} />}
       {tab === "calendar" && <TripCalendar tripId={trip.id} />}
       {tab === "vote" && <TripVote tripId={trip.id} />}
+      {tab === "packing" && <TripPacking tripId={trip.id} />}
       {tab === "finance" && <TripFinance tripId={trip.id} />}
       {tab === "album" && <AlbumPanel tripId={trip.id} />}
       {tab === "location" && <TripLocation tripId={trip.id} />}

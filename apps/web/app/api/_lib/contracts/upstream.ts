@@ -16,3 +16,4 @@ export * from "./upstream/feed";
 export * from "./upstream/search";
 export * from "./upstream/admin";
 export * from "./upstream/location";
+export * from "./upstream/packing";

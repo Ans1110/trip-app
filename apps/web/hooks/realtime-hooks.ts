@@ -20,6 +20,7 @@ import {
   invalidateAlbumSharesForTrip,
 } from "./album-hooks";
 import { calendarKeys } from "./calendar-hooks";
+import { packingKeys } from "./packing-hooks";
 import { tripKeys } from "./trip-hooks";
 import { voteKeys } from "./vote-hooks";
 
@@ -138,6 +139,13 @@ function dispatchServerMsg(
     case "VOTE_POLL_DELETED":
       void qc.invalidateQueries({ queryKey: voteKeys.polls(tripId) });
       qc.removeQueries({ queryKey: voteKeys.poll(msg.poll_id) });
+      return;
+    case "PACKING_ITEM_CREATED":
+    case "PACKING_ITEM_UPDATED":
+    case "PACKING_ITEM_DELETED":
+      void qc.invalidateQueries({
+        queryKey: packingKeys.items(msg.trip_id ?? tripId),
+      });
       return;
     case "ALBUM_PHOTO_UPLOADED":
     case "ALBUM_PHOTO_UPDATED":

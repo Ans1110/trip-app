@@ -34,6 +34,7 @@ type IRepository interface {
 	DeleteTrip(ctx context.Context, id uuid.UUID) error
 	ListTrips(ctx context.Context, userID uuid.UUID, q ListTripsQuery) ([]Trip, error)
 	CountMembers(ctx context.Context, tripIDs []uuid.UUID) (map[uuid.UUID]int, error)
+	TripOwnerID(ctx context.Context, tripID uuid.UUID) (uuid.UUID, error)
 
 	// Room
 	CreateRoom(ctx context.Context, r *Room) error
@@ -159,6 +160,16 @@ func (r *repository) CreateTrip(ctx context.Context, t *Trip) error {
 		t.ID = uuid.New()
 	}
 	return r.db.WithContext(ctx).Create(t).Error
+}
+
+func (r *repository) TripOwnerID(ctx context.Context, tripID uuid.UUID) (uuid.UUID, error) {
+	var ownerID uuid.UUID
+	err := r.db.WithContext(ctx).
+		Model(&Trip{}).
+		Select("owner_id").
+		Where("id = ? AND deleted_at IS NULL", tripID).
+		Scan(&ownerID).Error
+	return ownerID, err
 }
 
 func (r *repository) FindTripByID(ctx context.Context, id uuid.UUID) (*Trip, error) {

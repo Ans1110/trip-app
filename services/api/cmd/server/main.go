@@ -37,6 +37,7 @@ import (
 	"github.com/Ans1110/trip-app/internal/location"
 	"github.com/Ans1110/trip-app/internal/media"
 	"github.com/Ans1110/trip-app/internal/outbox"
+	"github.com/Ans1110/trip-app/internal/packing"
 	"github.com/Ans1110/trip-app/internal/post"
 	"github.com/Ans1110/trip-app/internal/profile"
 	"github.com/Ans1110/trip-app/internal/realtime"
@@ -243,6 +244,15 @@ func main() {
 	})
 	go voteScheduler.Start(ctx)
 
+	packingRepo := packing.NewRepository(db)
+	packingSvc := packing.NewService(packing.ServiceConfig{
+		Repo:        packingRepo,
+		TripAuth:    tripRepo,
+		Broadcaster: rtSvc,
+		Logger:      logger,
+	})
+	packingHandler := packing.NewHandler(packingSvc, logger)
+
 	mediaStorage, err := media.NewStorage(cfg.Media)
 	if err != nil {
 		logger.Fatal("initialize media storage", zap.Error(err))
@@ -418,6 +428,7 @@ func main() {
 		searchHandler,
 		adminHandler,
 		locationHandler,
+		packingHandler,
 	)
 
 	srv := &http.Server{
@@ -472,6 +483,7 @@ func setupRouter(
 	searchHandler search.IHandler,
 	adminHandler admin.IHandler,
 	locationHandler location.IHandler,
+	packingHandler packing.IHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -541,6 +553,7 @@ func setupRouter(
 	searchHandler.RegisterRoutes(protected)
 	adminHandler.RegisterRoutes(protected)
 	locationHandler.RegisterRoutes(protected)
+	packingHandler.RegisterRoutes(protected)
 
 	ws := r.Group("/")
 	ws.Use(middleware.TicketAuth(rtTickets, logger), rateLimitMW)

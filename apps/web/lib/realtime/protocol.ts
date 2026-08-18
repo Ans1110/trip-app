@@ -164,6 +164,22 @@ export type VotePollDeletedEvent = {
   poll_id: string;
 };
 
+export type PackingBroadcastType =
+  | "PACKING_ITEM_CREATED"
+  | "PACKING_ITEM_UPDATED";
+
+export type PackingBroadcastEvent = {
+  type: PackingBroadcastType;
+  trip_id: string;
+  item: { id: string } & Record<string, unknown>;
+};
+
+export type PackingItemDeletedEvent = {
+  type: "PACKING_ITEM_DELETED";
+  trip_id: string;
+  item_id: string;
+};
+
 export type AlbumBroadcastType =
   | "ALBUM_PHOTO_UPLOADED"
   | "ALBUM_PHOTO_UPDATED"
@@ -189,6 +205,8 @@ export type ServerMsg =
   | CalendarDeletedEvent
   | VoteBroadcastEvent
   | VotePollDeletedEvent
+  | PackingBroadcastEvent
+  | PackingItemDeletedEvent
   | AlbumBroadcastEvent;
 
 export function isServerMsg(v: unknown): v is ServerMsg {
