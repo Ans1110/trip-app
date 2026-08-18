@@ -16,6 +16,8 @@ export type RealtimeClientConfig<CMsg, SMsg> = {
   parseMessage: (raw: unknown) => SMsg | null;
   onStateChange?: (state: RealtimeState) => void;
   onError?: (err: unknown) => void;
+  isTerminalError?: (err: unknown) => boolean;
+  onTerminate?: (err: unknown) => void;
 
   // If false, skip the document.visibilityState auto-pause. Default: true.
   pauseOnHidden?: boolean;
@@ -99,6 +101,10 @@ export class RealtimeClient<CMsg, SMsg> {
       ticket = await this.cfg.fetchTicket(abort.signal);
     } catch (err) {
       if (abort.signal.aborted) return;
+      if (this.cfg.isTerminalError?.(err)) {
+        this.terminate(err);
+        return;
+      }
       this.cfg.onError?.(err);
       this.scheduleReconnect();
       return;
@@ -148,6 +154,11 @@ export class RealtimeClient<CMsg, SMsg> {
       }
       this.scheduleReconnect();
     };
+  }
+
+  private terminate(err: unknown): void {
+    this.disconnect();
+    this.cfg.onTerminate?.(err);
   }
 
   private scheduleReconnect(): void {

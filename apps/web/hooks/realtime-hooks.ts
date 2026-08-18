@@ -14,6 +14,8 @@ import {
   type ServerMsg,
   type WelcomeEvent,
 } from "@/lib/realtime/protocol";
+import { ApiError } from "@/lib/utils";
+import { sessionExpiredStore } from "@/store/session-expired-store";
 
 import {
   invalidateAlbumForTrip,
@@ -72,6 +74,8 @@ export function useTripRealtime(
           console.warn("[realtime]", err);
         }
       },
+      isTerminalError: isAuthExpired,
+      onTerminate: () => sessionExpiredStore.trigger(),
     });
 
     clientRef.current = client;
@@ -158,6 +162,10 @@ function dispatchServerMsg(
       invalidateAlbumSharesForTrip(qc, msg.trip_id ?? tripId);
       return;
   }
+}
+
+function isAuthExpired(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 401;
 }
 
 function buildTripWsUrl(tripId: string): string {
