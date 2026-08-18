@@ -208,6 +208,9 @@ func (r *tripRepoStub) ListTrips(_ context.Context, _ uuid.UUID, _ trip.ListTrip
 func (r *tripRepoStub) CountMembers(_ context.Context, _ []uuid.UUID) (map[uuid.UUID]int, error) {
 	return map[uuid.UUID]int{}, nil
 }
+func (r *tripRepoStub) TripOwnerID(_ context.Context, _ uuid.UUID) (uuid.UUID, error) {
+	return uuid.Nil, nil
+}
 
 func (r *tripRepoStub) CreateRoom(_ context.Context, _ *trip.Room) error       { return nil }
 func (r *tripRepoStub) FindRoomByID(_ context.Context, _ uuid.UUID) (*trip.Room, error) {

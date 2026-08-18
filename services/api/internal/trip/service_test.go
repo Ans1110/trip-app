@@ -29,6 +29,7 @@ type repoMock struct {
 	deleteTrip    func(context.Context, uuid.UUID) error
 	listTrips     func(context.Context, uuid.UUID, trip.ListTripsQuery) ([]trip.Trip, error)
 	countMembers  func(context.Context, []uuid.UUID) (map[uuid.UUID]int, error)
+	tripOwnerID   func(context.Context, uuid.UUID) (uuid.UUID, error)
 
 	createRoom       func(context.Context, *trip.Room) error
 	findRoomByID     func(context.Context, uuid.UUID) (*trip.Room, error)
@@ -128,6 +129,13 @@ func (r *repoMock) CountMembers(c context.Context, ids []uuid.UUID) (map[uuid.UU
 		return r.countMembers(c, ids)
 	}
 	return map[uuid.UUID]int{}, nil
+}
+
+func (r *repoMock) TripOwnerID(c context.Context, id uuid.UUID) (uuid.UUID, error) {
+	if r.tripOwnerID != nil {
+		return r.tripOwnerID(c, id)
+	}
+	return uuid.Nil, nil
 }
 
 func (r *repoMock) CreateRoom(c context.Context, room *trip.Room) error {
