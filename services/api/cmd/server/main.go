@@ -63,6 +63,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 func main() {
@@ -218,10 +219,11 @@ func main() {
 	})
 	go rtSvc.Start(ctx)
 
+	sweeperDB := db.Session(&gorm.Session{Logger: gormlogger.Discard})
+
 	// Outbox dispatcher
-	outboxRepo := outbox.NewRepository(db)
 	rtDispatcher := realtime.NewOutboxDispatcher(realtime.OutboxDispatcherConfig{
-		Repo:   outboxRepo,
+		Repo:   outbox.NewRepository(sweeperDB),
 		Redis:  rdb,
 		Logger: logger,
 	})
@@ -239,8 +241,13 @@ func main() {
 	})
 	voteHandler := vote.NewHandler(voteSvc, logger)
 	voteScheduler := vote.NewScheduler(vote.SchedulerConfig{
-		Service: voteSvc,
-		Logger:  logger,
+		Service: vote.NewService(vote.ServiceConfig{
+			Repo:        vote.NewRepository(sweeperDB),
+			TripAuth:    tripRepo,
+			Broadcaster: rtSvc,
+			Logger:      logger,
+		}),
+		Logger: logger,
 	})
 	go voteScheduler.Start(ctx)
 
