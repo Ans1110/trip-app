@@ -26,7 +26,7 @@ type IRepository interface {
 	CreatePoll(ctx context.Context, p *Poll) error
 	FindPoll(ctx context.Context, id uuid.UUID) (*Poll, error)
 	ListPollsByTrip(ctx context.Context, tripID uuid.UUID) ([]Poll, error)
-	MarkClosed(ctx context.Context, id uuid.UUID, closedAt time.Time) error
+	MarkClosed(ctx context.Context, id uuid.UUID, closedAt time.Time) (bool, error)
 	ClaimExpiredPolls(ctx context.Context, now time.Time, limit int) ([]Poll, error)
 	DeletePoll(ctx context.Context, id uuid.UUID) error
 
@@ -80,14 +80,17 @@ func (r *repository) ListPollsByTrip(ctx context.Context, tripID uuid.UUID) ([]P
 	return rows, err
 }
 
-func (r *repository) MarkClosed(ctx context.Context, id uuid.UUID, closedAt time.Time) error {
-	return r.db.WithContext(ctx).Model(&Poll{}).
+// MarkClosed reports whether this call flipped the poll; false means another
+// closer (manual close or a concurrent sweeper) already won.
+func (r *repository) MarkClosed(ctx context.Context, id uuid.UUID, closedAt time.Time) (bool, error) {
+	res := r.db.WithContext(ctx).Model(&Poll{}).
 		Where("id = ? AND status = ?", id, StatusOpen).
 		Updates(map[string]any{
 			"status":     StatusClosed,
 			"closed_at":  closedAt,
 			"updated_at": closedAt,
-		}).Error
+		})
+	return res.RowsAffected > 0, res.Error
 }
 
 // ClaimExpiredPolls returns polls that have hit their deadline while still

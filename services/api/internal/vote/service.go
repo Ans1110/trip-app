@@ -324,8 +324,19 @@ func (s *service) ClosePoll(ctx context.Context, userID, pollID uuid.UUID) (*Pol
 		return s.buildPollDTO(ctx, poll, userID)
 	}
 	now := time.Now()
-	if err := s.repo.MarkClosed(ctx, pollID, now); err != nil {
+	won, err := s.repo.MarkClosed(ctx, pollID, now)
+	if err != nil {
 		return nil, err
+	}
+	if !won {
+		latest, err := s.repo.FindPoll(ctx, pollID)
+		if err != nil {
+			return nil, err
+		}
+		if latest == nil {
+			return nil, ErrPollNotFound
+		}
+		return s.buildPollDTO(ctx, latest, userID)
 	}
 	poll.Status = StatusClosed
 	poll.ClosedAt = &now
@@ -379,11 +390,15 @@ func (s *service) SweepExpiredPolls(ctx context.Context) (int, error) {
 	now := time.Now()
 	for i := range polls {
 		poll := &polls[i]
-		if err := s.repo.MarkClosed(ctx, poll.ID, now); err != nil {
+		won, err := s.repo.MarkClosed(ctx, poll.ID, now)
+		if err != nil {
 			s.logger.Warn("vote: mark closed",
 				zap.String("poll_id", poll.ID.String()),
 				zap.Error(err),
 			)
+			continue
+		}
+		if !won {
 			continue
 		}
 		poll.Status = StatusClosed

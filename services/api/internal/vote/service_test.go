@@ -23,7 +23,7 @@ type repoMock struct {
 	createPoll        func(context.Context, *vote.Poll) error
 	findPoll          func(context.Context, uuid.UUID) (*vote.Poll, error)
 	listPollsByTrip   func(context.Context, uuid.UUID) ([]vote.Poll, error)
-	markClosed        func(context.Context, uuid.UUID, time.Time) error
+	markClosed        func(context.Context, uuid.UUID, time.Time) (bool, error)
 	claimExpiredPolls func(context.Context, time.Time, int) ([]vote.Poll, error)
 	deletePoll        func(context.Context, uuid.UUID) error
 
@@ -70,11 +70,11 @@ func (r *repoMock) ListPollsByTrip(c context.Context, tid uuid.UUID) ([]vote.Pol
 	return nil, nil
 }
 
-func (r *repoMock) MarkClosed(c context.Context, id uuid.UUID, t time.Time) error {
+func (r *repoMock) MarkClosed(c context.Context, id uuid.UUID, t time.Time) (bool, error) {
 	if r.markClosed != nil {
 		return r.markClosed(c, id, t)
 	}
-	return nil
+	return true, nil
 }
 
 func (r *repoMock) ClaimExpiredPolls(c context.Context, now time.Time, limit int) ([]vote.Poll, error) {
@@ -673,7 +673,7 @@ func TestClosePoll_AlreadyClosed_IsIdempotent(t *testing.T) {
 		findPoll: func(_ context.Context, id uuid.UUID) (*vote.Poll, error) {
 			return &vote.Poll{ID: id, TripID: uuid.New(), CreatedBy: creator, Status: vote.StatusClosed}, nil
 		},
-		markClosed: func(_ context.Context, _ uuid.UUID, _ time.Time) error { marked = true; return nil },
+		markClosed: func(_ context.Context, _ uuid.UUID, _ time.Time) (bool, error) { marked = true; return true, nil },
 	}
 	svc := newSvc(repo, memberAuth(), nil)
 	dto, err := svc.ClosePoll(ctx, creator, uuid.New())
@@ -690,7 +690,7 @@ func TestClosePoll_ByCreator_Succeeds(t *testing.T) {
 			return &vote.Poll{ID: id, TripID: trip, CreatedBy: creator, Status: vote.StatusOpen,
 				ResultVisibility: vote.VisibilityAlways}, nil
 		},
-		markClosed: func(_ context.Context, _ uuid.UUID, _ time.Time) error { marked = true; return nil },
+		markClosed: func(_ context.Context, _ uuid.UUID, _ time.Time) (bool, error) { marked = true; return true, nil },
 	}
 	bc := &bcastMock{}
 	svc := newSvc(repo, memberAuth(), bc)
@@ -761,9 +761,9 @@ func TestSweepExpiredPolls_ClosesEachAndBroadcasts(t *testing.T) {
 		claimExpiredPolls: func(_ context.Context, _ time.Time, _ int) ([]vote.Poll, error) {
 			return claimed, nil
 		},
-		markClosed: func(_ context.Context, id uuid.UUID, _ time.Time) error {
+		markClosed: func(_ context.Context, id uuid.UUID, _ time.Time) (bool, error) {
 			marks = append(marks, id)
-			return nil
+			return true, nil
 		},
 	}
 	bc := &bcastMock{}
@@ -786,11 +786,11 @@ func TestSweepExpiredPolls_ContinuesOnMarkFailure(t *testing.T) {
 		claimExpiredPolls: func(_ context.Context, _ time.Time, _ int) ([]vote.Poll, error) {
 			return claimed, nil
 		},
-		markClosed: func(_ context.Context, id uuid.UUID, _ time.Time) error {
+		markClosed: func(_ context.Context, id uuid.UUID, _ time.Time) (bool, error) {
 			if id == p1 {
-				return errors.New("boom")
+				return false, errors.New("boom")
 			}
-			return nil
+			return true, nil
 		},
 	}
 	bc := &bcastMock{}
@@ -799,6 +799,52 @@ func TestSweepExpiredPolls_ContinuesOnMarkFailure(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, n, "one closed successfully, one skipped due to mark failure")
 	require.Len(t, bc.calls, 1)
+}
+
+func TestSweepExpiredPolls_LostRace_NoBroadcast(t *testing.T) {
+	trip, creator := uuid.New(), uuid.New()
+	p1, p2 := uuid.New(), uuid.New()
+	claimed := []vote.Poll{
+		{ID: p1, TripID: trip, CreatedBy: creator, Status: vote.StatusOpen, ResultVisibility: vote.VisibilityAlways},
+		{ID: p2, TripID: trip, CreatedBy: creator, Status: vote.StatusOpen, ResultVisibility: vote.VisibilityAlways},
+	}
+	repo := &repoMock{
+		claimExpiredPolls: func(_ context.Context, _ time.Time, _ int) ([]vote.Poll, error) {
+			return claimed, nil
+		},
+		markClosed: func(_ context.Context, id uuid.UUID, _ time.Time) (bool, error) {
+			return id != p1, nil
+		},
+	}
+	bc := &bcastMock{}
+	svc := newSvc(repo, memberAuth(), bc)
+	n, err := svc.SweepExpiredPolls(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+	require.Len(t, bc.calls, 1)
+}
+
+func TestClosePoll_LostRace_ReturnsCurrentStateWithoutBroadcast(t *testing.T) {
+	creator, trip := uuid.New(), uuid.New()
+	finds := 0
+	repo := &repoMock{
+		findPoll: func(_ context.Context, id uuid.UUID) (*vote.Poll, error) {
+			finds++
+			status := vote.StatusOpen
+			if finds > 1 {
+				status = vote.StatusClosed
+			}
+			return &vote.Poll{ID: id, TripID: trip, CreatedBy: creator, Status: status,
+				ResultVisibility: vote.VisibilityAlways}, nil
+		},
+		markClosed: func(_ context.Context, _ uuid.UUID, _ time.Time) (bool, error) { return false, nil },
+	}
+	bc := &bcastMock{}
+	svc := newSvc(repo, memberAuth(), bc)
+	dto, err := svc.ClosePoll(ctx, creator, uuid.New())
+	require.NoError(t, err)
+	assert.Equal(t, vote.StatusClosed, dto.Status)
+	assert.Empty(t, bc.calls)
 }
 
 func TestSweepExpiredPolls_ClaimError_Propagates(t *testing.T) {
