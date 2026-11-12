@@ -55,11 +55,10 @@ export function ChatFab() {
         type="button"
         onClick={openWindow}
         aria-label={ariaLabel}
-        // Sits to the left of the FriendsFab (which is at right-6).
-        className="season-transition fixed bottom-6 right-24 z-40 inline-flex items-center justify-center size-14 rounded-full hover:-translate-y-0.5 active:translate-y-0"
+        className="app-fab fixed right-24 z-40 inline-flex items-center justify-center size-14 rounded-full hover:-translate-y-0.5 active:translate-y-0"
         style={{
           backgroundColor: "var(--season-button)",
-          color: "#0B100D",
+          color: "var(--primary-foreground)",
           boxShadow: "0 12px 32px var(--season-button-shadow)",
         }}
       >
@@ -69,9 +68,9 @@ export function ChatFab() {
             aria-hidden
             className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold leading-none"
             style={{
-              backgroundColor: "#E5484D",
+              backgroundColor: "var(--destructive)",
               color: "#FFFFFF",
-              border: "2px solid #0B100D",
+              border: "2px solid var(--border)",
             }}
           >
             {badgeLabel}

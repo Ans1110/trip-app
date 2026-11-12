@@ -91,7 +91,7 @@ export function CoverImageDrawer({
         aria-label="Close"
         onClick={() => !busy && onClose()}
         className="absolute inset-0 cursor-default"
-        style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+        style={{ backgroundColor: "var(--overlay)" }}
       />
       <aside
         role="dialog"
@@ -99,21 +99,21 @@ export function CoverImageDrawer({
         aria-labelledby="cover-drawer-title"
         className="absolute right-0 top-0 h-full w-full max-w-md flex flex-col"
         style={{
-          backgroundColor: "#0B100D",
-          borderLeft: "1px solid #1F2A24",
-          boxShadow: "-24px 0 64px rgba(0,0,0,0.5)",
+          backgroundColor: "var(--card)",
+          borderLeft: "1px solid var(--border)",
+          boxShadow: "-24px 0 48px -12px oklch(0.55 0.09 245 / 0.22)",
         }}
       >
         <div
           className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: "#1F2A24" }}
+          style={{ borderColor: "var(--border)" }}
         >
           <h2
             id="cover-drawer-title"
             className="text-lg tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             Trip cover
@@ -123,8 +123,8 @@ export function CoverImageDrawer({
             onClick={() => !busy && onClose()}
             disabled={busy}
             aria-label="Close"
-            className="inline-flex items-center justify-center size-8 rounded-full hover:bg-white/5 disabled:opacity-60"
-            style={{ color: "#8B9A8E" }}
+            className="inline-flex items-center justify-center size-8 rounded-full hover:bg-muted disabled:opacity-60"
+            style={{ color: "var(--muted-foreground)" }}
           >
             <X className="size-4" />
           </button>
@@ -133,7 +133,7 @@ export function CoverImageDrawer({
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
           <div
             className="rounded-xl overflow-hidden"
-            style={{ border: "1px solid #1F2A24", aspectRatio: "16 / 9" }}
+            style={{ border: "1px solid var(--border)", aspectRatio: "16 / 9" }}
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -147,8 +147,8 @@ export function CoverImageDrawer({
                 className="w-full h-full flex flex-col items-center justify-center gap-2"
                 style={{
                   background:
-                    "linear-gradient(135deg, #1F2A24 0%, #0B100D 100%)",
-                  color: "#6B7A6F",
+                    "linear-gradient(135deg, var(--muted) 0%, var(--background) 100%)",
+                  color: "var(--subtle-foreground)",
                 }}
               >
                 <ImagePlus className="size-6" />
@@ -176,7 +176,7 @@ export function CoverImageDrawer({
             className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide disabled:opacity-60"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
               boxShadow: "0 8px 24px var(--season-button-shadow)",
             }}
           >
@@ -193,7 +193,7 @@ export function CoverImageDrawer({
             )}
           </button>
 
-          <p className="text-xs" style={{ color: "#6B7A6F" }}>
+          <p className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
             JPEG, PNG, WebP, or GIF. Max 8 MB. Uploaded to your Cloudinary
             workspace.
           </p>
@@ -202,7 +202,7 @@ export function CoverImageDrawer({
             <p
               className="text-xs rounded-lg px-3 py-2"
               style={{
-                color: "#FCA5A5",
+                color: "var(--destructive)",
                 backgroundColor: "rgba(220,38,38,0.08)",
                 border: "1px solid rgba(220,38,38,0.25)",
               }}
@@ -217,8 +217,8 @@ export function CoverImageDrawer({
               type="button"
               onClick={handleRemove}
               disabled={busy}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs rounded-full hover:bg-white/5 disabled:opacity-60 self-start"
-              style={{ color: "#FCA5A5", border: "1px solid #1F2A24" }}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs rounded-full hover:bg-muted disabled:opacity-60 self-start"
+              style={{ color: "var(--destructive)", border: "1px solid var(--border)" }}
             >
               <Trash2 className="size-3.5" />
               Remove cover

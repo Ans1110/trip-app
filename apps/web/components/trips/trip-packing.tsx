@@ -113,7 +113,7 @@ export function TripPacking({ tripId }: { tripId: string }) {
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
-          className="flex flex-col gap-2.5 p-4 rounded-xl bg-[#121814] border border-[#1F2A24]"
+          className="flex flex-col gap-2.5 p-4 rounded-xl bg-card border border-border"
         >
           <div className="flex items-end gap-2 flex-wrap">
             <ControlledInput<CreatePackingItemFormInput>
@@ -135,7 +135,7 @@ export function TripPacking({ tripId }: { tripId: string }) {
             <button
               type="submit"
               disabled={create.isPending || !nameValue.trim()}
-              className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {create.isPending ? (
@@ -147,7 +147,7 @@ export function TripPacking({ tripId }: { tripId: string }) {
             </button>
           </div>
           {create.isError && (
-            <p className="text-xs text-[#FCA5A5]">
+            <p className="text-xs text-destructive">
               {errorMessage(create.error)}
             </p>
           )}
@@ -155,10 +155,10 @@ export function TripPacking({ tripId }: { tripId: string }) {
       </FormProvider>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs" style={{ color: "#6B7A6F" }}>
+        <span className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
           {packed}/{total} packed
         </span>
-        <span className="text-xs" style={{ color: "#6B7A6F" }}>
+        <span className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
           ·
         </span>
         <FilterChip
@@ -182,17 +182,17 @@ export function TripPacking({ tripId }: { tripId: string }) {
       </div>
 
       {query.isLoading && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Loading…
         </p>
       )}
       {query.isError && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(query.error)}
         </p>
       )}
       {!query.isLoading && !query.isError && visible.length === 0 && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {total === 0 ? "Nothing packed yet." : "No items match the filter."}
         </p>
       )}
@@ -202,7 +202,7 @@ export function TripPacking({ tripId }: { tripId: string }) {
           <div key={category} className="flex flex-col gap-2">
             <h4
               className="text-xs uppercase tracking-wide"
-              style={{ color: "#6B7A6F" }}
+              style={{ color: "var(--subtle-foreground)" }}
             >
               {category}
             </h4>
@@ -240,9 +240,9 @@ function FilterChip({
       onClick={onClick}
       className="text-xs px-2 py-1 rounded-full season-transition"
       style={{
-        backgroundColor: active ? "rgba(181,208,134,0.18)" : "transparent",
-        color: active ? "#B5D086" : "#8B9A8E",
-        border: `1px solid ${active ? "#B5D086" : "#1F2A24"}`,
+        backgroundColor: active ? "color-mix(in oklch, var(--mint) 36%, transparent)" : "transparent",
+        color: active ? "var(--mint-ink)" : "var(--muted-foreground)",
+        border: `1px solid ${active ? "var(--mint)" : "var(--border)"}`,
       }}
     >
       {label}
@@ -309,7 +309,7 @@ function PackingRow({
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-lg"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <Checkbox
         checked={item.packed_by_me}
@@ -334,8 +334,8 @@ function PackingRow({
             }}
             placeholder="Name"
             aria-label="Name"
-            className="flex-1 min-w-0 bg-transparent outline-none text-sm border-b border-[#1F2A24] pb-0.5"
-            style={{ color: "#ECEFEA" }}
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm border-b border-border pb-0.5"
+            style={{ color: "var(--foreground)" }}
           />
           <input
             value={draft.category}
@@ -348,8 +348,8 @@ function PackingRow({
             }}
             placeholder="Category"
             aria-label="Category"
-            className="w-28 bg-transparent outline-none text-xs border-b border-[#1F2A24] pb-0.5"
-            style={{ color: "#9CB0A3" }}
+            className="w-28 bg-transparent outline-none text-xs border-b border-border pb-0.5"
+            style={{ color: "var(--muted-foreground)" }}
           />
           <input
             value={draft.quantity}
@@ -362,8 +362,8 @@ function PackingRow({
             }}
             inputMode="numeric"
             aria-label="Quantity"
-            className="w-12 bg-transparent outline-none text-xs text-right border-b border-[#1F2A24] pb-0.5"
-            style={{ color: "#9CB0A3" }}
+            className="w-12 bg-transparent outline-none text-xs text-right border-b border-border pb-0.5"
+            style={{ color: "var(--muted-foreground)" }}
           />
         </>
       ) : (
@@ -372,13 +372,13 @@ function PackingRow({
             className={`flex-1 min-w-0 truncate text-sm ${
               item.packed_by_me ? "line-through" : ""
             }`}
-            style={{ color: item.packed_by_me ? "#6B7A6F" : "#ECEFEA" }}
+            style={{ color: item.packed_by_me ? "var(--subtle-foreground)" : "var(--foreground)" }}
           >
             {item.name}
           </span>
           <span
             className="w-12 text-xs text-right"
-            style={{ color: "#9CB0A3" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             {item.quantity}
           </span>
@@ -387,7 +387,7 @@ function PackingRow({
       {!isEditing && item.packed_count > 0 && (
         <span
           className="text-[10px] tabular-nums"
-          style={{ color: "#6B7A6F" }}
+          style={{ color: "var(--subtle-foreground)" }}
           title={`${item.packed_count} member${
             item.packed_count === 1 ? "" : "s"
           } packed`}
@@ -402,8 +402,8 @@ function PackingRow({
             type="button"
             onClick={startEdit}
             aria-label="Edit"
-            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5"
-            style={{ color: "#9CB0A3" }}
+            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted"
+            style={{ color: "var(--muted-foreground)" }}
           >
             <Pencil className="size-3.5" />
           </button>
@@ -412,8 +412,8 @@ function PackingRow({
             onClick={() => remove.mutate({ tripId, itemId: item.id })}
             disabled={remove.isPending}
             aria-label="Delete"
-            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60"
-            style={{ color: "#FCA5A5" }}
+            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted disabled:opacity-60"
+            style={{ color: "var(--destructive)" }}
           >
             {remove.isPending ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -430,8 +430,8 @@ function PackingRow({
             onClick={save}
             disabled={update.isPending || !draft.name.trim()}
             aria-label="Save"
-            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60"
-            style={{ color: "#B5D086" }}
+            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted disabled:opacity-60"
+            style={{ color: "var(--mint-ink)" }}
           >
             {update.isPending ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -443,8 +443,8 @@ function PackingRow({
             type="button"
             onClick={cancelEdit}
             aria-label="Cancel"
-            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5"
-            style={{ color: "#8B9A8E" }}
+            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted"
+            style={{ color: "var(--muted-foreground)" }}
           >
             <X className="size-3.5" />
           </button>
@@ -466,7 +466,7 @@ function MiniAvatar({ user }: { user: UserSummary | undefined }) {
         backgroundColor: user?.avatar_url
           ? "transparent"
           : "color-mix(in srgb, var(--season-button) 22%, transparent)",
-        color: "#ECEFEA",
+        color: "var(--foreground)",
       }}
     >
       {user?.avatar_url ? (

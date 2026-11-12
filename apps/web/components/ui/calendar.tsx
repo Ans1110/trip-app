@@ -12,7 +12,7 @@ function Calendar({ className, classNames, ...props }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays
-      className={cn("p-3 text-[#ECEFEA]", className)}
+      className={cn("p-3 text-foreground", className)}
       classNames={{
         months: "flex flex-col gap-3",
         month: "flex flex-col gap-3",
@@ -21,22 +21,22 @@ function Calendar({ className, classNames, ...props }: CalendarProps) {
         caption_label: "text-sm font-medium",
         nav: "flex items-center gap-1 absolute right-3 top-3",
         button_previous:
-          "inline-flex items-center justify-center size-7 rounded-md hover:bg-white/5 text-[#8B9A8E] disabled:opacity-40",
+          "inline-flex items-center justify-center size-7 rounded-md hover:bg-muted text-muted-foreground disabled:opacity-40",
         button_next:
-          "inline-flex items-center justify-center size-7 rounded-md hover:bg-white/5 text-[#8B9A8E] disabled:opacity-40",
+          "inline-flex items-center justify-center size-7 rounded-md hover:bg-muted text-muted-foreground disabled:opacity-40",
         month_grid: "w-full border-collapse",
         weekdays: "flex",
         weekday:
-          "text-[#6B7A6F] text-[11px] uppercase tracking-wider w-9 h-8 flex items-center justify-center font-medium",
+          "text-subtle-foreground text-[11px] uppercase tracking-wider w-9 h-8 flex items-center justify-center font-medium",
         week: "flex w-full",
         day: "size-9 p-0 text-center text-sm relative",
         day_button:
-          "size-9 inline-flex items-center justify-center rounded-md hover:bg-white/5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--season-button)]/30",
+          "size-9 inline-flex items-center justify-center rounded-md hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--mint-ink)]/30",
         selected:
-          "[&_button]:bg-[color-mix(in_srgb,var(--season-button)_22%,transparent)] [&_button]:ring-1 [&_button]:ring-inset [&_button]:ring-[color:var(--season-button)] [&_button]:font-semibold",
+          "[&_button]:bg-[color-mix(in_srgb,var(--mint-ink)_22%,transparent)] [&_button]:ring-1 [&_button]:ring-inset [&_button]:ring-[color:var(--mint-ink)] [&_button]:font-semibold",
         today:
-          "[&_button]:font-semibold [&_button]:text-[color:var(--season-button)]",
-        outside: "[&_button]:text-[#3F4A43]",
+          "[&_button]:font-semibold [&_button]:text-[color:var(--mint-ink)]",
+        outside: "[&_button]:text-subtle-foreground",
         disabled: "[&_button]:opacity-40 [&_button]:pointer-events-none",
         hidden: "invisible",
         ...classNames,

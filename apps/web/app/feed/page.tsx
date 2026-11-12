@@ -17,21 +17,21 @@ export default function FeedPage() {
           <div>
             <p
               className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-2"
-              style={{ color: "var(--season-button)" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               Explore
             </p>
             <h1
               className="season-transition leading-tight tracking-tight"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
                 fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-                color: "var(--season-heading)",
+                color: "var(--foreground)",
               }}
             >
               Your feed
             </h1>
-            <p className="mt-2 text-sm" style={{ color: "#8B9A8E" }}>
+            <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
               Trips published by travelers you follow — or search all posts,
               tags, and authors.
             </p>
@@ -41,7 +41,7 @@ export default function FeedPage() {
             className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full shrink-0"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
             }}
           >
             <PenSquare className="size-4" />

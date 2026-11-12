@@ -125,7 +125,7 @@ function HeroCard({
   const net = toNumber(netBalance);
   const positive = net > 0;
   const negative = net < 0;
-  const tone = positive ? "#B5D086" : negative ? "#FCA5A5" : "#8B9A8E";
+  const tone = positive ? "var(--mint)" : negative ? "var(--destructive)" : "var(--muted-foreground)";
   const label = positive
     ? "Need to charge"
     : negative
@@ -136,8 +136,8 @@ function HeroCard({
     <div
       className="relative overflow-hidden rounded-2xl p-5"
       style={{
-        backgroundColor: "#0F1512",
-        border: "1px solid #1F2A24",
+        backgroundColor: "var(--surface-sunken)",
+        border: "1px solid var(--border)",
         backgroundImage:
           "radial-gradient(circle at top right, color-mix(in srgb, var(--season-button) 14%, transparent), transparent 55%)",
       }}
@@ -146,18 +146,18 @@ function HeroCard({
         <div className="flex flex-col gap-1 min-w-0">
           <span
             className="text-[11px] uppercase tracking-widest"
-            style={{ color: "#6B7A6F" }}
+            style={{ color: "var(--subtle-foreground)" }}
           >
             {label} · {currency}
           </span>
           {loading ? (
-            <span className="text-3xl text-[#ECEFEA]">…</span>
+            <span className="text-3xl text-foreground">…</span>
           ) : (
             <span
               className="text-3xl font-semibold tabular-nums"
               style={{
                 color: tone,
-                fontFamily: "var(--font-display, Georgia, serif)",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
               }}
             >
               {formatAmount(Math.abs(net))}
@@ -166,15 +166,15 @@ function HeroCard({
         </div>
         <a
           href={financeApi.exportCsvUrl(tripId, {})}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 shrink-0"
-          style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted shrink-0"
+          style={{ color: "var(--foreground)", border: "1px solid var(--border)" }}
         >
           <Download className="size-3.5" />
           Export CSV
         </a>
       </div>
 
-      {error && <p className="text-xs text-[#FCA5A5] mt-3">{error}</p>}
+      {error && <p className="text-xs text-destructive mt-3">{error}</p>}
     </div>
   );
 }
@@ -224,7 +224,7 @@ function ExpensesPanel({
           label="No expenses yet"
         />
       )}
-      <ul className="flex flex-col divide-y" style={{ borderColor: "#1F2A24" }}>
+      <ul className="flex flex-col divide-y" style={{ borderColor: "var(--border)" }}>
         {expenses.map((e) => (
           <ExpenseRow
             key={e.id}
@@ -292,7 +292,7 @@ function ExpenseRow({
         <div className="flex flex-col min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
             <span
-              className="text-sm text-[#ECEFEA] truncate"
+              className="text-sm text-foreground truncate"
               style={{ textDecoration: settled ? "line-through" : "none" }}
             >
               {expense.description || "Untitled expense"}
@@ -300,11 +300,11 @@ function ExpenseRow({
             {expense.category && <CategoryTag label={expense.category} />}
             {settled && <SettledChip />}
           </div>
-          <span className="text-[11px]" style={{ color: "#6B7A6F" }}>
+          <span className="text-[11px]" style={{ color: "var(--subtle-foreground)" }}>
             {payerName} paid · {formatDate(expense.occurred_at)}
           </span>
         </div>
-        <span className="text-sm tabular-nums text-[#ECEFEA] shrink-0">
+        <span className="text-sm tabular-nums text-foreground shrink-0">
           {formatAmount(toNumber(expense.amount))}
         </span>
         {isCreator && (
@@ -336,7 +336,7 @@ function SettledChip() {
       style={{
         backgroundColor:
           "color-mix(in srgb, var(--season-button) 20%, transparent)",
-        color: "var(--season-button)",
+        color: "var(--mint-ink)",
       }}
     >
       <Check className="size-3" />
@@ -406,9 +406,9 @@ function Avatar({
     "inline-flex items-center justify-center size-7 rounded-full text-[10px] font-medium select-none season-transition overflow-hidden";
   const style: React.CSSProperties = {
     backgroundColor: paid
-      ? "#1F2A24"
+      ? "var(--muted)"
       : "color-mix(in srgb, var(--season-button) 24%, transparent)",
-    color: paid ? "#6B7A6F" : "#ECEFEA",
+    color: paid ? "var(--subtle-foreground)" : "var(--foreground)",
     border: isPayer
       ? "1px solid var(--season-button)"
       : "1px solid transparent",
@@ -449,7 +449,7 @@ function CategoryTag({ label }: { label: string }) {
       style={{
         backgroundColor:
           "color-mix(in srgb, var(--season-button) 14%, transparent)",
-        color: "#ECEFEA",
+        color: "var(--foreground)",
       }}
     >
       {label}
@@ -550,7 +550,7 @@ function AddExpenseDialog({
           <ParticipantsField meId={meId} memberList={memberList} />
 
           {submitError && (
-            <p className="text-sm text-[#FCA5A5]">{submitError}</p>
+            <p className="text-sm text-destructive">{submitError}</p>
           )}
 
           <DialogFooter
@@ -586,15 +586,15 @@ function ParticipantsField({
           <div className="flex flex-col gap-1.5">
             <span
               className="text-[11px] uppercase tracking-widest"
-              style={{ color: "#6B7A6F" }}
+              style={{ color: "var(--subtle-foreground)" }}
             >
               Split between
             </span>
             <div
               className="flex flex-wrap gap-1.5 p-2 rounded-lg"
               style={{
-                backgroundColor: "#0F1512",
-                border: "1px solid #1F2A24",
+                backgroundColor: "var(--surface-sunken)",
+                border: "1px solid var(--border)",
               }}
             >
               {memberList.map((m) => {
@@ -603,8 +603,8 @@ function ParticipantsField({
                 return (
                   <label
                     key={m.id}
-                    className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs cursor-pointer hover:bg-white/5"
-                    style={{ color: "#ECEFEA" }}
+                    className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs cursor-pointer hover:bg-muted"
+                    style={{ color: "var(--foreground)" }}
                   >
                     <Checkbox
                       checked={checked}
@@ -620,7 +620,7 @@ function ParticipantsField({
               })}
             </div>
             {error && (
-              <span className="text-[11px] text-[#FCA5A5]">
+              <span className="text-[11px] text-destructive">
                 {error.message}
               </span>
             )}
@@ -670,7 +670,7 @@ function BudgetsPanel({
           label="No budgets yet"
         />
       )}
-      <ul className="flex flex-col divide-y" style={{ borderColor: "#1F2A24" }}>
+      <ul className="flex flex-col divide-y" style={{ borderColor: "var(--border)" }}>
         {budgets.map((b) => (
           <BudgetRow key={b.id} tripId={tripId} budget={b} />
         ))}
@@ -678,15 +678,15 @@ function BudgetsPanel({
       {budgets.length > 0 && (
         <div
           className="flex items-center justify-between pt-2 mt-1 border-t"
-          style={{ borderColor: "#1F2A24" }}
+          style={{ borderColor: "var(--border)" }}
         >
           <span
             className="text-[11px] uppercase tracking-widest"
-            style={{ color: "#6B7A6F" }}
+            style={{ color: "var(--subtle-foreground)" }}
           >
             Total · {currency}
           </span>
-          <span className="text-sm font-medium tabular-nums text-[#ECEFEA]">
+          <span className="text-sm font-medium tabular-nums text-foreground">
             {formatAmount(total)}
           </span>
         </div>
@@ -714,9 +714,9 @@ function BudgetRow({ tripId, budget }: { tripId: string; budget: Budget }) {
 
   return (
     <li className="flex items-center justify-between gap-2 py-2.5">
-      <span className="text-sm text-[#ECEFEA] truncate">{budget.category}</span>
+      <span className="text-sm text-foreground truncate">{budget.category}</span>
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-sm tabular-nums text-[#ECEFEA]">
+        <span className="text-sm tabular-nums text-foreground">
           {formatAmount(total)}
         </span>
         <IconButton
@@ -783,7 +783,7 @@ function UpsertBudgetDialog({
             placeholder="0.00"
           />
           {submitError && (
-            <p className="text-sm text-[#FCA5A5]">{submitError}</p>
+            <p className="text-sm text-destructive">{submitError}</p>
           )}
           <DialogFooter
             onCancel={onClose}
@@ -814,7 +814,7 @@ function Panel({
   return (
     <section
       className="flex flex-col gap-3 rounded-2xl p-4"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
@@ -823,14 +823,14 @@ function Panel({
             style={{
               backgroundColor:
                 "color-mix(in srgb, var(--season-button) 16%, transparent)",
-              color: "#ECEFEA",
+              color: "var(--foreground)",
             }}
           >
             {icon}
           </span>
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium text-[#ECEFEA]">{title}</span>
-            <span className="text-[11px]" style={{ color: "#6B7A6F" }}>
+            <span className="text-sm font-medium text-foreground">{title}</span>
+            <span className="text-[11px]" style={{ color: "var(--subtle-foreground)" }}>
               {hint}
             </span>
           </div>
@@ -858,14 +858,14 @@ function PanelButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="season-transition inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full hover:bg-white/5 disabled:opacity-60"
+      className="season-transition inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full hover:bg-muted disabled:opacity-60"
       style={
         primary
           ? {
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
             }
-          : { color: "#ECEFEA", border: "1px solid #1F2A24" }
+          : { color: "var(--foreground)", border: "1px solid var(--border)" }
       }
     >
       {children}
@@ -875,14 +875,14 @@ function PanelButton({
 
 function PanelLoading() {
   return (
-    <p className="text-xs" style={{ color: "#8B9A8E" }}>
+    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
       Loading…
     </p>
   );
 }
 
 function PanelError({ message }: { message: string }) {
-  return <p className="text-xs text-[#FCA5A5]">{message}</p>;
+  return <p className="text-xs text-destructive">{message}</p>;
 }
 
 function PanelEmpty({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -890,9 +890,9 @@ function PanelEmpty({ icon, label }: { icon: React.ReactNode; label: string }) {
     <div
       className="flex items-center gap-2 px-3 py-3 rounded-lg text-xs"
       style={{
-        backgroundColor: "#0F1512",
-        border: "1px dashed #1F2A24",
-        color: "#6B7A6F",
+        backgroundColor: "var(--surface-sunken)",
+        border: "1px dashed var(--border)",
+        color: "var(--subtle-foreground)",
       }}
     >
       {icon}
@@ -914,14 +914,14 @@ function IconButton({
   tone: "ok" | "danger";
   "aria-label": string;
 }) {
-  const color = tone === "ok" ? "#B5D086" : "#FCA5A5";
+  const color = tone === "ok" ? "var(--mint-ink)" : "var(--destructive)";
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
       disabled={busy}
-      className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60 shrink-0"
+      className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted disabled:opacity-60 shrink-0"
       style={{ color }}
     >
       {busy ? <Loader2 className="size-3.5 animate-spin" /> : children}
@@ -944,14 +944,14 @@ function DialogFooter({
         type="button"
         onClick={onCancel}
         disabled={pending}
-        className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+        className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={pending}
-        className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+        className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
         style={{ backgroundColor: "var(--season-button)" }}
       >
         {pending && <Loader2 className="size-3.5 animate-spin" />}

@@ -45,7 +45,7 @@ export function JoinRoomDialog({ onClose }: { onClose: () => void }) {
           onSubmit={form.handleSubmit(onSubmit)}
           noValidate
         >
-          <p className="text-sm text-[#8B9A8E]">
+          <p className="text-sm text-muted-foreground">
             Enter the room code shared with you, or scan a friend&rsquo;s QR
             code.
           </p>
@@ -60,7 +60,7 @@ export function JoinRoomDialog({ onClose }: { onClose: () => void }) {
           />
 
           {submitError && (
-            <p className="text-sm text-[#FCA5A5]">{submitError}</p>
+            <p className="text-sm text-destructive">{submitError}</p>
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
@@ -68,14 +68,14 @@ export function JoinRoomDialog({ onClose }: { onClose: () => void }) {
               type="button"
               onClick={onClose}
               disabled={join.isPending}
-              className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+              className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={join.isPending || !code.trim()}
-              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {join.isPending && <Loader2 className="size-3.5 animate-spin" />}

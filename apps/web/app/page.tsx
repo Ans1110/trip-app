@@ -17,22 +17,22 @@ const cards = [
     eyebrow: "Routes",
     title: "Drag, drop, done.",
     body: "Reshape a day in seconds. The plan keeps up while you change your mind.",
-    from: "#1F2A24",
-    to: "#0B100D",
+    from: "var(--mint)",
+    to: "var(--cyan-soft)",
   },
   {
     eyebrow: "Companions",
     title: "Plan together, in real time.",
     body: "No more shared spreadsheets. Everyone sees the same itinerary, instantly.",
-    from: "#1E2A2E",
-    to: "#0A1014",
+    from: "var(--pink)",
+    to: "var(--sky-soft)",
   },
   {
     eyebrow: "Offline",
     title: "Works where signal doesn't.",
     body: "Train through Hokkaido, hike in Patagonia. Your plan travels with you.",
-    from: "#2A2418",
-    to: "#13110A",
+    from: "var(--sky)",
+    to: "var(--mint-soft)",
   },
 ];
 
@@ -43,42 +43,42 @@ const itinerary = [
   { days: "Day 11–14", city: "Hiroshima", spots: "Peace Memorial, Miyajima",   done: false },
 ];
 
-const avatarColors = ["#7FB68A", "#A8E0B4", "#E8D7B8", "#8B9A8E"];
+const avatarColors = ["var(--mint)", "var(--sky)", "var(--pink)", "var(--cyan)"];
 
 export default function Home() {
   return (
-    <div className="min-h-screen relative" style={{ backgroundColor: "#0B100D", color: "#ECEFEA" }}>
+    <div className="min-h-screen relative text-foreground">
       <Nav />
       <VerifyEmailBanner />
 
       <Hero />
 
+      <div className="bg-wash relative z-[1]">
       {/* ── 3 IMAGE-LED CARDS ── */}
       <section
         id="features"
         className="relative px-6 md:px-12 py-24 md:py-32"
-        style={{ zIndex: 1, backgroundColor: "rgba(11,16,13,0.78)" }}
       >
         <div className="max-w-7xl mx-auto">
           <div className="mb-16 max-w-2xl">
             <p
               className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-4"
-              style={{ color: "var(--season-button)" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               How it feels
             </p>
             <h2
               className="season-transition leading-[1.05] tracking-tight"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
                 fontSize: "clamp(2rem, 4vw, 3.5rem)",
-                color: "var(--season-heading)",
+                color: "var(--foreground)",
               }}
             >
               Built for the part of travel{" "}
               <em
                 className="season-transition"
-                style={{ color: "var(--season-accent)" }}
+                style={{ color: "var(--pink-ink)" }}
               >
                 before
               </em>{" "}
@@ -90,11 +90,8 @@ export default function Home() {
             {cards.map((c, i) => (
               <article
                 key={i}
-                className="group relative rounded-2xl overflow-hidden border transition-transform duration-500 hover:-translate-y-1"
-                style={{
-                  backgroundColor: "#161E19",
-                  borderColor: "#1F2A24",
-                }}
+                className="group relative rounded-2xl overflow-hidden transition-[translate,box-shadow] duration-500 ease-out hover:-translate-y-1 hover:shadow-soft-lg"
+                style={{ backgroundColor: "var(--card)" }}
               >
                 <div
                   className="relative h-64 md:h-72 w-full overflow-hidden"
@@ -110,7 +107,7 @@ export default function Home() {
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       background:
-                        "linear-gradient(to bottom, rgba(0,0,0,0) 55%, rgba(11,16,13,0.65) 100%)",
+                        "linear-gradient(to bottom, transparent 55%, color-mix(in oklch, var(--card) 70%, transparent) 100%)",
                     }}
                     aria-hidden
                   />
@@ -119,29 +116,29 @@ export default function Home() {
                 <div className="p-6 md:p-7">
                   <p
                     className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-3"
-                    style={{ color: "var(--season-button)" }}
+                    style={{ color: "var(--mint-ink)" }}
                   >
                     {c.eyebrow}
                   </p>
                   <p
                     className="leading-snug mb-3"
                     style={{
-                      fontFamily: "var(--font-display, Georgia, serif)",
+                      fontFamily: "var(--font-display), system-ui, sans-serif",
                       fontSize: "1.6rem",
-                      color: "#ECEFEA",
+                      color: "var(--foreground)",
                     }}
                   >
                     {c.title}
                   </p>
                   <p
                     className="text-sm leading-relaxed mb-6"
-                    style={{ color: "#8B9A8E" }}
+                    style={{ color: "var(--muted-foreground)" }}
                   >
                     {c.body}
                   </p>
                   <span
                     className="season-transition inline-flex items-center gap-1.5 text-xs tracking-[0.15em] uppercase font-medium"
-                    style={{ color: "var(--season-accent)" }}
+                    style={{ color: "var(--pink-ink)" }}
                   >
                     Learn more <ArrowRight className="size-3.5" />
                   </span>
@@ -156,28 +153,27 @@ export default function Home() {
       <section
         id="preview"
         className="relative px-6 md:px-12 py-24 md:py-32"
-        style={{ zIndex: 1, backgroundColor: "rgba(11,16,13,0.82)" }}
       >
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           <div>
             <p
               className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-4"
-              style={{ color: "var(--season-button)" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               The workspace
             </p>
             <h2
               className="season-transition leading-[1.05] tracking-tight mb-6"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
                 fontSize: "clamp(2rem, 3.5vw, 3rem)",
-                color: "var(--season-heading)",
+                color: "var(--foreground)",
               }}
             >
               A workspace that thinks in{" "}
               <em
                 className="season-transition"
-                style={{ color: "var(--season-accent)" }}
+                style={{ color: "var(--pink-ink)" }}
               >
                 days
               </em>
@@ -185,7 +181,7 @@ export default function Home() {
             </h2>
             <p
               className="text-base leading-relaxed mb-8 max-w-md"
-              style={{ color: "#8B9A8E" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               Drag a day to swap it. Drop a city on the map. TripCraft holds the
               itinerary while you keep changing your mind — which, if you&rsquo;re
@@ -195,7 +191,7 @@ export default function Home() {
               href="#"
               className="season-transition inline-flex items-center gap-2 text-sm tracking-[0.15em] uppercase font-medium border-b pb-0.5"
               style={{
-                color: "var(--season-accent)",
+                color: "var(--pink-ink)",
                 borderColor: "var(--season-accent)",
               }}
             >
@@ -207,21 +203,20 @@ export default function Home() {
             <div
               className="w-full max-w-md rounded-2xl overflow-hidden"
               style={{
-                backgroundColor: "#161E19",
-                border: "1px solid #1F2A24",
-                boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+                backgroundColor: "var(--card)",
+                boxShadow: "var(--shadow-soft-lg)",
               }}
             >
               <div
                 className="px-6 pt-6 pb-4"
-                style={{ borderBottom: "1px solid #1F2A24" }}
+                style={{ borderBottom: "1px solid var(--border)" }}
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xl" aria-hidden>🗾</span>
                     <span
                       className="font-semibold text-[15px]"
-                      style={{ color: "#ECEFEA" }}
+                      style={{ color: "var(--foreground)" }}
                     >
                       Japan · Spring 2026
                     </span>
@@ -231,13 +226,13 @@ export default function Home() {
                     style={{
                       backgroundColor:
                         "color-mix(in srgb, var(--season-accent) 14%, transparent)",
-                      color: "var(--season-accent)",
+                      color: "var(--pink-ink)",
                     }}
                   >
                     14 days
                   </span>
                 </div>
-                <p className="text-xs" style={{ color: "#6B7A6F" }}>
+                <p className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
                   4 travelers · Tokyo · Kyoto · Osaka
                 </p>
               </div>
@@ -251,7 +246,7 @@ export default function Home() {
                         style={{
                           backgroundColor: stop.done
                             ? "var(--season-button)"
-                            : "#2A3A2E",
+                            : "var(--input)",
                         }}
                       />
                       {i < itinerary.length - 1 && (
@@ -260,8 +255,8 @@ export default function Home() {
                           style={{
                             height: 24,
                             backgroundColor: stop.done
-                              ? "color-mix(in srgb, var(--season-button) 50%, #0B100D)"
-                              : "#1F2A24",
+                              ? "var(--mint)"
+                              : "var(--border)",
                           }}
                         />
                       )}
@@ -270,24 +265,24 @@ export default function Home() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className="text-[11px] font-medium tabular-nums"
-                          style={{ color: "#6B7A6F" }}
+                          style={{ color: "var(--subtle-foreground)" }}
                         >
                           {stop.days}
                         </span>
                         <span
                           className="text-sm font-semibold"
-                          style={{ color: "#ECEFEA" }}
+                          style={{ color: "var(--foreground)" }}
                         >
                           {stop.city}
                         </span>
                         {stop.done && (
                           <Check
                             className="season-transition size-3.5"
-                            style={{ color: "var(--season-button)" }}
+                            style={{ color: "var(--mint-ink)" }}
                           />
                         )}
                       </div>
-                      <p className="text-xs mt-0.5" style={{ color: "#6B7A6F" }}>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--subtle-foreground)" }}>
                         {stop.spots}
                       </p>
                     </div>
@@ -298,8 +293,8 @@ export default function Home() {
               <div
                 className="px-6 py-4 flex items-center justify-between"
                 style={{
-                  backgroundColor: "#121814",
-                  borderTop: "1px solid #1F2A24",
+                  backgroundColor: "var(--surface-sunken)",
+                  borderTop: "1px solid var(--border)",
                 }}
               >
                 <div className="flex -space-x-1.5">
@@ -309,7 +304,7 @@ export default function Home() {
                       className="size-6 rounded-full"
                       style={{
                         backgroundColor: color,
-                        boxShadow: "0 0 0 2px #121814",
+                        boxShadow: "0 0 0 2px var(--card)",
                       }}
                     />
                   ))}
@@ -317,7 +312,7 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <div
                     className="h-1.5 w-20 rounded-full overflow-hidden"
-                    style={{ backgroundColor: "#1F2A24" }}
+                    style={{ backgroundColor: "var(--muted)" }}
                   >
                     <div
                       className="season-transition h-full rounded-full"
@@ -327,7 +322,7 @@ export default function Home() {
                       }}
                     />
                   </div>
-                  <span className="text-xs" style={{ color: "#6B7A6F" }}>
+                  <span className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
                     52%
                   </span>
                 </div>
@@ -338,17 +333,14 @@ export default function Home() {
       </section>
 
       {/* ── CTA ── */}
-      <section
-        className="relative px-6 md:px-12 py-28"
-        style={{ backgroundColor: "rgba(18,24,20,0.88)", zIndex: 1 }}
-      >
+      <section className="relative px-6 md:px-12 py-28">
         <div className="max-w-2xl mx-auto text-center">
           <div
             className="season-transition inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-[0.2em] uppercase mb-8"
             style={{
               backgroundColor:
                 "color-mix(in srgb, var(--season-accent) 14%, transparent)",
-              color: "var(--season-accent)",
+              color: "var(--pink-ink)",
             }}
           >
             Free to start
@@ -357,22 +349,22 @@ export default function Home() {
           <h2
             className="season-transition leading-[1.05] tracking-tight mb-6"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
               fontSize: "clamp(2.5rem, 5vw, 4rem)",
-              color: "var(--season-heading)",
+              color: "var(--foreground)",
             }}
           >
             Your next adventure
             <br />
             <em
               className="season-transition"
-              style={{ color: "var(--season-accent)" }}
+              style={{ color: "var(--pink-ink)" }}
             >
               starts here.
             </em>
           </h2>
 
-          <p className="text-lg mb-10" style={{ color: "#8B9A8E" }}>
+          <p className="text-lg mb-10" style={{ color: "var(--muted-foreground)" }}>
             Join 50,000+ travelers who use TripCraft to plan unforgettable
             journeys.
           </p>
@@ -382,7 +374,7 @@ export default function Home() {
             className="season-transition inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-base font-medium hover:-translate-y-0.5 active:translate-y-0"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
               boxShadow: "0 12px 32px var(--season-button-shadow)",
             }}
           >
@@ -394,19 +386,19 @@ export default function Home() {
       {/* ── FOOTER ── */}
       <footer
         className="relative px-6 md:px-12 py-10 border-t"
-        style={{ borderColor: "#1F2A24", backgroundColor: "#0B100D", zIndex: 1 }}
+        style={{ borderColor: "var(--border)" }}
       >
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <Compass
               className="season-transition size-4"
-              style={{ color: "var(--season-button)" }}
+              style={{ color: "var(--mint-ink)" }}
             />
             <span
               className="text-lg"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
-                color: "#ECEFEA",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
+                color: "var(--foreground)",
               }}
             >
               TripCraft
@@ -415,14 +407,14 @@ export default function Home() {
 
           <nav
             className="flex flex-wrap items-center justify-center gap-6 text-sm"
-            style={{ color: "#8B9A8E" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             {["Routes", "Itinerary", "Blog", "Privacy", "Terms", "Contact"].map(
               (item) => (
                 <Link
                   key={item}
                   href="#"
-                  className="hover:text-[#ECEFEA] transition-colors"
+                  className="hover:text-foreground transition-colors"
                 >
                   {item}
                 </Link>
@@ -430,11 +422,12 @@ export default function Home() {
             )}
           </nav>
 
-          <p className="text-sm" style={{ color: "#6B7A6F" }}>
+          <p className="text-sm" style={{ color: "var(--subtle-foreground)" }}>
             © 2026 TripCraft
           </p>
         </div>
       </footer>
+      </div>
     </div>
   );
 }

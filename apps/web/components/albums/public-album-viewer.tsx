@@ -26,10 +26,10 @@ export function PublicAlbumViewer({ token }: { token: string }) {
     return (
       <div
         className="flex flex-col items-center gap-2 rounded-lg py-14"
-        style={{ backgroundColor: "#121814", border: "1px dashed #1F2A24" }}
+        style={{ backgroundColor: "var(--card)", border: "1px dashed var(--border)" }}
       >
-        <ImageIcon size={24} style={{ color: "#4A5A50" }} />
-        <p className="text-xs" style={{ color: "#8B9A8E" }}>
+        <ImageIcon size={24} style={{ color: "var(--subtle-foreground)" }} />
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           The album is empty.
         </p>
       </div>
@@ -61,20 +61,20 @@ export function PublicAlbumError({ kind }: { kind: PublicAlbumErrorKind }) {
   return (
     <div
       className="flex flex-col items-center gap-3 rounded-2xl py-14 px-6 text-center"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
-      <Link2Off size={26} style={{ color: "#8B9A8E" }} />
+      <Link2Off size={26} style={{ color: "var(--muted-foreground)" }} />
       <div className="flex flex-col gap-1">
         <h1
           className="text-lg tracking-tight"
           style={{
-            fontFamily: "var(--font-display, Georgia, serif)",
-            color: "#ECEFEA",
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            color: "var(--foreground)",
           }}
         >
           {msg.title}
         </h1>
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {msg.body}
         </p>
       </div>
@@ -115,7 +115,7 @@ function Message({
   return (
     <p
       className="text-sm text-center py-8"
-      style={{ color: tone === "muted" ? "#8B9A8E" : "#ECEFEA" }}
+      style={{ color: tone === "muted" ? "var(--muted-foreground)" : "var(--foreground)" }}
     >
       {children}
     </p>

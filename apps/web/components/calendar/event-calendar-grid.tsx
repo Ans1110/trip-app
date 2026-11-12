@@ -6,11 +6,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CalendarEvent, EventType } from "@/lib/apis/calendar-api";
 
 const EVENT_TYPE_ACCENT: Record<EventType, string> = {
-  general: "#8B9A8E",
-  trip: "#A8E0B4",
-  flight: "#7FB3D5",
-  hotel: "#E8D7B8",
-  meeting: "#C3A6E0",
+  general: "var(--muted-foreground)",
+  trip: "var(--mint)",
+  flight: "var(--sky)",
+  hotel: "var(--pink)",
+  meeting: "var(--pink)",
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -90,16 +90,16 @@ export function EventCalendarGrid({
             type="button"
             onClick={() => setCursor((c) => (c ? addMonths(c, -1) : c))}
             aria-label="Previous month"
-            className="inline-flex items-center justify-center size-9 rounded-full hover:bg-white/5"
-            style={{ color: "#ECEFEA" }}
+            className="inline-flex items-center justify-center size-9 rounded-full hover:bg-muted"
+            style={{ color: "var(--foreground)" }}
           >
             <ChevronLeft className="size-4" />
           </button>
           <button
             type="button"
             onClick={() => setCursor(firstOfMonth(new Date()))}
-            className="px-3 py-1.5 text-xs rounded-full hover:bg-white/5"
-            style={{ color: "#8B9A8E", border: "1px solid #1F2A24" }}
+            className="px-3 py-1.5 text-xs rounded-full hover:bg-muted"
+            style={{ color: "var(--muted-foreground)", border: "1px solid var(--border)" }}
           >
             Today
           </button>
@@ -107,8 +107,8 @@ export function EventCalendarGrid({
             type="button"
             onClick={() => setCursor((c) => (c ? addMonths(c, 1) : c))}
             aria-label="Next month"
-            className="inline-flex items-center justify-center size-9 rounded-full hover:bg-white/5"
-            style={{ color: "#ECEFEA" }}
+            className="inline-flex items-center justify-center size-9 rounded-full hover:bg-muted"
+            style={{ color: "var(--foreground)" }}
           >
             <ChevronRight className="size-4" />
           </button>
@@ -116,8 +116,8 @@ export function EventCalendarGrid({
         <span
           className="text-2xl tracking-tight"
           style={{
-            fontFamily: "var(--font-display, Georgia, serif)",
-            color: "#ECEFEA",
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            color: "var(--foreground)",
           }}
         >
           {formatMonth(cursor)}
@@ -126,29 +126,29 @@ export function EventCalendarGrid({
       </div>
 
       {errorMessage && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage}
         </p>
       )}
       {isLoading && !errorMessage && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Loading…
         </p>
       )}
 
       <div
         className="rounded-2xl overflow-hidden"
-        style={{ backgroundColor: "#0E1411", border: "1px solid #1F2A24" }}
+        style={{ backgroundColor: "var(--surface-sunken)", border: "1px solid var(--border)" }}
       >
         <div
           className="grid grid-cols-7"
-          style={{ borderBottom: "1px solid #1F2A24" }}
+          style={{ borderBottom: "1px solid var(--border)" }}
         >
           {WEEKDAYS.map((d) => (
             <div
               key={d}
               className="px-2 py-2 text-[11px] uppercase tracking-widest text-center"
-              style={{ color: "#6B7A6F" }}
+              style={{ color: "var(--subtle-foreground)" }}
             >
               {d}
             </div>
@@ -163,7 +163,7 @@ export function EventCalendarGrid({
               key={wi}
               className="relative"
               style={{
-                borderBottom: isLastWeek ? undefined : "1px solid #1F2A24",
+                borderBottom: isLastWeek ? undefined : "1px solid var(--border)",
               }}
             >
               <div className="absolute inset-0 grid grid-cols-7">
@@ -176,10 +176,10 @@ export function EventCalendarGrid({
                       key={di}
                       className="relative"
                       style={{
-                        backgroundColor: inMonth ? "#121814" : "#0B100D",
+                        backgroundColor: inMonth ? "var(--card)" : "var(--background)",
                         borderRight: isLastCol
                           ? undefined
-                          : "1px solid #1F2A24",
+                          : "1px solid var(--muted)",
                         opacity: inMonth ? 1 : 0.55,
                       }}
                     >
@@ -188,14 +188,14 @@ export function EventCalendarGrid({
                           type="button"
                           onClick={() => onDayClick(day)}
                           aria-label={`Add event on ${formatDayFull(day)}`}
-                          className="absolute inset-0 hover:bg-white/[0.02] transition-colors"
+                          className="absolute inset-0 hover:bg-sky-soft/60 transition-colors"
                         />
                       ) : null}
                       <div className="relative px-1.5 pt-1.5 flex justify-start pointer-events-none">
                         <span
                           className="text-xs inline-flex items-center justify-center"
                           style={{
-                            color: isToday ? "#0B100D" : "#ECEFEA",
+                            color: isToday ? "var(--primary-foreground)" : "var(--foreground)",
                             backgroundColor: isToday
                               ? "var(--season-button)"
                               : "transparent",
@@ -246,8 +246,8 @@ function GridSkeleton() {
     <div
       className="rounded-2xl"
       style={{
-        backgroundColor: "#0E1411",
-        border: "1px solid #1F2A24",
+        backgroundColor: "var(--surface-sunken)",
+        border: "1px solid var(--border)",
         minHeight: 480,
       }}
     />
@@ -293,18 +293,18 @@ function EventBar({
       />
       <span
         className="text-[11px] truncate flex-1 min-w-0"
-        style={{ color: "#ECEFEA" }}
+        style={{ color: "var(--foreground)" }}
       >
         {!continuesFromPrev && !event.all_day ? `${formatBarTime(event)} ` : ""}
         {userName && !continuesFromPrev && (
-          <span style={{ color: "#8B9A8E" }}>{userName} · </span>
+          <span style={{ color: "var(--muted-foreground)" }}>{userName} · </span>
         )}
         {event.title}
       </span>
       {isTrip && !continuesFromPrev && (
         <span
           className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded shrink-0 font-semibold"
-          style={{ color: "#0B100D", backgroundColor: "#A8E0B4" }}
+          style={{ color: "var(--primary-foreground)", backgroundColor: "var(--mint)" }}
         >
           Trip
         </span>

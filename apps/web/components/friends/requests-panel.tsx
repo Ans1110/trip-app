@@ -57,7 +57,7 @@ function IncomingRow({ request }: { request: FriendRequest }) {
         style={{
           backgroundColor:
             "color-mix(in srgb, var(--season-button) 22%, transparent)",
-          color: "#ECEFEA",
+          color: "var(--foreground)",
           border:
             "1px solid color-mix(in srgb, var(--season-button) 32%, transparent)",
         }}
@@ -73,8 +73,8 @@ function IncomingRow({ request }: { request: FriendRequest }) {
         type="button"
         onClick={() => decline.mutate(request.id)}
         disabled={busy}
-        className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
-        style={{ color: "#8B9A8E" }}
+        className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60"
+        style={{ color: "var(--muted-foreground)" }}
       >
         {decline.isPending ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -97,8 +97,8 @@ function IncomingRow({ request }: { request: FriendRequest }) {
         disabled={busy}
         aria-label="Block"
         title="Block"
-        className="season-transition inline-flex items-center justify-center size-8 rounded-full hover:bg-white/5 disabled:opacity-60"
-        style={{ color: "#8B9A8E" }}
+        className="season-transition inline-flex items-center justify-center size-8 rounded-full hover:bg-muted disabled:opacity-60"
+        style={{ color: "var(--muted-foreground)" }}
       >
         {block.isPending ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -118,8 +118,8 @@ function OutgoingRow({ request }: { request: FriendRequest }) {
         type="button"
         onClick={() => cancel.mutate(request.id)}
         disabled={cancel.isPending}
-        className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
-        style={{ color: "#FCA5A5" }}
+        className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60"
+        style={{ color: "var(--destructive)" }}
       >
         {cancel.isPending ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -144,14 +144,14 @@ function RequestRow({
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-lg"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <Avatar user={user} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm truncate" style={{ color: "#ECEFEA" }}>
+        <p className="text-sm truncate" style={{ color: "var(--foreground)" }}>
           {user.name || user.email}
         </p>
-        <p className="text-xs truncate" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
           {message ? message : user.email}
         </p>
       </div>

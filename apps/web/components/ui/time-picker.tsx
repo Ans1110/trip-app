@@ -57,16 +57,16 @@ function TimePicker({
           data-invalid={invalid || undefined}
           className={cn(
             "season-transition flex w-full items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm outline-none text-left",
-            "bg-[#161E19] border border-[#1F2A24] text-[#ECEFEA]",
-            "focus:border-[color:var(--season-button)]",
+            "bg-muted border border-border text-foreground",
+            "focus:border-[color:var(--mint-ink)]",
             "disabled:opacity-60 disabled:cursor-not-allowed",
             "data-[invalid=true]:border-[rgba(220,38,38,0.4)]",
-            !value && "text-[#6B7A6F]",
+            !value && "text-subtle-foreground",
             className,
           )}
         >
           <span>{value || placeholder}</span>
-          <Clock className="size-3.5 text-[#8B9A8E]" />
+          <Clock className="size-3.5 text-muted-foreground" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="p-3 w-auto">
@@ -74,7 +74,7 @@ function TimePicker({
           <div className="flex flex-col gap-1.5">
             <p
               className="text-[10px] uppercase tracking-widest"
-              style={{ color: "#6B7A6F" }}
+              style={{ color: "var(--subtle-foreground)" }}
             >
               Hour
             </p>
@@ -88,15 +88,15 @@ function TimePicker({
                     onClick={() => setHour(h)}
                     className={cn(
                       "size-7 rounded text-xs season-transition",
-                      active ? "font-semibold" : "hover:bg-white/5",
+                      active ? "font-semibold" : "hover:bg-muted",
                     )}
                     style={
                       active
                         ? {
                             backgroundColor: "var(--season-button)",
-                            color: "#0B100D",
+                            color: "var(--primary-foreground)",
                           }
-                        : { color: "#ECEFEA" }
+                        : { color: "var(--foreground)" }
                     }
                   >
                     {h}
@@ -108,7 +108,7 @@ function TimePicker({
           <div className="flex flex-col gap-1.5">
             <p
               className="text-[10px] uppercase tracking-widest"
-              style={{ color: "#6B7A6F" }}
+              style={{ color: "var(--subtle-foreground)" }}
             >
               Min
             </p>
@@ -122,15 +122,15 @@ function TimePicker({
                     onClick={() => setMinute(m)}
                     className={cn(
                       "px-3 py-1 rounded text-xs season-transition text-left",
-                      active ? "font-semibold" : "hover:bg-white/5",
+                      active ? "font-semibold" : "hover:bg-muted",
                     )}
                     style={
                       active
                         ? {
                             backgroundColor: "var(--season-button)",
-                            color: "#0B100D",
+                            color: "var(--primary-foreground)",
                           }
-                        : { color: "#ECEFEA" }
+                        : { color: "var(--foreground)" }
                     }
                   >
                     :{m}

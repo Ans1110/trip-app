@@ -17,7 +17,6 @@ import {
   type AlbumPhoto,
   type AlbumPublicResponse,
   type AlbumShareToken,
-  type AlbumUpdatePhotoInput,
 } from "@/lib/apis/album-api";
 import { putBinaryXhr } from "@/lib/album/put-xhr";
 import {
@@ -70,23 +69,42 @@ export function useAlbumPhotos(
   });
 }
 
-type UpdatePhotoVars = {
-  photoId: string;
-  tripId: string;
-  input: AlbumUpdatePhotoInput;
-};
+// Fetches as a blob so the browser saves it under a real filename; a cross-origin <a download> would just navigate.
+export async function saveAlbumPhoto(photo: AlbumPhoto): Promise<void> {
+  const { url } = await albumApi.downloadOriginal(photo.id);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`download ${res.status}`);
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `trip-photo-${photo.id.slice(0, 8)}${extensionFor(blob.type, url)}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 10_000);
+  } catch {
+    window.open(url, "_blank", "noopener");
+  }
+}
 
-export function useUpdatePhotoCaption(
-  options?: MutOpts<AlbumPhoto, UpdatePhotoVars>,
-) {
-  const qc = useQueryClient();
-  return useMutation<AlbumPhoto, ApiError, UpdatePhotoVars>({
-    mutationFn: ({ photoId, input }) => albumApi.updatePhoto(photoId, input),
+function extensionFor(mime: string, url: string): string {
+  const byMime: Record<string, string> = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+  };
+  if (byMime[mime]) return byMime[mime];
+  const m = /\.([a-z0-9]{2,5})(?:\?|$)/i.exec(new URL(url).pathname);
+  return m ? `.${m[1].toLowerCase()}` : "";
+}
+
+export function useSaveAlbumPhoto(options?: MutOpts<void, AlbumPhoto>) {
+  return useMutation<void, ApiError, AlbumPhoto>({
+    mutationFn: saveAlbumPhoto,
     ...options,
-    onSuccess: (data, vars, ...rest) => {
-      invalidateAlbumForTrip(qc, vars.tripId);
-      return options?.onSuccess?.(data, vars, ...rest);
-    },
   });
 }
 

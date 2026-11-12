@@ -42,9 +42,9 @@ export function ChatWindow() {
       // Anchored above the FABs. Small on desktop, near-fullscreen on phones.
       className="fixed bottom-24 right-6 z-50 w-[calc(100vw-24px)] max-w-[380px] h-[calc(100vh-160px)] max-h-[520px] flex flex-col rounded-2xl overflow-hidden"
       style={{
-        backgroundColor: "#0B100D",
-        border: "1px solid #1F2A24",
-        boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+        backgroundColor: "var(--card)",
+        border: "1px solid var(--border)",
+        boxShadow: "var(--shadow-soft-lg)",
       }}
     >
       {active ? (
@@ -87,11 +87,11 @@ function RoomListView({
       <header
         className="flex items-center justify-between px-4 py-3"
         style={{
-          backgroundColor: "#121814",
-          borderBottom: "1px solid #1F2A24",
+          backgroundColor: "var(--card)",
+          borderBottom: "1px solid var(--border)",
         }}
       >
-        <h2 className="text-sm font-medium" style={{ color: "#ECEFEA" }}>
+        <h2 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
           Chats
         </h2>
         <button
@@ -99,7 +99,7 @@ function RoomListView({
           onClick={onClose}
           aria-label="Close chat"
           className="size-7 inline-flex items-center justify-center rounded-full"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <X className="size-4" />
         </button>
@@ -107,17 +107,17 @@ function RoomListView({
 
       <div className="chat-scroll flex-1 min-h-0 overflow-y-auto">
         {loading && (
-          <p className="p-4 text-xs" style={{ color: "#8B9A8E" }}>
+          <p className="p-4 text-xs" style={{ color: "var(--muted-foreground)" }}>
             Loading…
           </p>
         )}
         {error && (
-          <p className="p-4 text-xs" style={{ color: "#FCA5A5" }}>
+          <p className="p-4 text-xs" style={{ color: "var(--destructive)" }}>
             {error}
           </p>
         )}
         {!loading && !error && sorted.length === 0 && (
-          <p className="p-4 text-xs" style={{ color: "#8B9A8E" }}>
+          <p className="p-4 text-xs" style={{ color: "var(--muted-foreground)" }}>
             No chats yet. Start one from a trip or a friend.
           </p>
         )}
@@ -162,15 +162,15 @@ function RoomRow({
     <li>
       <div
         className="relative w-full flex items-stretch group"
-        style={{ borderBottom: "1px solid #1F2A24" }}
+        style={{ borderBottom: "1px solid var(--border)" }}
       >
         <button
           type="button"
           onClick={onSelect}
-          className="flex-1 min-w-0 text-left px-4 py-3 flex flex-col gap-1 hover:bg-[color:color-mix(in_srgb,var(--season-button)_10%,transparent)]"
+          className="flex-1 min-w-0 text-left px-4 py-3 flex flex-col gap-1 hover:bg-[color:color-mix(in_srgb,var(--mint-ink)_10%,transparent)]"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm truncate" style={{ color: "#ECEFEA" }}>
+            <span className="text-sm truncate" style={{ color: "var(--foreground)" }}>
               {label}
             </span>
             {room.unread_count > 0 && (
@@ -179,14 +179,14 @@ function RoomRow({
                 style={{
                   backgroundColor:
                     "color-mix(in srgb, var(--season-button) 32%, transparent)",
-                  color: "#ECEFEA",
+                  color: "var(--foreground)",
                 }}
               >
                 {room.unread_count}
               </span>
             )}
           </div>
-          <span className="text-xs truncate" style={{ color: "#8B9A8E" }}>
+          <span className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
             {preview || (room.type === "dm" ? "Say hi" : "New chat")}
           </span>
         </button>
@@ -198,7 +198,7 @@ function RoomRow({
             title="Delete chat (messages preserved)"
             disabled={!canHide}
             className="shrink-0 px-3 inline-flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:opacity-30 transition-opacity"
-            style={{ color: "#8B9A8E" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <Trash2 className="size-4" />
           </button>

@@ -54,16 +54,16 @@ function DatePicker({
           data-invalid={invalid || undefined}
           className={cn(
             "season-transition flex w-full items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm outline-none text-left",
-            "bg-[#161E19] border border-[#1F2A24] text-[#ECEFEA]",
-            "focus:border-[color:var(--season-button)]",
+            "bg-muted border border-border text-foreground",
+            "focus:border-[color:var(--mint-ink)]",
             "disabled:opacity-60 disabled:cursor-not-allowed",
             "data-[invalid=true]:border-[rgba(220,38,38,0.4)]",
-            !selected && "text-[#6B7A6F]",
+            !selected && "text-subtle-foreground",
             className,
           )}
         >
           <span>{selected ? format(selected, "MMM d, yyyy") : placeholder}</span>
-          <CalendarIcon className="size-3.5 text-[#8B9A8E]" />
+          <CalendarIcon className="size-3.5 text-muted-foreground" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-auto">

@@ -19,22 +19,21 @@ export default async function PublicAlbumPage({
   const { token } = await params;
   return (
     <main
-      className="min-h-screen w-full"
-      style={{ backgroundColor: "#0B100D" }}
+      className="bg-wash min-h-screen w-full"
     >
       <div className="mx-auto max-w-5xl px-6 md:px-12 py-10 flex flex-col gap-6">
         <header className="flex flex-col gap-1">
           <p
             className="text-[11px] font-medium tracking-[0.2em] uppercase"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           >
             Shared album
           </p>
           <h1
             className="text-3xl tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             A moment from the trip

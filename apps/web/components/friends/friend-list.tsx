@@ -88,7 +88,7 @@ function SearchPanel({
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-medium" style={{ color: "#8B9A8E" }}>
+      <h3 className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>
         Find people
       </h3>
       <Input
@@ -101,17 +101,17 @@ function SearchPanel({
       {showResults && (
         <div className="flex flex-col gap-2 mt-1">
           {searchQuery.isLoading && (
-            <p className="text-sm" style={{ color: "#8B9A8E" }}>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
               Searching…
             </p>
           )}
           {searchQuery.isError && (
-            <p className="text-sm" style={{ color: "#FCA5A5" }}>
+            <p className="text-sm" style={{ color: "var(--destructive)" }}>
               {errorMessage(searchQuery.error)}
             </p>
           )}
           {!searchQuery.isLoading && results.length === 0 && (
-            <p className="text-sm" style={{ color: "#8B9A8E" }}>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
               No matches for &ldquo;{trimmed}&rdquo;.
             </p>
           )}
@@ -125,7 +125,7 @@ function SearchPanel({
             />
           ))}
           {sendRequest.isError && pendingId === null && (
-            <p className="text-sm" style={{ color: "#FCA5A5" }}>
+            <p className="text-sm" style={{ color: "var(--destructive)" }}>
               {errorMessage(sendRequest.error)}
             </p>
           )}
@@ -149,14 +149,14 @@ function SearchResultRow({
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-lg"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <Avatar user={user} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm truncate" style={{ color: "#ECEFEA" }}>
+        <p className="text-sm truncate" style={{ color: "var(--foreground)" }}>
           {user.name || user.email}
         </p>
-        <p className="text-xs truncate" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
           {user.email}
         </p>
       </div>
@@ -168,7 +168,7 @@ function SearchResultRow({
         style={{
           backgroundColor:
             "color-mix(in srgb, var(--season-button) 22%, transparent)",
-          color: "#ECEFEA",
+          color: "var(--foreground)",
           border:
             "1px solid color-mix(in srgb, var(--season-button) 32%, transparent)",
         }}
@@ -228,47 +228,47 @@ function FriendRow({
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-lg select-none"
           style={{
-            backgroundColor: "#121814",
-            border: "1px solid #1F2A24",
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
             opacity: busy ? 0.6 : 1,
           }}
           title="Right-click for options"
         >
           <Avatar user={friend.user} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm truncate" style={{ color: "#ECEFEA" }}>
+            <p className="text-sm truncate" style={{ color: "var(--foreground)" }}>
               {displayName}
             </p>
-            <p className="text-xs truncate" style={{ color: "#8B9A8E" }}>
+            <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
               {friend.user.email}
             </p>
           </div>
           {busy && (
             <Loader2
               className="size-3.5 animate-spin shrink-0"
-              style={{ color: "#8B9A8E" }}
+              style={{ color: "var(--muted-foreground)" }}
             />
           )}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={doChat}>
-          <MessageCircle className="size-3.5" style={{ color: "#8B9A8E" }} />
+          <MessageCircle className="size-3.5" style={{ color: "var(--muted-foreground)" }} />
           Chat
         </ContextMenuItem>
         <ContextMenuItem onSelect={openCalendar}>
-          <CalendarDays className="size-3.5" style={{ color: "#8B9A8E" }} />
+          <CalendarDays className="size-3.5" style={{ color: "var(--muted-foreground)" }} />
           Calendar
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={doBlock} disabled={busy}>
-          <ShieldOff className="size-3.5" style={{ color: "#8B9A8E" }} />
+          <ShieldOff className="size-3.5" style={{ color: "var(--muted-foreground)" }} />
           Block
         </ContextMenuItem>
         <ContextMenuItem
           onSelect={doRemove}
           disabled={busy}
-          style={{ color: "#FCA5A5" }}
+          style={{ color: "var(--destructive)" }}
         >
           <Trash2 className="size-3.5" />
           Remove
@@ -293,7 +293,7 @@ export function Avatar({ user }: { user: UserSummary }) {
       style={{
         backgroundColor:
           "color-mix(in srgb, var(--season-button) 22%, transparent)",
-        color: "#ECEFEA",
+        color: "var(--foreground)",
       }}
     >
       {initial}
@@ -318,21 +318,21 @@ export function Section<T>({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-medium" style={{ color: "#8B9A8E" }}>
+      <h3 className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>
         {title}
       </h3>
       {loading && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Loading…
         </p>
       )}
       {error && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {error}
         </p>
       )}
       {!loading && !error && items.length === 0 && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {empty}
         </p>
       )}

@@ -92,8 +92,8 @@ export function PostActionsMenu({
           <button
             type="button"
             aria-label="More actions"
-            className="inline-flex items-center justify-center size-8 rounded-full border hover:bg-white/5 outline-none focus:ring-2 focus:ring-[var(--season-accent)]/40"
-            style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+            className="inline-flex items-center justify-center size-8 rounded-full border hover:bg-muted outline-none focus:ring-2 focus:ring-ring/40"
+            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
           >
             <MoreHorizontal className="size-4" />
           </button>
@@ -104,9 +104,9 @@ export function PostActionsMenu({
             sideOffset={6}
             className="z-50 min-w-[200px] rounded-xl border shadow-lg p-1 outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
             style={{
-              backgroundColor: "#121814",
-              borderColor: "#1F2A24",
-              color: "#ECEFEA",
+              backgroundColor: "var(--card)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
             }}
           >
             {authorUsername && (
@@ -144,7 +144,7 @@ export function PostActionsMenu({
             </MenuItem>
             <RxMenu.Separator
               className="my-1 h-px"
-              style={{ backgroundColor: "#1F2A24" }}
+              style={{ backgroundColor: "var(--muted)" }}
             />
             <MenuItem
               onSelect={() => setBlockOpen(true)}
@@ -173,12 +173,12 @@ export function PostActionsMenu({
       {blockOpen && (
         <Modal title={`Block ${authorName}`} onClose={() => setBlockOpen(false)}>
           <div className="flex flex-col gap-4">
-            <p className="text-sm" style={{ color: "#B7C0B8" }}>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
               You won&apos;t see their posts and they won&apos;t be able to
               message you. You can undo this later from settings.
             </p>
             {block.error && (
-              <p className="text-sm" style={{ color: "#FCA5A5" }}>
+              <p className="text-sm" style={{ color: "var(--destructive)" }}>
                 {errorMessage(block.error)}
               </p>
             )}
@@ -187,8 +187,8 @@ export function PostActionsMenu({
                 type="button"
                 onClick={() => setBlockOpen(false)}
                 disabled={block.isPending}
-                className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60"
-                style={{ color: "#8B9A8E" }}
+                className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60"
+                style={{ color: "var(--muted-foreground)" }}
               >
                 Cancel
               </button>
@@ -199,7 +199,7 @@ export function PostActionsMenu({
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
                 style={{
                   backgroundColor: "rgba(220,38,38,0.15)",
-                  color: "#FCA5A5",
+                  color: "var(--destructive)",
                   border: "1px solid rgba(220,38,38,0.35)",
                 }}
               >
@@ -287,7 +287,7 @@ function ReportModal({
           />
 
           {submitError && (
-            <p className="text-sm" style={{ color: "#FCA5A5" }}>
+            <p className="text-sm" style={{ color: "var(--destructive)" }}>
               {submitError}
             </p>
           )}
@@ -297,8 +297,8 @@ function ReportModal({
               type="button"
               onClick={onClose}
               disabled={report.isPending}
-              className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60"
-              style={{ color: "#8B9A8E" }}
+              className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60"
+              style={{ color: "var(--muted-foreground)" }}
             >
               Cancel
             </button>
@@ -308,7 +308,7 @@ function ReportModal({
               className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
               style={{
                 backgroundColor: "var(--season-button)",
-                color: "#0B100D",
+                color: "var(--primary-foreground)",
               }}
             >
               {report.isPending && (
@@ -340,8 +340,8 @@ function MenuItem({
     <RxMenu.Item
       disabled={disabled}
       onSelect={() => onSelect()}
-      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm outline-none cursor-pointer data-[highlighted]:bg-white/5 data-[disabled]:opacity-60 data-[disabled]:cursor-not-allowed"
-      style={{ color: danger ? "#FCA5A5" : "#ECEFEA" }}
+      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm outline-none cursor-pointer data-[highlighted]:bg-muted data-[disabled]:opacity-60 data-[disabled]:cursor-not-allowed"
+      style={{ color: danger ? "var(--destructive)" : "var(--foreground)" }}
     >
       {icon}
       <span>{children}</span>

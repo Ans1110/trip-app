@@ -53,6 +53,15 @@ export type UpstreamPlaceSummary = {
   types?: string[];
   price_level?: number;
   icon?: string;
+  photo?: string;
+  hours?: UpstreamPlaceHours;
+};
+
+export type UpstreamPlaceHoursPoint = { day: number; hour: number; minute: number };
+
+export type UpstreamPlaceHours = {
+  utc_offset_minutes: number;
+  periods: { open: UpstreamPlaceHoursPoint; close?: UpstreamPlaceHoursPoint }[];
 };
 
 export type UpstreamPlaceDetails = UpstreamPlaceSummary & {

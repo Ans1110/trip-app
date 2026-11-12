@@ -37,7 +37,7 @@ export function PostDetail({ postId }: { postId: string }) {
     return (
       <div
         className="flex items-center gap-2 text-sm"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <Loader2 className="size-4 animate-spin" />
         Loading post
@@ -46,7 +46,7 @@ export function PostDetail({ postId }: { postId: string }) {
   }
   if (error || !post) {
     return (
-      <p className="text-sm" style={{ color: "#FCA5A5" }}>
+      <p className="text-sm" style={{ color: "var(--destructive)" }}>
         {errorMessage(error) ?? "Post not found"}
       </p>
     );
@@ -84,7 +84,7 @@ export function PostDetail({ postId }: { postId: string }) {
       {post.cover_image && (
         <div
           className="mb-6 rounded-2xl overflow-hidden"
-          style={{ border: "1px solid #1F2A24" }}
+          style={{ border: "1px solid var(--border)" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -100,9 +100,9 @@ export function PostDetail({ postId }: { postId: string }) {
           <h1
             className="leading-tight tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
               fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-              color: "var(--season-heading, #ECEFEA)",
+              color: "var(--season-heading, var(--foreground))",
             }}
           >
             {post.title}
@@ -115,8 +115,8 @@ export function PostDetail({ postId }: { postId: string }) {
               style={{
                 backgroundColor: author.avatar_url
                   ? "transparent"
-                  : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
-                color: "#ECEFEA",
+                  : "color-mix(in oklch, var(--pink) 55%, var(--card))",
+                color: "var(--foreground)",
               }}
             >
               {author.avatar_url ? (
@@ -134,12 +134,12 @@ export function PostDetail({ postId }: { postId: string }) {
               <Link
                 href={authorHref}
                 className="text-sm font-semibold hover:underline"
-                style={{ color: "#ECEFEA" }}
+                style={{ color: "var(--foreground)" }}
               >
                 {author.name ||
                   (author.username ? `@${author.username}` : "user")}
               </Link>
-              <p className="text-xs" style={{ color: "#6B7A6F" }}>
+              <p className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
                 {formatWhen(post.published_at)}
               </p>
             </div>
@@ -151,8 +151,8 @@ export function PostDetail({ postId }: { postId: string }) {
             <>
               <Link
                 href={`/posts/${post.id}/edit`}
-                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-white/5"
-                style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-muted"
+                style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
               >
                 <Pencil className="size-3.5" />
                 Edit
@@ -161,8 +161,8 @@ export function PostDetail({ postId }: { postId: string }) {
                 type="button"
                 onClick={onDelete}
                 disabled={del.isPending}
-                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-white/5 disabled:opacity-60"
-                style={{ borderColor: "#1F2A24", color: "#FCA5A5" }}
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-muted disabled:opacity-60"
+                style={{ borderColor: "var(--border)", color: "var(--destructive)" }}
               >
                 {del.isPending ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -192,7 +192,7 @@ export function PostDetail({ postId }: { postId: string }) {
               style={{
                 backgroundColor:
                   "color-mix(in srgb, var(--season-accent) 14%, transparent)",
-                color: "var(--season-accent)",
+                color: "var(--pink-ink)",
               }}
             >
               {tag}
@@ -203,7 +203,7 @@ export function PostDetail({ postId }: { postId: string }) {
 
       <div
         className="mt-6 text-[15px] leading-relaxed whitespace-pre-wrap"
-        style={{ color: "#ECEFEA" }}
+        style={{ color: "var(--foreground)" }}
       >
         {post.content}
       </div>
@@ -214,10 +214,10 @@ export function PostDetail({ postId }: { postId: string }) {
           onClick={toggleLike}
           disabled={likePending}
           aria-pressed={post.is_liked}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm hover:bg-white/5 disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm hover:bg-muted disabled:opacity-60"
           style={{
-            borderColor: post.is_liked ? "var(--season-accent)" : "#1F2A24",
-            color: post.is_liked ? "var(--season-accent)" : "#ECEFEA",
+            borderColor: post.is_liked ? "var(--season-accent)" : "var(--border)",
+            color: post.is_liked ? "var(--pink-ink)" : "var(--foreground)",
           }}
         >
           <Heart
@@ -232,12 +232,12 @@ export function PostDetail({ postId }: { postId: string }) {
           disabled={bookmarkPending}
           aria-pressed={post.is_bookmarked}
           aria-label={post.is_bookmarked ? "Remove bookmark" : "Bookmark"}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm hover:bg-white/5 disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm hover:bg-muted disabled:opacity-60"
           style={{
             borderColor: post.is_bookmarked
               ? "var(--season-accent)"
-              : "#1F2A24",
-            color: post.is_bookmarked ? "var(--season-accent)" : "#ECEFEA",
+              : "var(--muted)",
+            color: post.is_bookmarked ? "var(--pink-ink)" : "var(--foreground)",
           }}
         >
           <Bookmark
@@ -248,7 +248,7 @@ export function PostDetail({ postId }: { postId: string }) {
         </button>
         <span
           className="inline-flex items-center gap-2 text-sm"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <MessageCircle className="size-4" />
           {post.comment_count}
@@ -272,9 +272,9 @@ function StatusBadge({ status }: { status: PostStatus }) {
     <span
       className="mt-2 inline-flex items-center text-[11px] px-2 py-0.5 rounded-full"
       style={{
-        backgroundColor: "color-mix(in srgb, #8B9A8E 18%, transparent)",
-        color: "#ECEFEA",
-        border: "1px solid #1F2A24",
+        backgroundColor: "color-mix(in srgb, var(--muted-foreground) 18%, transparent)",
+        color: "var(--foreground)",
+        border: "1px solid var(--border)",
       }}
     >
       {label}

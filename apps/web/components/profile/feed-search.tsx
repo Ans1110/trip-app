@@ -67,15 +67,15 @@ function FeedSearchInner() {
     <div>
       <div
         className="mb-6 flex items-center gap-2 rounded-full px-4 py-2"
-        style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+        style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
       >
-        <SearchIcon className="size-4" style={{ color: "#8B9A8E" }} />
+        <SearchIcon className="size-4" style={{ color: "var(--muted-foreground)" }} />
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Search posts, tags, or travelers…"
           className="flex-1 bg-transparent outline-none text-sm"
-          style={{ color: "#ECEFEA" }}
+          style={{ color: "var(--foreground)" }}
           aria-label="Search feed"
           autoComplete="off"
         />
@@ -83,8 +83,8 @@ function FeedSearchInner() {
           <button
             type="button"
             onClick={() => setInput("")}
-            className="text-xs px-2 py-0.5 rounded-full hover:bg-white/5"
-            style={{ color: "#8B9A8E" }}
+            className="text-xs px-2 py-0.5 rounded-full hover:bg-muted"
+            style={{ color: "var(--muted-foreground)" }}
           >
             Clear
           </button>
@@ -94,7 +94,7 @@ function FeedSearchInner() {
       {!urlQ && (
         <div
           className="mb-6 inline-flex items-center gap-1 p-1 rounded-full"
-          style={{ border: "1px solid #1F2A24" }}
+          style={{ border: "1px solid var(--border)" }}
           role="tablist"
           aria-label="Feed tabs"
         >
@@ -112,7 +112,7 @@ function FeedSearchInner() {
                   backgroundColor: active
                     ? "color-mix(in srgb, var(--season-accent) 18%, transparent)"
                     : "transparent",
-                  color: active ? "var(--season-accent)" : "#8B9A8E",
+                  color: active ? "var(--pink-ink)" : "var(--muted-foreground)",
                 }}
               >
                 {t.label}

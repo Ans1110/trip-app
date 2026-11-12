@@ -29,13 +29,13 @@ export function VerifyEmailBanner() {
             "color-mix(in srgb, var(--season-button) 14%, transparent)",
           border:
             "1px solid color-mix(in srgb, var(--season-button) 30%, transparent)",
-          color: "#ECEFEA",
+          color: "var(--foreground)",
         }}
         role="status"
       >
         <MailCheck
           className="season-transition size-4 shrink-0"
-          style={{ color: "var(--season-accent)" }}
+          style={{ color: "var(--pink-ink)" }}
         />
         <p className="text-sm flex-1 min-w-0">
           {resend.isSuccess ? (
@@ -47,7 +47,7 @@ export function VerifyEmailBanner() {
           ) : errorMsg ? (
             <>
               Couldn&apos;t resend:{" "}
-              <span style={{ color: "#FCA5A5" }}>{errorMsg}</span>
+              <span style={{ color: "var(--destructive)" }}>{errorMsg}</span>
             </>
           ) : (
             <>
@@ -64,7 +64,7 @@ export function VerifyEmailBanner() {
           style={{
             backgroundColor:
               "color-mix(in srgb, var(--season-button) 22%, transparent)",
-            color: "#ECEFEA",
+            color: "var(--foreground)",
             border:
               "1px solid color-mix(in srgb, var(--season-button) 32%, transparent)",
           }}
@@ -85,8 +85,8 @@ export function VerifyEmailBanner() {
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss"
-          className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/10 transition-colors"
-          style={{ color: "#8B9A8E" }}
+          className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted transition-colors"
+          style={{ color: "var(--muted-foreground)" }}
         >
           <X className="size-3.5" />
         </button>

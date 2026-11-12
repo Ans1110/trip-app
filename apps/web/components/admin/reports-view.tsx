@@ -66,10 +66,10 @@ export function ReportsView() {
             }))
           }
           className="px-3 py-2 text-sm rounded-lg border bg-transparent"
-          style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
         >
           {STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value} className="bg-[#121814]">
+            <option key={o.value} value={o.value} className="bg-card">
               {o.label}
             </option>
           ))}
@@ -86,10 +86,10 @@ export function ReportsView() {
             }))
           }
           className="px-3 py-2 text-sm rounded-lg border bg-transparent"
-          style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
         >
           {SUBJECT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value} className="bg-[#121814]">
+            <option key={o.value} value={o.value} className="bg-card">
               {o.label}
             </option>
           ))}
@@ -112,8 +112,8 @@ export function ReportsView() {
             type="button"
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="px-4 py-2 text-sm rounded-full border hover:bg-white/5 disabled:opacity-60"
-            style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+            className="px-4 py-2 text-sm rounded-full border hover:bg-muted disabled:opacity-60"
+            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
           >
             {isFetchingNextPage ? "Loading…" : "Load more"}
           </button>
@@ -143,15 +143,15 @@ function ReportRow({ report }: { report: AdminReport }) {
   return (
     <li
       className="flex flex-col gap-3 p-4 rounded-xl border"
-      style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
       <div className="flex flex-wrap items-center gap-2">
         <StatusPill status={report.status} />
         <SubjectPill type={report.subject_type} />
-        <span className="text-xs" style={{ color: "#8B9A8E" }}>
-          reason: <span style={{ color: "#ECEFEA" }}>{report.reason}</span>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          reason: <span style={{ color: "var(--foreground)" }}>{report.reason}</span>
         </span>
-        <span className="text-[11px] ml-auto" style={{ color: "#6B7A6F" }}>
+        <span className="text-[11px] ml-auto" style={{ color: "var(--subtle-foreground)" }}>
           {new Date(report.created_at).toLocaleString()}
         </span>
       </div>
@@ -159,7 +159,7 @@ function ReportRow({ report }: { report: AdminReport }) {
       {report.description && (
         <p
           className="text-sm whitespace-pre-wrap"
-          style={{ color: "#B7C0B8" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {report.description}
         </p>
@@ -168,27 +168,27 @@ function ReportRow({ report }: { report: AdminReport }) {
       <div
         className="text-xs rounded-lg p-3 border"
         style={{
-          borderColor: "#1F2A24",
-          backgroundColor: "rgba(255,255,255,0.02)",
-          color: "#8B9A8E",
+          borderColor: "var(--border)",
+          backgroundColor: "var(--surface-sunken)",
+          color: "var(--muted-foreground)",
         }}
       >
         <p>
-          <span style={{ color: "#ECEFEA" }}>Reporter:</span>{" "}
+          <span style={{ color: "var(--foreground)" }}>Reporter:</span>{" "}
           {report.reporter.name || report.reporter.email}
         </p>
         <p className="mt-1">
-          <span style={{ color: "#ECEFEA" }}>Subject:</span>{" "}
+          <span style={{ color: "var(--foreground)" }}>Subject:</span>{" "}
           {subject?.title || subject?.excerpt || report.subject_id}
           {subject?.deleted && (
-            <span className="ml-2" style={{ color: "#FCA5A5" }}>
+            <span className="ml-2" style={{ color: "var(--destructive)" }}>
               (deleted)
             </span>
           )}
         </p>
         {report.status !== "pending" && report.resolved_by && (
           <p className="mt-1">
-            <span style={{ color: "#ECEFEA" }}>
+            <span style={{ color: "var(--foreground)" }}>
               {report.status === "resolved" ? "Resolved" : "Dismissed"} by:
             </span>{" "}
             {report.resolved_by.name || report.resolved_by.email}
@@ -198,7 +198,7 @@ function ReportRow({ report }: { report: AdminReport }) {
         )}
         {report.resolution && (
           <p className="mt-1">
-            <span style={{ color: "#ECEFEA" }}>Note:</span> {report.resolution}
+            <span style={{ color: "var(--foreground)" }}>Note:</span> {report.resolution}
           </p>
         )}
       </div>
@@ -273,12 +273,12 @@ function ReportRow({ report }: { report: AdminReport }) {
               placeholder="Optional resolution note"
               rows={2}
               maxLength={1000}
-              className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:ring-2 focus:ring-[var(--season-accent)]/40 resize-none"
-              style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+              className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:ring-2 focus:ring-ring/40 resize-none"
+              style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
             />
           )}
           {(resolve.error || dismiss.error) && (
-            <p className="text-xs" style={{ color: "#FCA5A5" }}>
+            <p className="text-xs" style={{ color: "var(--destructive)" }}>
               {errorMessage(resolve.error) ?? errorMessage(dismiss.error)}
             </p>
           )}
@@ -306,11 +306,11 @@ function Pill({
   tone: "ok" | "warn" | "danger" | "muted" | "accent";
 }) {
   const styles: Record<typeof tone, { bg: string; fg: string }> = {
-    ok: { bg: "rgba(127,182,138,0.12)", fg: "#7FB68A" },
-    warn: { bg: "rgba(250,204,21,0.12)", fg: "#FACC15" },
-    danger: { bg: "rgba(220,38,38,0.12)", fg: "#FCA5A5" },
-    muted: { bg: "rgba(139,154,142,0.12)", fg: "#8B9A8E" },
-    accent: { bg: "rgba(127,182,138,0.18)", fg: "var(--season-button)" },
+    ok: { bg: "color-mix(in oklch, var(--mint) 24%, transparent)", fg: "var(--mint-ink)" },
+    warn: { bg: "rgba(250,204,21,0.12)", fg: "var(--warning-ink)" },
+    danger: { bg: "rgba(220,38,38,0.12)", fg: "var(--destructive)" },
+    muted: { bg: "color-mix(in oklch, var(--muted-foreground) 12%, transparent)", fg: "var(--muted-foreground)" },
+    accent: { bg: "color-mix(in oklch, var(--mint) 36%, transparent)", fg: "var(--season-button)" },
   };
   const s = styles[tone];
   return (
@@ -343,10 +343,10 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-full border hover:bg-white/5 disabled:opacity-60"
+      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-full border hover:bg-muted disabled:opacity-60"
       style={{
-        borderColor: danger ? "rgba(220,38,38,0.35)" : "#1F2A24",
-        color: danger ? "#FCA5A5" : "#ECEFEA",
+        borderColor: danger ? "rgba(220,38,38,0.35)" : "var(--border)",
+        color: danger ? "var(--destructive)" : "var(--foreground)",
       }}
     >
       {pending ? <Loader2 className="size-3.5 animate-spin" /> : icon}
@@ -359,7 +359,7 @@ function LoadingState({ label }: { label: string }) {
   return (
     <div
       className="flex items-center gap-2 text-sm py-8"
-      style={{ color: "#8B9A8E" }}
+      style={{ color: "var(--muted-foreground)" }}
     >
       <Loader2 className="size-4 animate-spin" />
       {label}
@@ -369,7 +369,7 @@ function LoadingState({ label }: { label: string }) {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <p className="text-sm py-8" style={{ color: "#8B9A8E" }}>
+    <p className="text-sm py-8" style={{ color: "var(--muted-foreground)" }}>
       {message}
     </p>
   );
@@ -377,7 +377,7 @@ function EmptyState({ message }: { message: string }) {
 
 function ErrorState({ message }: { message: string | null }) {
   return (
-    <p className="text-sm py-8" style={{ color: "#FCA5A5" }}>
+    <p className="text-sm py-8" style={{ color: "var(--destructive)" }}>
       {message ?? "Failed to load"}
     </p>
   );

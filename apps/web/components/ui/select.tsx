@@ -20,9 +20,9 @@ function SelectTrigger({
       data-slot="select-trigger"
       className={cn(
         "season-transition flex w-full items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm outline-none",
-        "bg-[#161E19] border border-[#1F2A24] text-[#ECEFEA]",
-        "data-[placeholder]:text-[#6B7A6F]",
-        "focus:border-[color:var(--season-button)]",
+        "bg-muted border border-border text-foreground",
+        "data-[placeholder]:text-subtle-foreground",
+        "focus:border-[color:var(--mint-ink)]",
         "disabled:opacity-60 disabled:cursor-not-allowed",
         "aria-invalid:border-[rgba(220,38,38,0.4)]",
         className,
@@ -31,7 +31,7 @@ function SelectTrigger({
     >
       {children}
       <RxSelect.Icon asChild>
-        <ChevronDown className="size-3.5 text-[#8B9A8E]" />
+        <ChevronDown className="size-3.5 text-muted-foreground" />
       </RxSelect.Icon>
     </RxSelect.Trigger>
   );
@@ -52,7 +52,7 @@ function SelectContent({
         sideOffset={sideOffset}
         className={cn(
           "z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg",
-          "bg-[#121814] border border-[#1F2A24] text-[#ECEFEA] shadow-lg outline-none",
+          "bg-card border border-border text-foreground shadow-lg outline-none",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -76,7 +76,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-sm outline-none cursor-default select-none",
-        "data-[highlighted]:bg-white/5 data-[highlighted]:text-[#ECEFEA]",
+        "data-[highlighted]:bg-muted data-[highlighted]:text-foreground",
         "data-[disabled]:opacity-60 data-[disabled]:cursor-not-allowed",
         className,
       )}
@@ -84,7 +84,7 @@ function SelectItem({
     >
       <span className="absolute left-1.5 flex size-4 items-center justify-center">
         <RxSelect.ItemIndicator>
-          <Check className="size-3.5 text-[color:var(--season-button)]" />
+          <Check className="size-3.5 text-[color:var(--mint-ink)]" />
         </RxSelect.ItemIndicator>
       </span>
       <RxSelect.ItemText>{children}</RxSelect.ItemText>

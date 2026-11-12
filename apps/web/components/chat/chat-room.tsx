@@ -70,8 +70,8 @@ export function ChatRoom({
       <header
         className="flex items-center gap-2 px-3 py-3"
         style={{
-          backgroundColor: "#121814",
-          borderBottom: "1px solid #1F2A24",
+          backgroundColor: "var(--card)",
+          borderBottom: "1px solid var(--border)",
         }}
       >
         {onBack && (
@@ -80,7 +80,7 @@ export function ChatRoom({
             onClick={onBack}
             aria-label="Back to chat list"
             className="size-7 inline-flex items-center justify-center rounded-full shrink-0"
-            style={{ color: "#8B9A8E" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <ArrowLeft className="size-4" />
           </button>
@@ -88,12 +88,12 @@ export function ChatRoom({
         <div className="flex-1 min-w-0 flex flex-col">
           <h2
             className="text-sm font-medium truncate"
-            style={{ color: "#ECEFEA" }}
+            style={{ color: "var(--foreground)" }}
           >
             {roomTitle(room)}
           </h2>
           {room?.type === "dm" && (
-            <span className="text-[10px]" style={{ color: "#8B9A8E" }}>
+            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
               Direct message
             </span>
           )}
@@ -101,8 +101,8 @@ export function ChatRoom({
         <span
           className="text-[10px] px-2 py-0.5 rounded-full shrink-0"
           style={{
-            color: state === "open" ? "#7BD88F" : "#8B9A8E",
-            border: "1px solid #1F2A24",
+            color: state === "open" ? "#7BD88F" : "var(--muted-foreground)",
+            border: "1px solid var(--border)",
           }}
         >
           {CONNECTION_LABEL[state] ?? state}
@@ -113,7 +113,7 @@ export function ChatRoom({
             onClick={onClose}
             aria-label="Close chat"
             className="size-7 inline-flex items-center justify-center rounded-full shrink-0"
-            style={{ color: "#8B9A8E" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <X className="size-4" />
           </button>
@@ -127,7 +127,7 @@ export function ChatRoom({
         error={errorMessage(messagesQuery.error)}
       />
 
-      <div className="p-3" style={{ backgroundColor: "#0B100D" }}>
+      <div className="p-3" style={{ backgroundColor: "var(--background)" }}>
         <ChatComposer roomId={roomId} disabled={!canSend} onSend={send} />
       </div>
     </div>

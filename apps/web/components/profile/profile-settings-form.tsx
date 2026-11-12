@@ -63,7 +63,7 @@ export function ProfileSettingsForm({ onSaved }: { onSaved?: () => void } = {}) 
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm" style={{ color: "#8B9A8E" }}>
+      <div className="flex items-center gap-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
         <Loader2 className="size-4 animate-spin" />
         Loading profile
       </div>
@@ -158,7 +158,7 @@ export function ProfileSettingsForm({ onSaved }: { onSaved?: () => void } = {}) 
             className="season-transition inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
               boxShadow: "0 8px 24px var(--season-button-shadow)",
             }}
           >
@@ -175,7 +175,7 @@ export function ProfileSettingsForm({ onSaved }: { onSaved?: () => void } = {}) 
             )}
           </button>
           {mutation.isSuccess && !mutation.isPending && (
-            <span className="text-xs" style={{ color: "#8B9A8E" }}>
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
               Saved
             </span>
           )}
@@ -185,7 +185,7 @@ export function ProfileSettingsForm({ onSaved }: { onSaved?: () => void } = {}) 
           <p
             className="md:col-span-2 text-sm rounded-lg px-3 py-2"
             style={{
-              color: "#FCA5A5",
+              color: "var(--destructive)",
               backgroundColor: "rgba(220,38,38,0.08)",
               border: "1px solid rgba(220,38,38,0.25)",
             }}
@@ -242,23 +242,23 @@ function CoverImageField({
 
   return (
     <div className="md:col-span-2 flex flex-col gap-2">
-      <span className={LABEL} style={{ color: "#8B9A8E" }}>
+      <span className={LABEL} style={{ color: "var(--muted-foreground)" }}>
         Cover image
       </span>
       <div
         className="relative rounded-2xl overflow-hidden"
         style={{
-          border: "1px solid #1F2A24",
+          border: "1px solid var(--border)",
           aspectRatio: "16 / 6",
           background: value
             ? `url(${value}) center/cover no-repeat`
-            : "linear-gradient(135deg, #1E2A2E 0%, #0A1014 100%)",
+            : "linear-gradient(135deg, var(--muted) 0%, var(--surface-sunken) 100%)",
         }}
       >
         {!value && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-            style={{ color: "#6B7A6F" }}
+            style={{ color: "var(--subtle-foreground)" }}
           >
             <ImagePlus className="size-6" />
             <p className="text-xs">No cover yet</p>
@@ -271,9 +271,9 @@ function CoverImageField({
               onClick={() => onChange("")}
               disabled={busy}
               aria-label="Remove cover"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-white/10 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-muted disabled:opacity-60"
               style={{
-                color: "#FCA5A5",
+                color: "var(--destructive)",
                 border: "1px solid rgba(255,255,255,0.15)",
                 backgroundColor: "rgba(0,0,0,0.4)",
               }}
@@ -286,9 +286,9 @@ function CoverImageField({
             type="button"
             onClick={openPicker}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-white/10 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-muted disabled:opacity-60"
             style={{
-              color: "#ECEFEA",
+              color: "var(--foreground)",
               border: "1px solid rgba(255,255,255,0.15)",
               backgroundColor: "rgba(0,0,0,0.4)",
             }}
@@ -319,11 +319,11 @@ function CoverImageField({
         }}
       />
       {error ? (
-        <p className="text-[11px]" style={{ color: "#FCA5A5" }}>
+        <p className="text-[11px]" style={{ color: "var(--destructive)" }}>
           {error}
         </p>
       ) : (
-        <p className="text-[11px]" style={{ color: "#6B7A6F" }}>
+        <p className="text-[11px]" style={{ color: "var(--subtle-foreground)" }}>
           JPEG, PNG, WebP, or GIF. Max 8 MB.
         </p>
       )}
@@ -350,9 +350,9 @@ function AvatarField({
         style={{
           backgroundColor: value
             ? "transparent"
-            : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
-          color: "#ECEFEA",
-          border: "1px solid #1F2A24",
+            : "color-mix(in oklch, var(--pink) 55%, var(--card))",
+          color: "var(--foreground)",
+          border: "1px solid var(--border)",
         }}
       >
         {value ? (
@@ -368,7 +368,7 @@ function AvatarField({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className={LABEL} style={{ color: "#8B9A8E" }}>
+        <span className={LABEL} style={{ color: "var(--muted-foreground)" }}>
           Avatar
         </span>
         <div className="flex items-center gap-2">
@@ -376,8 +376,8 @@ function AvatarField({
             type="button"
             onClick={openPicker}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
-            style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60"
+            style={{ color: "var(--foreground)", border: "1px solid var(--border)" }}
           >
             {busy ? (
               <>
@@ -396,8 +396,8 @@ function AvatarField({
               type="button"
               onClick={() => onChange("")}
               disabled={busy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
-              style={{ color: "#FCA5A5", border: "1px solid #1F2A24" }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60"
+              style={{ color: "var(--destructive)", border: "1px solid var(--border)" }}
             >
               <Trash2 className="size-3.5" />
               Remove
@@ -405,11 +405,11 @@ function AvatarField({
           )}
         </div>
         {error ? (
-          <p className="text-[11px]" style={{ color: "#FCA5A5" }}>
+          <p className="text-[11px]" style={{ color: "var(--destructive)" }}>
             {error}
           </p>
         ) : (
-          <p className="text-[11px]" style={{ color: "#6B7A6F" }}>
+          <p className="text-[11px]" style={{ color: "var(--subtle-foreground)" }}>
             Square image works best. Max 8 MB.
           </p>
         )}

@@ -41,25 +41,25 @@ export function TripForecastStrip({ trip }: { trip: Trip }) {
   return (
     <section
       className="rounded-2xl border p-4 flex flex-col gap-3"
-      style={{ borderColor: "#1F2A24", backgroundColor: "#121814" }}
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
     >
       <div className="flex items-center justify-between">
         <p
           className="text-[11px] font-medium tracking-[0.2em] uppercase"
-          style={{ color: "var(--season-button)" }}
+          style={{ color: "var(--mint-ink)" }}
         >
           Forecast · {trip.location || "Trip location"}
         </p>
         {weather.isFetching && (
-          <Loader2 className="size-3.5 animate-spin text-[#8B9A8E]" />
+          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
         )}
       </div>
       {weather.isLoading ? (
-        <p className="text-xs text-[#8B9A8E]">Loading forecast…</p>
+        <p className="text-xs text-muted-foreground">Loading forecast…</p>
       ) : weather.isError ? (
-        <p className="text-xs text-[#FCA5A5]">Forecast unavailable.</p>
+        <p className="text-xs text-destructive">Forecast unavailable.</p>
       ) : tripDays.length === 0 ? (
-        <p className="text-xs text-[#8B9A8E]">
+        <p className="text-xs text-muted-foreground">
           Trip days fall outside the 30-day forecast window.
         </p>
       ) : (
@@ -68,12 +68,12 @@ export function TripForecastStrip({ trip }: { trip: Trip }) {
             <li
               key={d.date}
               className="rounded-xl border px-3 py-2 flex flex-col items-center gap-1"
-              style={{ borderColor: "#1F2A24", backgroundColor: "#0B100D" }}
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}
             >
-              <span className="text-[10px] uppercase tracking-widest text-[#8B9A8E]">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
                 {formatWeekday(d.date)}
               </span>
-              <span className="text-xs text-[#ECEFEA]">
+              <span className="text-xs text-foreground">
                 {formatMonthDay(d.date)}
               </span>
               {d.icon && (
@@ -87,14 +87,14 @@ export function TripForecastStrip({ trip }: { trip: Trip }) {
                   style={{ width: 40, height: 40 }}
                 />
               )}
-              <span className="text-sm text-[#ECEFEA]">
+              <span className="text-sm text-foreground">
                 {Math.round(d.temp_max_c)}°
-                <span className="text-[#8B9A8E]">
+                <span className="text-muted-foreground">
                   /{Math.round(d.temp_min_c)}°
                 </span>
               </span>
               {d.summary && (
-                <span className="text-[10px] text-[#8B9A8E] truncate max-w-full capitalize">
+                <span className="text-[10px] text-muted-foreground truncate max-w-full capitalize">
                   {d.summary}
                 </span>
               )}

@@ -88,7 +88,7 @@ export function ChatComposer({
   return (
     <form
       className="flex flex-col gap-2 p-3 rounded-2xl"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -98,22 +98,22 @@ export function ChatComposer({
         <div
           className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg"
           style={{
-            backgroundColor: "#0B100D",
-            border: "1px solid #1F2A24",
-            color: "#ECEFEA",
+            backgroundColor: "var(--background)",
+            border: "1px solid var(--border)",
+            color: "var(--foreground)",
           }}
         >
           {uploading && (
             <>
               <Loader2 className="size-3.5 animate-spin" />
-              <span style={{ color: "#8B9A8E" }}>Uploading…</span>
+              <span style={{ color: "var(--muted-foreground)" }}>Uploading…</span>
             </>
           )}
           {!uploading && attachment && (
             <>
-              <Paperclip className="size-3.5" style={{ color: "#8B9A8E" }} />
+              <Paperclip className="size-3.5" style={{ color: "var(--muted-foreground)" }} />
               <span className="truncate flex-1">{attachment.filename}</span>
-              <span style={{ color: "#8B9A8E" }}>
+              <span style={{ color: "var(--muted-foreground)" }}>
                 {formatBytes(attachment.asset.bytes)}
               </span>
               <button
@@ -121,14 +121,14 @@ export function ChatComposer({
                 onClick={clearAttachment}
                 aria-label="Remove attachment"
                 className="shrink-0"
-                style={{ color: "#8B9A8E" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
                 <X className="size-3.5" />
               </button>
             </>
           )}
           {!uploading && !attachment && uploadError && (
-            <span style={{ color: "#FCA5A5" }}>{uploadError}</span>
+            <span style={{ color: "var(--destructive)" }}>{uploadError}</span>
           )}
         </div>
       )}
@@ -153,7 +153,7 @@ export function ChatComposer({
           aria-label="Attach photo, video, or file"
           title="Attach photo, video, or file"
           className="size-8 inline-flex items-center justify-center rounded-full disabled:opacity-40"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <Paperclip className="size-4" />
         </button>
@@ -170,7 +170,7 @@ export function ChatComposer({
           placeholder={disabled ? "Connecting…" : "Type a message…"}
           disabled={disabled}
           className="flex-1 resize-none bg-transparent outline-none text-sm"
-          style={{ color: "#ECEFEA", maxHeight: 120 }}
+          style={{ color: "var(--foreground)", maxHeight: 120 }}
         />
         <button
           type="submit"
@@ -179,7 +179,7 @@ export function ChatComposer({
           style={{
             backgroundColor:
               "color-mix(in srgb, var(--season-button) 22%, transparent)",
-            color: "#ECEFEA",
+            color: "var(--foreground)",
             border:
               "1px solid color-mix(in srgb, var(--season-button) 32%, transparent)",
           }}

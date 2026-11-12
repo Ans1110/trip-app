@@ -33,20 +33,20 @@ export function ChatMessageList({
     <div
       ref={scrollerRef}
       className="chat-scroll flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-2"
-      style={{ backgroundColor: "#0B100D" }}
+      style={{ backgroundColor: "var(--background)" }}
     >
       {loading && (
-        <p className="text-xs" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           Loading…
         </p>
       )}
       {error && (
-        <p className="text-xs" style={{ color: "#FCA5A5" }}>
+        <p className="text-xs" style={{ color: "var(--destructive)" }}>
           {error}
         </p>
       )}
       {!loading && !error && ordered.length === 0 && (
-        <p className="text-xs" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           No messages yet. Say hi.
         </p>
       )}
@@ -78,11 +78,11 @@ function MessageBubble({
         style={{
           backgroundColor: mine
             ? "color-mix(in srgb, var(--season-button) 22%, transparent)"
-            : "#121814",
-          color: "#ECEFEA",
+            : "var(--card)",
+          color: "var(--foreground)",
           border: mine
             ? "1px solid color-mix(in srgb, var(--season-button) 32%, transparent)"
-            : "1px solid #1F2A24",
+            : "1px solid var(--muted)",
         }}
       >
         {message.media_id && (
@@ -98,7 +98,7 @@ function MessageBubble({
       <span
         className="text-[10px]"
         style={{
-          color: "#8B9A8E",
+          color: "var(--muted-foreground)",
           alignSelf: mine ? "flex-end" : "flex-start",
         }}
       >

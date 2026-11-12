@@ -14,16 +14,16 @@ export default function NewPostPage() {
         <header className="mb-8">
           <p
             className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-2"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           >
             New post
           </p>
           <h1
             className="season-transition leading-tight tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
               fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-              color: "var(--season-heading)",
+              color: "var(--foreground)",
             }}
           >
             Share a story

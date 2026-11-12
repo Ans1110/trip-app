@@ -89,12 +89,12 @@ export function TripItinerary({ trip }: { trip: Trip }) {
 
       {stops.length > 0 && <ItineraryMap stops={stops} />}
 
-      {query.isLoading && <p className="text-sm text-[#8B9A8E]">Loading…</p>}
+      {query.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {query.isError && (
-        <p className="text-sm text-[#FCA5A5]">{errorMessage(query.error)}</p>
+        <p className="text-sm text-destructive">{errorMessage(query.error)}</p>
       )}
       {!query.isLoading && !query.isError && itemCount === 0 && (
-        <p className="text-sm text-[#8B9A8E]">
+        <p className="text-sm text-muted-foreground">
           No itinerary items yet. Add the first stop above.
         </p>
       )}
@@ -145,12 +145,12 @@ function DayGroup({
       <div className="flex items-center justify-between">
         <h3
           className="text-sm font-medium tracking-wider uppercase"
-          style={{ color: "var(--season-button)" }}
+          style={{ color: "var(--mint-ink)" }}
         >
           Day {day}
         </h3>
         {reorder.isPending && (
-          <Loader2 className="size-3.5 animate-spin text-[#8B9A8E]" />
+          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
         )}
       </div>
       <DndContext
@@ -232,7 +232,7 @@ function NewItemForm({ trip }: { trip: Trip }) {
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         noValidate
-        className="flex flex-col gap-3 p-4 rounded-xl bg-[#121814] border border-[#1F2A24]"
+        className="flex flex-col gap-3 p-4 rounded-xl bg-card border border-border"
       >
         <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr_auto] gap-2 items-end">
           <ControlledSelect<CreateItineraryFormInput>
@@ -254,7 +254,7 @@ function NewItemForm({ trip }: { trip: Trip }) {
           <button
             type="submit"
             disabled={create.isPending}
-            className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+            className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
             style={{ backgroundColor: "var(--season-button)" }}
           >
             {create.isPending ? (
@@ -266,7 +266,7 @@ function NewItemForm({ trip }: { trip: Trip }) {
           </button>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] uppercase tracking-wider text-[#8B9A8E]">
+          <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
             Pin a place (optional)
           </label>
           <PlaceSearchPicker
@@ -274,13 +274,13 @@ function NewItemForm({ trip }: { trip: Trip }) {
             placeholder="Search a specific place to pin on the map"
           />
           {pickedCoord && (
-            <p className="text-[11px] text-[#8B9A8E] inline-flex items-center gap-1.5">
-              <MapPin className="size-3" style={{ color: "var(--season-button)" }} />
+            <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1.5">
+              <MapPin className="size-3" style={{ color: "var(--mint-ink)" }} />
               Pinned {pickedCoord.lat.toFixed(4)}, {pickedCoord.lng.toFixed(4)}
               <button
                 type="button"
                 onClick={() => setPickedCoord(null)}
-                className="inline-flex items-center gap-0.5 text-[#8B9A8E] hover:text-[#ECEFEA]"
+                className="inline-flex items-center gap-0.5 text-muted-foreground hover:text-foreground"
               >
                 <X className="size-3" /> clear
               </button>
@@ -288,7 +288,7 @@ function NewItemForm({ trip }: { trip: Trip }) {
           )}
         </div>
         {create.isError && (
-          <p className="text-xs text-[#FCA5A5]">{errorMessage(create.error)}</p>
+          <p className="text-xs text-destructive">{errorMessage(create.error)}</p>
         )}
       </form>
     </FormProvider>
@@ -324,7 +324,7 @@ function SortableItemRow({
           <button
             type="button"
             aria-label="Reorder"
-            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 cursor-grab active:cursor-grabbing touch-none text-[#8B9A8E]"
+            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted cursor-grab active:cursor-grabbing touch-none text-muted-foreground"
             {...attributes}
             {...listeners}
           >
@@ -383,7 +383,7 @@ function ItemRow({
   };
 
   return (
-    <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-[#121814] border border-[#1F2A24]">
+    <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-card border border-border">
       {dragHandle}
       <FormProvider {...form}>
         <form
@@ -421,13 +421,13 @@ function ItemRow({
             </div>
           ) : (
             <>
-              <p className="text-sm text-[#ECEFEA]">
+              <p className="text-sm text-foreground">
                 {item.title || "Untitled"}
               </p>
               {(item.location ||
                 (item.latitude !== undefined &&
                   item.longitude !== undefined)) && (
-                <div className="flex items-center gap-1 text-[#8B9A8E]">
+                <div className="flex items-center gap-1 text-muted-foreground">
                   <MapPin className="size-3" />
                   <span className="text-xs">
                     {item.location || ""}
@@ -443,7 +443,7 @@ function ItemRow({
                 </div>
               )}
               {item.description && (
-                <p className="text-xs whitespace-pre-wrap text-[#6B7A6F]">
+                <p className="text-xs whitespace-pre-wrap text-subtle-foreground">
                   {item.description}
                 </p>
               )}
@@ -457,7 +457,7 @@ function ItemRow({
             <button
               type="button"
               onClick={handleCancel}
-              className="text-xs px-2 py-1 rounded-full hover:bg-white/5 text-[#8B9A8E]"
+              className="text-xs px-2 py-1 rounded-full hover:bg-muted text-muted-foreground"
             >
               Cancel
             </button>
@@ -465,7 +465,7 @@ function ItemRow({
               type="button"
               onClick={form.handleSubmit(onSave)}
               disabled={update.isPending}
-              className="season-transition inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {update.isPending && <Loader2 className="size-3 animate-spin" />}
@@ -477,7 +477,7 @@ function ItemRow({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-xs px-2 py-1 rounded-full hover:bg-white/5 text-[#8B9A8E]"
+              className="text-xs px-2 py-1 rounded-full hover:bg-muted text-muted-foreground"
             >
               Edit
             </button>
@@ -486,7 +486,7 @@ function ItemRow({
               onClick={() => remove.mutate({ id: tripId, itemId: item.id })}
               disabled={remove.isPending}
               aria-label="Delete"
-              className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60 text-[#FCA5A5]"
+              className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted disabled:opacity-60 text-destructive"
             >
               {remove.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />

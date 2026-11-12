@@ -56,12 +56,12 @@ function avatarPin(opts: {
   const initial = escapeHtml((opts.name || "?").slice(0, 1).toUpperCase());
   const inner = opts.url
     ? `<img src="${escapeHtml(opts.url)}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;display:block;" />`
-    : `<span style="width:34px;height:34px;border-radius:50%;background:#1F2A24;color:#ECEFEA;display:flex;align-items:center;justify-content:center;font:600 12px/1 system-ui,-apple-system,sans-serif;">${initial}</span>`;
+    : `<span style="width:34px;height:34px;border-radius:50%;background:#dfe8f3;color:#22395a;display:flex;align-items:center;justify-content:center;font:600 12px/1 system-ui,-apple-system,sans-serif;">${initial}</span>`;
   const ringStyle = opts.ringDashed ? "dashed" : "solid";
   return L.divIcon({
     className: "trip-location-pin",
     html: `<div style="position:relative;width:44px;height:52px;">
-  <div style="width:44px;height:44px;border-radius:50%;padding:3px;background:#0B100D;border:2px ${ringStyle} ${opts.ring};box-sizing:border-box;box-shadow:0 4px 10px rgba(0,0,0,0.35);">${inner}</div>
+  <div style="width:44px;height:44px;border-radius:50%;padding:3px;background:#22395a;border:2px ${ringStyle} ${opts.ring};box-sizing:border-box;box-shadow:0 4px 10px rgba(0,0,0,0.35);">${inner}</div>
   <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid ${opts.ring};"></div>
 </div>`,
     iconSize: [44, 52],
@@ -161,7 +161,7 @@ export default function LocationMap({
         height: 420,
         borderRadius: 16,
         overflow: "hidden",
-        border: "1px solid #1F2A24",
+        border: "1px solid #dfe8f3",
       }}
     >
       <MapContainer
@@ -188,7 +188,7 @@ export default function LocationMap({
             icon={avatarPin({
               url: me.avatarUrl,
               name: me.name,
-              ring: meIsSharing ? "#B5D086" : "#8B9A8E",
+              ring: meIsSharing ? "#4fb894" : "#5d6f86",
               ringDashed: !meIsSharing,
             })}
             eventHandlers={{ click: () => jumpTo(me.lat, me.lng) }}
@@ -213,7 +213,7 @@ export default function LocationMap({
               icon={avatarPin({
                 url: member?.user.avatar_url,
                 name,
-                ring: "#B5D086",
+                ring: "#4fb894",
                 ringDashed: false,
               })}
               eventHandlers={{ click: () => jumpTo(p.lat, p.lng) }}

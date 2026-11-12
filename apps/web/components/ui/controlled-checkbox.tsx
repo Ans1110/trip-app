@@ -46,13 +46,13 @@ function ControlledCheckbox<T extends FieldValues>({
           {label && (
             <label
               htmlFor={name}
-              className="text-sm text-[#ECEFEA] select-none cursor-pointer"
+              className="text-sm text-foreground select-none cursor-pointer"
             >
               {label}
             </label>
           )}
           {error && (
-            <span className="text-[11px] text-[#FCA5A5]">{error.message}</span>
+            <span className="text-[11px] text-destructive">{error.message}</span>
           )}
         </div>
       )}

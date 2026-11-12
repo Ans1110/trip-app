@@ -25,9 +25,9 @@ export type ItineraryStop = {
 };
 
 const DAY_COLORS = [
-  "#B5D086",
-  "#79B4E6",
-  "#F3B664",
+  "#4fb894",
+  "#5aa7ec",
+  "#e7a93c",
   "#EC7E7E",
   "#B292E7",
   "#7BC9C7",
@@ -41,8 +41,8 @@ const numberedIcon = (label: string, tint: string) =>
   L.divIcon({
     className: "itinerary-pin",
     html: `<div style="width:28px;height:36px;position:relative;">
-  <svg viewBox="0 0 24 32" width="28" height="36" xmlns="http://www.w3.org/2000/svg"><path fill="${tint}" stroke="#0B100D" stroke-width="1.5" d="M12 1c5 0 9 4 9 9 0 7-9 21-9 21S3 17 3 10c0-5 4-9 9-9z"/><circle cx="12" cy="10" r="6.5" fill="#0B100D"/></svg>
-  <span style="position:absolute;top:1px;left:0;width:28px;text-align:center;font-size:10px;font-weight:700;color:#ECEFEA;line-height:22px;letter-spacing:-0.2px;">${escapeHtml(label)}</span>
+  <svg viewBox="0 0 24 32" width="28" height="36" xmlns="http://www.w3.org/2000/svg"><path fill="${tint}" stroke="#22395a" stroke-width="1.5" d="M12 1c5 0 9 4 9 9 0 7-9 21-9 21S3 17 3 10c0-5 4-9 9-9z"/><circle cx="12" cy="10" r="6.5" fill="#22395a"/></svg>
+  <span style="position:absolute;top:1px;left:0;width:28px;text-align:center;font-size:10px;font-weight:700;color:#22395a;line-height:22px;letter-spacing:-0.2px;">${escapeHtml(label)}</span>
 </div>`,
     iconSize: [28, 36],
     iconAnchor: [14, 36],
@@ -189,7 +189,7 @@ export default function ItineraryMap({ stops }: { stops: ItineraryStop[] }) {
     visible.length >= 2 &&
     routes[effective] === undefined;
   const activeTint =
-    typeof effective === "number" ? dayColor(effective) : "#F3B664";
+    typeof effective === "number" ? dayColor(effective) : "#e7a93c";
 
   return (
     <div className="flex flex-col gap-2">
@@ -199,7 +199,7 @@ export default function ItineraryMap({ stops }: { stops: ItineraryStop[] }) {
           height: 320,
           borderRadius: 12,
           overflow: "hidden",
-          border: "1px solid #1F2A24",
+          border: "1px solid #dfe8f3",
         }}
       >
         <MapContainer
@@ -265,8 +265,8 @@ function DayTabs({
   const btnCls = (active: boolean) =>
     `text-xs px-3 py-1 rounded-full border ${
       active
-        ? "bg-white/10 text-[#ECEFEA] border-white/20"
-        : "text-[#8B9A8E] border-[#1F2A24] hover:bg-white/5"
+        ? "bg-muted text-[#22395a] border-border"
+        : "text-[#5d6f86] border-[#dfe8f3] hover:bg-muted"
     }`;
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -285,7 +285,7 @@ function DayTabs({
           className={btnCls(selected === d)}
           style={
             selected === d
-              ? { borderColor: dayColor(d), color: "#ECEFEA" }
+              ? { borderColor: dayColor(d), color: "#22395a" }
               : undefined
           }
         >
@@ -310,32 +310,32 @@ function RouteSummary({
   stopCount: number;
 }) {
   if (isLoading) {
-    return <p className="text-xs text-[#8B9A8E]">Computing route…</p>;
+    return <p className="text-xs text-[#5d6f86]">Computing route…</p>;
   }
   if (stopCount === 0) {
     return (
-      <p className="text-xs text-[#6B7A6F]">
+      <p className="text-xs text-[#6f8098]">
         No mapped stops for this day yet.
       </p>
     );
   }
   if (stopCount === 1) {
     return (
-      <p className="text-xs text-[#6B7A6F]">
+      <p className="text-xs text-[#6f8098]">
         Add another stop to see a connecting route.
       </p>
     );
   }
   if (!route) {
     return (
-      <p className="text-xs text-[#FCA5A5]">
+      <p className="text-xs text-[#d9485f]">
         Route unavailable for these points.
       </p>
     );
   }
   return (
-    <p className="text-xs text-[#8B9A8E]">
-      <span className="text-[#ECEFEA]">
+    <p className="text-xs text-[#5d6f86]">
+      <span className="text-[#22395a]">
         {formatDistance(route.distance_meters)}
       </span>{" "}
       · {formatDuration(route.duration_seconds)} across {stopCount} stops

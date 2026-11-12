@@ -97,21 +97,38 @@ export function TripLocation({ tripId }: { tripId: string }) {
       setGeo({ kind: "unsupported" });
       return;
     }
-    const id = navigator.geolocation.watchPosition(
-      (pos) =>
-        setGeo({
-          kind: "ok",
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        }),
-      (err) =>
-        setGeo(
-          err.code === err.PERMISSION_DENIED
-            ? { kind: "denied" }
-            : { kind: "error", message: err.message || "Location unavailable." },
-        ),
-      { enableHighAccuracy: true, maximumAge: 30_000, timeout: 15_000 },
-    );
+    let id = 0;
+    let coarse = false;
+    const start = () => {
+      id = navigator.geolocation.watchPosition(
+        (pos) =>
+          setGeo({
+            kind: "ok",
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          }),
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            setGeo({ kind: "denied" });
+            return;
+          }
+          if (!coarse) {
+            coarse = true;
+            navigator.geolocation.clearWatch(id);
+            start();
+            return;
+          }
+          setGeo({
+            kind: "error",
+            message: "Couldn't find your location yet. Check that location services are on for this browser.",
+          });
+        },
+        coarse
+          ? { enableHighAccuracy: false, maximumAge: 5 * 60_000, timeout: 30_000 }
+          : { enableHighAccuracy: true, maximumAge: 30_000, timeout: 15_000 },
+      );
+    };
+    start();
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
@@ -135,25 +152,9 @@ export function TripLocation({ tripId }: { tripId: string }) {
         }
       : null;
 
-  const shareCurrent = () => {
-    if (geo.kind !== "ok") {
-      setStatus({
-        kind: geo.kind === "denied" ? "denied" : "error",
-        message:
-          geo.kind === "denied"
-            ? "Location permission denied. Enable it in your browser to share."
-            : geo.kind === "unsupported"
-              ? "This browser doesn't support geolocation."
-              : geo.kind === "error"
-                ? geo.message
-                : "Waiting for your location…",
-      });
-      return;
-    }
-    setStatus({ kind: "requesting" });
-    setEndedNote(null);
+  const sendShare = (lat: number, lng: number) => {
     share.mutate(
-      { tripId, input: { lat: geo.lat, lng: geo.lng } },
+      { tripId, input: { lat, lng } },
       {
         onSuccess: () => setStatus({ kind: "idle" }),
         onError: (err) =>
@@ -162,6 +163,45 @@ export function TripLocation({ tripId }: { tripId: string }) {
             message: errorMessage(err) ?? "Failed to share location.",
           }),
       },
+    );
+  };
+
+  const shareCurrent = () => {
+    if (geo.kind === "unsupported" || geo.kind === "denied") {
+      setStatus({
+        kind: "denied",
+        message:
+          geo.kind === "denied"
+            ? "Location permission denied. Enable it in your browser to share."
+            : "This browser doesn't support geolocation.",
+      });
+      return;
+    }
+    setStatus({ kind: "requesting" });
+    setEndedNote(null);
+    if (geo.kind === "ok") {
+      sendShare(geo.lat, geo.lng);
+      return;
+    }
+    // The high-accuracy watch can stall on desktops (Wi-Fi positioning), so ask once at coarse accuracy.
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setGeo({ kind: "ok", lat, lng });
+        sendShare(lat, lng);
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeo({ kind: "denied" });
+          setStatus({ kind: "denied", message: "Location permission denied. Enable it in your browser to share." });
+        } else {
+          setStatus({
+            kind: "error",
+            message: "Couldn't get your location. Check that location services are on for this browser, then try again.",
+          });
+        }
+      },
+      { enableHighAccuracy: false, maximumAge: 5 * 60_000, timeout: 20_000 },
     );
   };
 
@@ -184,17 +224,17 @@ export function TripLocation({ tripId }: { tripId: string }) {
       <header className="flex flex-col gap-2">
         <p
           className="text-[11px] font-medium tracking-[0.2em] uppercase"
-          style={{ color: "var(--season-button)" }}
+          style={{ color: "var(--mint-ink)" }}
         >
           Location
         </p>
         <h2
-          className="text-2xl tracking-tight text-[#ECEFEA]"
-          style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+          className="text-2xl tracking-tight text-foreground"
+          style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
         >
           Where everyone is right now
         </h2>
-        <p className="text-sm text-[#8B9A8E]">
+        <p className="text-sm text-muted-foreground">
           Your pin is only visible to you unless you tap Share. Sharing lasts 30
           minutes from each tap, then automatically stops.
         </p>
@@ -204,11 +244,11 @@ export function TripLocation({ tripId }: { tripId: string }) {
         <span
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px]"
           style={{
-            color: iAmSharing ? "var(--season-button)" : "#8B9A8E",
+            color: iAmSharing ? "var(--mint-ink)" : "var(--muted-foreground)",
             backgroundColor: iAmSharing
               ? "color-mix(in srgb, var(--season-button) 15%, transparent)"
               : "transparent",
-            border: `1px solid ${iAmSharing ? "transparent" : "#1F2A24"}`,
+            border: `1px solid ${iAmSharing ? "transparent" : "var(--border)"}`,
           }}
         >
           {iAmSharing ? (
@@ -218,7 +258,7 @@ export function TripLocation({ tripId }: { tripId: string }) {
           )}
           {iAmSharing ? "Sharing live" : "Not sharing"}
         </span>
-        <span className="text-[11px] text-[#6B7A6F]">
+        <span className="text-[11px] text-subtle-foreground">
           {positionList.length} member{positionList.length === 1 ? "" : "s"}{" "}
           on the map
         </span>
@@ -228,7 +268,7 @@ export function TripLocation({ tripId }: { tripId: string }) {
               type="button"
               onClick={stopSharing}
               disabled={revoke.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border border-[#1F2A24] hover:bg-white/5 disabled:opacity-60 text-[#ECEFEA]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border border-border hover:bg-muted disabled:opacity-60 text-foreground"
             >
               {revoke.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -242,7 +282,7 @@ export function TripLocation({ tripId }: { tripId: string }) {
             type="button"
             onClick={shareCurrent}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full text-[#0B100D] disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full text-primary-foreground disabled:opacity-60"
             style={{ backgroundColor: "var(--season-button)" }}
           >
             {busy ? (
@@ -256,32 +296,32 @@ export function TripLocation({ tripId }: { tripId: string }) {
       </div>
 
       {geo.kind === "pending" && (
-        <p className="inline-flex items-center gap-1.5 text-xs text-[#8B9A8E]">
+        <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <LocateFixed className="size-3.5 animate-pulse" />
           Locating you…
         </p>
       )}
       {geo.kind === "denied" && (
-        <p className="text-xs text-[#FCA5A5]">
+        <p className="text-xs text-destructive">
           Location permission denied. The map will show shared members only.
         </p>
       )}
       {geo.kind === "unsupported" && (
-        <p className="text-xs text-[#FCA5A5]">
+        <p className="text-xs text-destructive">
           This browser doesn&rsquo;t support geolocation.
         </p>
       )}
       {geo.kind === "error" && (
-        <p className="text-xs text-[#FCA5A5]">{geo.message}</p>
+        <p className="text-xs text-destructive">{geo.message}</p>
       )}
       {status.kind === "denied" && (
-        <p className="text-xs text-[#FCA5A5]">{status.message}</p>
+        <p className="text-xs text-destructive">{status.message}</p>
       )}
       {status.kind === "error" && (
-        <p className="text-xs text-[#FCA5A5]">{status.message}</p>
+        <p className="text-xs text-destructive">{status.message}</p>
       )}
       {endedNote && (
-        <p className="text-xs text-[#8B9A8E]">{endedNote}</p>
+        <p className="text-xs text-muted-foreground">{endedNote}</p>
       )}
 
       <LocationMap
@@ -317,12 +357,12 @@ function SharingList({
     <div className="flex flex-col gap-2">
       <h3
         className="text-[11px] font-medium tracking-[0.2em] uppercase"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         Sharing now · {positions.length}
       </h3>
       {positions.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[#1F2A24] p-6 text-sm text-[#8B9A8E] text-center">
+        <p className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground text-center">
           No one is sharing right now.
         </p>
       ) : (
@@ -338,7 +378,7 @@ function SharingList({
                 <button
                   type="button"
                   onClick={() => onFocus(p.lat, p.lng)}
-                  className="w-full grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-xl border border-[#1F2A24] bg-[#121814] px-4 py-3 text-left hover:bg-white/5 transition-colors"
+                  className="w-full grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left hover:bg-muted transition-colors"
                 >
                   {avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -353,29 +393,29 @@ function SharingList({
                     />
                   ) : (
                     <span
-                      className="flex items-center justify-center rounded-full text-xs text-[#ECEFEA]"
-                      style={{ width: 36, height: 36, backgroundColor: "#1F2A24" }}
+                      className="flex items-center justify-center rounded-full text-xs text-foreground"
+                      style={{ width: 36, height: 36, backgroundColor: "var(--muted)" }}
                     >
                       {initial}
                     </span>
                   )}
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="text-sm text-[#ECEFEA] truncate">
+                    <span className="text-sm text-foreground truncate">
                       {name}
                       {isSelf && (
-                        <span className="ml-2 text-[10px] uppercase tracking-widest text-[#8B9A8E]">
+                        <span className="ml-2 text-[10px] uppercase tracking-widest text-muted-foreground">
                           you
                         </span>
                       )}
                     </span>
-                    <span className="text-xs text-[#8B9A8E] truncate">
+                    <span className="text-xs text-muted-foreground truncate">
                       {formatRelative(p.shared_at)}
                       {p.accuracy_m
                         ? ` · ±${Math.round(p.accuracy_m)} m`
                         : ""}
                     </span>
                   </div>
-                  <MapPin className="size-4 text-[#8B9A8E]" />
+                  <MapPin className="size-4 text-muted-foreground" />
                 </button>
               </li>
             );

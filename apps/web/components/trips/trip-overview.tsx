@@ -118,7 +118,7 @@ export function TripOverview({
             options={statusOptions}
           />
           {update.isError && (
-            <p className="text-sm text-[#FCA5A5]">
+            <p className="text-sm text-destructive">
               {errorMessage(update.error)}
             </p>
           )}
@@ -127,14 +127,14 @@ export function TripOverview({
               type="button"
               onClick={handleCancel}
               disabled={update.isPending}
-              className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+              className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={update.isPending}
-              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {update.isPending && (
@@ -154,13 +154,13 @@ export function TripOverview({
         <div>
           <p
             className="text-[11px] font-medium tracking-[0.2em] uppercase mb-2"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           >
             {trip.status}
           </p>
           <h2
-            className="text-3xl tracking-tight text-[#ECEFEA]"
-            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+            className="text-3xl tracking-tight text-foreground"
+            style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
           >
             {trip.title}
           </h2>
@@ -170,7 +170,7 @@ export function TripOverview({
             <button
               type="button"
               onClick={() => setCoverOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 text-[#ECEFEA] border border-[#1F2A24]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted text-foreground border border-border"
             >
               <ImagePlus className="size-3.5" />
               Cover
@@ -178,7 +178,7 @@ export function TripOverview({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 text-[#ECEFEA] border border-[#1F2A24]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted text-foreground border border-border"
             >
               <Pencil className="size-3.5" />
               Edit
@@ -187,7 +187,7 @@ export function TripOverview({
               type="button"
               onClick={() => setDeleteOpen(true)}
               disabled={remove.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60 text-[#FCA5A5]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60 text-destructive"
             >
               {remove.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -210,8 +210,8 @@ export function TripOverview({
       )}
       {trip.description && (
         <div>
-          <p className="text-xs font-medium mb-2 text-[#8B9A8E]">Description</p>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap text-[#ECEFEA]">
+          <p className="text-xs font-medium mb-2 text-muted-foreground">Description</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
             {trip.description}
           </p>
         </div>
@@ -222,8 +222,8 @@ export function TripOverview({
       {deleteOpen && (
         <Modal title="Delete trip?" onClose={() => setDeleteOpen(false)}>
           <div className="flex flex-col gap-4">
-            <p className="text-sm" style={{ color: "#8B9A8E" }}>
-              <span className="text-[#ECEFEA] font-medium">
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+              <span className="text-foreground font-medium">
                 &ldquo;{trip.title}&rdquo;
               </span>{" "}
               and everything inside — itinerary, todos, votes, expenses, album
@@ -231,7 +231,7 @@ export function TripOverview({
               member. This action can&apos;t be undone.
             </p>
             {remove.isError && (
-              <p className="text-sm text-[#FCA5A5]">
+              <p className="text-sm text-destructive">
                 {errorMessage(remove.error)}
               </p>
             )}
@@ -240,7 +240,7 @@ export function TripOverview({
                 type="button"
                 onClick={() => setDeleteOpen(false)}
                 disabled={remove.isPending}
-                className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+                className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
               >
                 Cancel
               </button>
@@ -249,7 +249,7 @@ export function TripOverview({
                 onClick={confirmDelete}
                 disabled={remove.isPending}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
-                style={{ backgroundColor: "#7F1D1D", color: "#FEE2E2" }}
+                style={{ backgroundColor: "var(--destructive)", color: "var(--destructive)" }}
               >
                 {remove.isPending && (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -267,8 +267,8 @@ export function TripOverview({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium text-[#8B9A8E]">{label}</p>
-      <p className="text-sm mt-1 text-[#ECEFEA]">{value}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-sm mt-1 text-foreground">{value}</p>
     </div>
   );
 }

@@ -112,7 +112,7 @@ export function GithubOAuthCallback() {
           <Card tone="info" eyebrow="Signing you in">
             <p
               className="text-sm flex items-center gap-2"
-              style={{ color: "#ECEFEA" }}
+              style={{ color: "var(--foreground)" }}
             >
               <Loader2 className="size-4 animate-spin" />
               Finishing sign-in with GitHub…
@@ -122,7 +122,7 @@ export function GithubOAuthCallback() {
       case "success":
         return (
           <Card tone="success" eyebrow="Signed in">
-            <p className="text-sm" style={{ color: "#ECEFEA" }}>
+            <p className="text-sm" style={{ color: "var(--foreground)" }}>
               Redirecting you now…
             </p>
           </Card>
@@ -132,13 +132,13 @@ export function GithubOAuthCallback() {
       case "error":
         return (
           <Card tone="error" eyebrow="Sign-in failed">
-            <p className="text-sm" style={{ color: "#ECEFEA" }}>
+            <p className="text-sm" style={{ color: "var(--foreground)" }}>
               {phase.message}
             </p>
             <Link
               href="/sign-in"
               className="season-transition inline-flex items-center gap-2 mt-2 text-sm"
-              style={{ color: "var(--season-accent)" }}
+              style={{ color: "var(--pink-ink)" }}
             >
               Back to sign in <ArrowRight className="size-3.5" />
             </Link>
@@ -166,7 +166,7 @@ function Card({
       ? {
           bg: "rgba(220,38,38,0.06)",
           border: "rgba(220,38,38,0.25)",
-          accent: "#FCA5A5",
+          accent: "var(--destructive)",
         }
       : tone === "success"
         ? {

@@ -46,7 +46,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
 
   if (query.isLoading) {
     return (
-      <p className="text-sm" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
         Loading…
       </p>
     );
@@ -54,7 +54,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
 
   if (query.isError || !query.data) {
     return (
-      <p className="text-sm" style={{ color: "#FCA5A5" }}>
+      <p className="text-sm" style={{ color: "var(--destructive)" }}>
         {errorMessage(query.error) ?? "Trip not found."}
       </p>
     );
@@ -68,8 +68,8 @@ export function TripDetail({ tripId }: { tripId: string }) {
       <nav
         className="flex items-center gap-1 p-1 rounded-full self-start"
         style={{
-          backgroundColor: "#121814",
-          border: "1px solid #1F2A24",
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border)",
         }}
       >
         {tabs.map((t) => {
@@ -84,7 +84,7 @@ export function TripDetail({ tripId }: { tripId: string }) {
                 backgroundColor: active
                   ? "color-mix(in srgb, var(--season-button) 22%, transparent)"
                   : "transparent",
-                color: active ? "#ECEFEA" : "#8B9A8E",
+                color: active ? "var(--foreground)" : "var(--muted-foreground)",
               }}
             >
               {t.label}

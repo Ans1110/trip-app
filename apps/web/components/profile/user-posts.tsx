@@ -41,8 +41,8 @@ export function UserPosts({ userId }: { userId: string }) {
         <h2
           className="text-lg font-semibold"
           style={{
-            fontFamily: "var(--font-display, Georgia, serif)",
-            color: "#ECEFEA",
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            color: "var(--foreground)",
           }}
         >
           Posts
@@ -50,7 +50,7 @@ export function UserPosts({ userId }: { userId: string }) {
         {isOwn && (
           <div
             className="inline-flex items-center gap-1 p-1 rounded-full"
-            style={{ border: "1px solid #1F2A24" }}
+            style={{ border: "1px solid var(--border)" }}
           >
             {TABS.map((t) => {
               const active = t.key === tab;
@@ -65,7 +65,7 @@ export function UserPosts({ userId }: { userId: string }) {
                     backgroundColor: active
                       ? "color-mix(in srgb, var(--season-accent) 18%, transparent)"
                       : "transparent",
-                    color: active ? "var(--season-accent)" : "#8B9A8E",
+                    color: active ? "var(--pink-ink)" : "var(--muted-foreground)",
                   }}
                 >
                   {t.label}
@@ -79,17 +79,17 @@ export function UserPosts({ userId }: { userId: string }) {
       {isLoading ? (
         <div
           className="flex items-center gap-2 text-sm"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <Loader2 className="size-4 animate-spin" />
           Loading posts
         </div>
       ) : error ? (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(error) ?? "Failed to load posts"}
         </p>
       ) : !data || data.posts.length === 0 ? (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {isOwn && tab !== "published" ? `No ${tab} posts.` : "No posts yet."}
         </p>
       ) : (
@@ -105,8 +105,8 @@ export function UserPosts({ userId }: { userId: string }) {
                 type="button"
                 onClick={() => setCursor(data.next_cursor)}
                 disabled={isFetching}
-                className="px-4 py-2 text-sm rounded-full border hover:bg-white/5 disabled:opacity-60"
-                style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+                className="px-4 py-2 text-sm rounded-full border hover:bg-muted disabled:opacity-60"
+                style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
               >
                 {isFetching ? "Loading…" : "Load more"}
               </button>
@@ -122,7 +122,7 @@ function PostRow({ post }: { post: Post }) {
   return (
     <li
       className="flex gap-4 p-4 rounded-xl border"
-      style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
       {post.cover_image && (
         <Link
@@ -142,7 +142,7 @@ function PostRow({ post }: { post: Post }) {
         <Link
           href={`/posts/${post.id}`}
           className="block font-medium hover:underline truncate"
-          style={{ color: "#ECEFEA" }}
+          style={{ color: "var(--foreground)" }}
         >
           {post.title}
         </Link>
@@ -155,7 +155,7 @@ function PostRow({ post }: { post: Post }) {
                 style={{
                   backgroundColor:
                     "color-mix(in srgb, var(--season-accent) 14%, transparent)",
-                  color: "var(--season-accent)",
+                  color: "var(--pink-ink)",
                 }}
               >
                 {tag}
@@ -165,7 +165,7 @@ function PostRow({ post }: { post: Post }) {
         )}
         <div
           className="mt-2 flex items-center gap-4 text-xs"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <span className="inline-flex items-center gap-1">
             <Heart className="size-3.5" /> {post.like_count}
@@ -173,7 +173,7 @@ function PostRow({ post }: { post: Post }) {
           <span className="inline-flex items-center gap-1">
             <MessageCircle className="size-3.5" /> {post.comment_count}
           </span>
-          <span style={{ color: "#6B7A6F" }}>
+          <span style={{ color: "var(--subtle-foreground)" }}>
             {formatWhen(post.published_at)}
           </span>
         </div>

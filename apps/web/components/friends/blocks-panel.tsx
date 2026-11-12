@@ -26,14 +26,14 @@ function BlockRow({ block }: { block: FriendBlock }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-lg"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <Avatar user={block.user} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm truncate" style={{ color: "#ECEFEA" }}>
+        <p className="text-sm truncate" style={{ color: "var(--foreground)" }}>
           {block.user.name || block.user.email}
         </p>
-        <p className="text-xs truncate" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
           {block.user.email}
         </p>
       </div>
@@ -41,8 +41,8 @@ function BlockRow({ block }: { block: FriendBlock }) {
         type="button"
         onClick={() => unblock.mutate(block.user.id)}
         disabled={unblock.isPending}
-        className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
-        style={{ color: "#ECEFEA" }}
+        className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60"
+        style={{ color: "var(--foreground)" }}
       >
         {unblock.isPending ? (
           <Loader2 className="size-3.5 animate-spin" />

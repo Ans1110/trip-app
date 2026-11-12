@@ -38,20 +38,20 @@ export function ForgotPasswordForm() {
         <div className="flex items-center gap-2">
           <Check
             className="season-transition size-4"
-            style={{ color: "var(--season-accent)" }}
+            style={{ color: "var(--pink-ink)" }}
           />
           <p
             className="season-transition text-[11px] tracking-[0.2em] uppercase font-medium"
-            style={{ color: "var(--season-accent)" }}
+            style={{ color: "var(--pink-ink)" }}
           >
             Check your inbox
           </p>
         </div>
-        <p className="text-sm" style={{ color: "#ECEFEA" }}>
+        <p className="text-sm" style={{ color: "var(--foreground)" }}>
           If an account exists for <strong>{email}</strong>, we&apos;ve sent a
           link to reset its password. It expires in 30 minutes.
         </p>
-        <p className="text-xs" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           Didn&apos;t get it? Check spam, or{" "}
           <button
             type="button"
@@ -60,7 +60,7 @@ export function ForgotPasswordForm() {
               form.reset({ email: "" });
             }}
             className="season-transition underline-offset-4 hover:underline"
-            style={{ color: "var(--season-accent)" }}
+            style={{ color: "var(--pink-ink)" }}
           >
             try again
           </button>
@@ -92,7 +92,7 @@ export function ForgotPasswordForm() {
           <p
             className="text-sm rounded-lg px-3 py-2"
             style={{
-              color: "#FCA5A5",
+              color: "var(--destructive)",
               backgroundColor: "rgba(220,38,38,0.08)",
               border: "1px solid rgba(220,38,38,0.25)",
             }}
@@ -108,7 +108,7 @@ export function ForgotPasswordForm() {
           className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
           style={{
             backgroundColor: "var(--season-button)",
-            color: "#0B100D",
+            color: "var(--primary-foreground)",
             boxShadow: "0 8px 24px var(--season-button-shadow)",
           }}
         >

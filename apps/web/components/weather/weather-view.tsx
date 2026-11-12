@@ -112,17 +112,17 @@ export function WeatherView() {
       <header className="flex flex-col gap-2">
         <p
           className="text-[11px] font-medium tracking-[0.2em] uppercase"
-          style={{ color: "var(--season-button)" }}
+          style={{ color: "var(--mint-ink)" }}
         >
           Weather
         </p>
         <h1
-          className="text-3xl tracking-tight text-[#ECEFEA]"
-          style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+          className="text-3xl tracking-tight text-foreground"
+          style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
         >
           Check the sky before you go
         </h1>
-        <p className="text-sm text-[#8B9A8E]">
+        <p className="text-sm text-muted-foreground">
           Search a place to see today&apos;s conditions and the next 30 days.
         </p>
       </header>
@@ -133,9 +133,9 @@ export function WeatherView() {
           placeholder="Search a city or place"
         />
         {picked && (
-          <div className="flex items-center gap-2 text-sm text-[#8B9A8E]">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="size-4" />
-            <span className="text-[#ECEFEA]">{picked.name}</span>
+            <span className="text-foreground">{picked.name}</span>
             {picked.address && (
               <span className="truncate">· {picked.address}</span>
             )}
@@ -143,7 +143,7 @@ export function WeatherView() {
               type="button"
               onClick={handleToggleSave}
               disabled={toggleBusy}
-              className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border border-[#1F2A24] hover:bg-white/5 disabled:opacity-60 text-[#ECEFEA]"
+              className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border border-border hover:bg-muted disabled:opacity-60 text-foreground"
               style={
                 savedMatch ? { borderColor: "var(--season-button)" } : undefined
               }
@@ -153,7 +153,7 @@ export function WeatherView() {
               ) : savedMatch ? (
                 <BookmarkMinus
                   className="size-3.5"
-                  style={{ color: "var(--season-button)" }}
+                  style={{ color: "var(--mint-ink)" }}
                 />
               ) : (
                 <Bookmark className="size-3.5" />
@@ -169,7 +169,7 @@ export function WeatherView() {
           </div>
         )}
         {mutationError && (
-          <p className="text-xs text-[#FCA5A5]">{mutationError}</p>
+          <p className="text-xs text-destructive">{mutationError}</p>
         )}
       </div>
 
@@ -216,7 +216,7 @@ function Tabs({ value, onChange }: { value: Tab; onChange: (t: Tab) => void }) {
     { key: "30", label: "30 days" },
   ];
   return (
-    <div className="flex items-center gap-1 border-b border-[#1F2A24]">
+    <div className="flex items-center gap-1 border-b border-border">
       {items.map((it) => {
         const active = it.key === value;
         return (
@@ -227,7 +227,7 @@ function Tabs({ value, onChange }: { value: Tab; onChange: (t: Tab) => void }) {
             className="px-4 py-2 text-sm border-b-2 -mb-px"
             style={{
               borderColor: active ? "var(--season-button)" : "transparent",
-              color: active ? "#ECEFEA" : "#8B9A8E",
+              color: active ? "var(--foreground)" : "var(--muted-foreground)",
             }}
           >
             {it.label}
@@ -248,14 +248,14 @@ function TodayPanel({
   hourly: WeatherPoint[];
 }) {
   if (!current && !first && hourly.length === 0) {
-    return <p className="text-sm text-[#8B9A8E]">No forecast available.</p>;
+    return <p className="text-sm text-muted-foreground">No forecast available.</p>;
   }
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         {current && (
-          <div className="rounded-2xl border border-[#1F2A24] bg-[#121814] p-6 flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-widest text-[#8B9A8E]">
+          <div className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
               Now
             </p>
             <div className="flex items-center gap-3">
@@ -266,16 +266,16 @@ function TodayPanel({
                   size={64}
                 />
               )}
-              <span className="text-5xl text-[#ECEFEA]">
+              <span className="text-5xl text-foreground">
                 {Math.round(current.temp_c)}°
               </span>
               {current.summary && (
-                <span className="text-sm text-[#8B9A8E] capitalize">
+                <span className="text-sm text-muted-foreground capitalize">
                   {current.summary}
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-3 gap-3 text-xs text-[#8B9A8E]">
+            <div className="grid grid-cols-3 gap-3 text-xs text-muted-foreground">
               {current.feels_like_c !== undefined && (
                 <Stat
                   label="Feels like"
@@ -301,8 +301,8 @@ function TodayPanel({
           </div>
         )}
         {first && (
-          <div className="rounded-2xl border border-[#1F2A24] bg-[#121814] p-6 flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-widest text-[#8B9A8E]">
+          <div className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
               {formatDay(first.date)}
             </p>
             <div className="flex items-center gap-3">
@@ -314,21 +314,21 @@ function TodayPanel({
                 />
               )}
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl text-[#ECEFEA]">
+                <span className="text-4xl text-foreground">
                   {Math.round(first.temp_max_c)}°
                 </span>
-                <span className="text-lg text-[#8B9A8E]">
+                <span className="text-lg text-muted-foreground">
                   / {Math.round(first.temp_min_c)}°
                 </span>
               </div>
             </div>
             {first.summary && (
-              <p className="text-sm text-[#ECEFEA] capitalize">
+              <p className="text-sm text-foreground capitalize">
                 {first.summary}
               </p>
             )}
             {first.pop_pct !== undefined && (
-              <p className="text-xs text-[#8B9A8E]">
+              <p className="text-xs text-muted-foreground">
                 Precip. chance {Math.round(first.pop_pct)}%
               </p>
             )}
@@ -342,28 +342,28 @@ function TodayPanel({
 
 function HourlyStrip({ hourly }: { hourly: WeatherPoint[] }) {
   return (
-    <div className="rounded-2xl border border-[#1F2A24] bg-[#121814] p-4 flex flex-col gap-3">
-      <p className="text-xs uppercase tracking-widest text-[#8B9A8E]">
+    <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
+      <p className="text-xs uppercase tracking-widest text-muted-foreground">
         Next hours
       </p>
       <ul className="hourly-scroll flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         {hourly.map((h) => (
           <li
             key={h.time}
-            className="flex flex-col items-center gap-1 rounded-xl border border-[#1F2A24] bg-[#0E1411] px-3 py-2 shrink-0"
+            className="flex flex-col items-center gap-1 rounded-xl border border-border bg-surface-sunken px-3 py-2 shrink-0"
             style={{ minWidth: 72 }}
           >
-            <span className="text-xs text-[#8B9A8E]">{formatHour(h.time)}</span>
+            <span className="text-xs text-muted-foreground">{formatHour(h.time)}</span>
             {h.icon ? (
               <WeatherIcon src={h.icon} alt={h.summary ?? ""} size={36} />
             ) : (
-              <span className="text-[#6B7A6F]">—</span>
+              <span className="text-subtle-foreground">—</span>
             )}
-            <span className="text-sm text-[#ECEFEA]">
+            <span className="text-sm text-foreground">
               {Math.round(h.temp_c)}°
             </span>
             {h.pop_pct !== undefined && h.pop_pct > 0 && (
-              <span className="text-[10px] text-[#8B9A8E]">
+              <span className="text-[10px] text-muted-foreground">
                 {Math.round(h.pop_pct)}%
               </span>
             )}
@@ -383,7 +383,7 @@ function DailyListPanel({
 }) {
   if (days.length === 0) {
     return (
-      <p className="text-sm text-[#8B9A8E]">No daily forecast available.</p>
+      <p className="text-sm text-muted-foreground">No daily forecast available.</p>
     );
   }
   return (
@@ -391,23 +391,23 @@ function DailyListPanel({
       {days.slice(0, limit).map((d) => (
         <li
           key={d.date}
-          className="grid grid-cols-[110px_40px_1fr_120px] gap-3 items-center rounded-xl border border-[#1F2A24] bg-[#121814] px-4 py-3"
+          className="grid grid-cols-[110px_40px_1fr_120px] gap-3 items-center rounded-xl border border-border bg-card px-4 py-3"
         >
-          <span className="text-sm text-[#ECEFEA]">{formatDay(d.date)}</span>
+          <span className="text-sm text-foreground">{formatDay(d.date)}</span>
           <div className="flex items-center justify-center">
             {d.icon ? (
               <WeatherIcon src={d.icon} alt={d.summary ?? ""} size={36} />
             ) : (
-              <span className="text-[#6B7A6F]">—</span>
+              <span className="text-subtle-foreground">—</span>
             )}
           </div>
-          <span className="text-sm text-[#8B9A8E] truncate capitalize">
+          <span className="text-sm text-muted-foreground truncate capitalize">
             {d.summary ?? "—"}
             {d.pop_pct !== undefined && ` · ${Math.round(d.pop_pct)}%`}
           </span>
-          <span className="text-sm text-[#ECEFEA] text-right">
+          <span className="text-sm text-foreground text-right">
             {Math.round(d.temp_max_c)}°{" "}
-            <span className="text-[#8B9A8E]">
+            <span className="text-muted-foreground">
               / {Math.round(d.temp_min_c)}°
             </span>
           </span>
@@ -446,15 +446,15 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span>{label}</span>
-      <span className="text-sm text-[#ECEFEA]">{value}</span>
+      <span className="text-sm text-foreground">{value}</span>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="rounded-2xl border border-dashed border-[#1F2A24] p-10 text-center">
-      <p className="text-sm text-[#8B9A8E]">
+    <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+      <p className="text-sm text-muted-foreground">
         Pick a place above to see the forecast.
       </p>
     </div>
@@ -463,8 +463,8 @@ function EmptyState() {
 
 function LoadingState() {
   return (
-    <div className="rounded-2xl border border-[#1F2A24] p-10 flex items-center justify-center">
-      <Loader2 className="size-4 animate-spin text-[#8B9A8E]" />
+    <div className="rounded-2xl border border-border p-10 flex items-center justify-center">
+      <Loader2 className="size-4 animate-spin text-muted-foreground" />
     </div>
   );
 }
@@ -486,7 +486,7 @@ function SavedWeatherList({
 }) {
   if (loading && places.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-xs text-[#8B9A8E]">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Loader2 className="size-3.5 animate-spin" />
         Loading saved places…
       </div>
@@ -495,7 +495,7 @@ function SavedWeatherList({
   if (places.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#8B9A8E]">
+      <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
         Saved for weather
       </p>
       <ul className="flex flex-wrap gap-2">
@@ -505,7 +505,7 @@ function SavedWeatherList({
           return (
             <li key={p.id}>
               <div
-                className="inline-flex items-center gap-1 rounded-full border border-[#1F2A24] bg-[#121814] pl-3 pr-1 py-1 text-xs text-[#ECEFEA]"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-card pl-3 pr-1 py-1 text-xs text-foreground"
                 style={
                   active ? { borderColor: "var(--season-button)" } : undefined
                 }
@@ -513,7 +513,7 @@ function SavedWeatherList({
                 <button
                   type="button"
                   onClick={() => onPick(p)}
-                  className="inline-flex items-center gap-1 hover:text-white"
+                  className="inline-flex items-center gap-1 hover:text-foreground"
                 >
                   <MapPin className="size-3" />
                   <span>{p.name}</span>
@@ -522,7 +522,7 @@ function SavedWeatherList({
                   type="button"
                   onClick={() => onRemove(p.id)}
                   disabled={removing}
-                  className="ml-1 inline-flex items-center justify-center size-5 rounded-full hover:bg-white/10 disabled:opacity-60"
+                  className="ml-1 inline-flex items-center justify-center size-5 rounded-full hover:bg-muted disabled:opacity-60"
                   aria-label={`Remove ${p.name}`}
                 >
                   {removing ? (
@@ -542,8 +542,8 @@ function SavedWeatherList({
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-[#1F2A24] p-6">
-      <p className="text-sm text-[#FCA5A5]">{message}</p>
+    <div className="rounded-2xl border border-border p-6">
+      <p className="text-sm text-destructive">{message}</p>
     </div>
   );
 }

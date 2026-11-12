@@ -79,7 +79,7 @@ export function AlbumShareManager({ tripId }: { tripId: string }) {
 
       <section
         className="rounded-xl p-4"
-        style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+        style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
       >
         <FormProvider {...form}>
           <form
@@ -87,7 +87,7 @@ export function AlbumShareManager({ tripId }: { tripId: string }) {
             onSubmit={form.handleSubmit(onSubmit)}
             noValidate
           >
-            <p className="text-[11px]" style={{ color: "#8B9A8E" }}>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
               Anyone with the link can view this album. Leave the expiry blank
               for no expiration.
             </p>
@@ -99,14 +99,14 @@ export function AlbumShareManager({ tripId }: { tripId: string }) {
               hint="Link stays live through the end of the selected day."
             />
             {create.error && (
-              <p className="text-xs text-[#FCA5A5]">
+              <p className="text-xs text-destructive">
                 {errorMessage(create.error)}
               </p>
             )}
             <button
               type="submit"
               disabled={create.isPending}
-              className="season-transition inline-flex items-center gap-2 self-start px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-2 self-start px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {create.isPending && (
@@ -121,23 +121,23 @@ export function AlbumShareManager({ tripId }: { tripId: string }) {
       <section className="flex flex-col gap-2">
         <h3
           className="text-xs uppercase tracking-wider"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           Existing links
         </h3>
 
         {shares.isLoading && (
-          <p className="text-xs" style={{ color: "#8B9A8E" }}>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
             Loading…
           </p>
         )}
         {shares.isError && (
-          <p className="text-xs text-[#FCA5A5]">
+          <p className="text-xs text-destructive">
             {errorMessage(shares.error) ?? "Failed to load share links."}
           </p>
         )}
         {shares.data && rows.length === 0 && (
-          <p className="text-xs" style={{ color: "#6B7A6F" }}>
+          <p className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
             No share links yet.
           </p>
         )}
@@ -153,7 +153,7 @@ export function AlbumShareManager({ tripId }: { tripId: string }) {
           ))}
         </ul>
         {revoke.error && (
-          <p className="text-xs text-[#FCA5A5]">{errorMessage(revoke.error)}</p>
+          <p className="text-xs text-destructive">{errorMessage(revoke.error)}</p>
         )}
       </section>
     </div>
@@ -183,10 +183,10 @@ function FreshTokenBanner({ token }: { token: string }) {
       }}
     >
       <div>
-        <p className="text-xs font-medium" style={{ color: "#86EFAC" }}>
+        <p className="text-xs font-medium" style={{ color: "var(--mint-ink)" }}>
           New share link ready
         </p>
-        <p className="text-[11px] mt-1" style={{ color: "#8B9A8E" }}>
+        <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
           Copy this URL now — for security we only store a hash of the token, so
           it can&apos;t be shown again after you close this dialog.
         </p>
@@ -197,9 +197,9 @@ function FreshTokenBanner({ token }: { token: string }) {
           value={url}
           className="flex-1 truncate rounded-md px-2 py-1.5 text-xs"
           style={{
-            backgroundColor: "#0B100D",
-            border: "1px solid #1F2A24",
-            color: "#ECEFEA",
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+            color: "var(--foreground)",
           }}
           onFocus={(e) => e.currentTarget.select()}
         />
@@ -210,8 +210,8 @@ function FreshTokenBanner({ token }: { token: string }) {
           style={{
             backgroundColor:
               "color-mix(in srgb, var(--season-button) 22%, transparent)",
-            color: "#ECEFEA",
-            border: "1px solid #1F2A24",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
           }}
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -235,16 +235,16 @@ function ShareRow({
   return (
     <li
       className="flex items-center gap-3 rounded-lg px-3 py-2"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <div className="flex flex-col flex-1 min-w-0">
         <span
           className="text-xs truncate font-mono"
-          style={{ color: "#ECEFEA" }}
+          style={{ color: "var(--foreground)" }}
         >
           {share.id}
         </span>
-        <span className="text-[10px]" style={{ color: "#8B9A8E" }}>
+        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
           {formatShareMeta(share)}
         </span>
       </div>
@@ -262,7 +262,7 @@ function ShareRow({
           aria-label="Revoke link"
           title="Revoke link"
           className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] disabled:opacity-60"
-          style={{ color: "#FCA5A5" }}
+          style={{ color: "var(--destructive)" }}
         >
           {revoking ? (
             <Loader2 size={12} className="animate-spin" />
@@ -283,11 +283,11 @@ type ShareState =
 
 function shareState(s: AlbumShareToken): ShareState {
   if (s.revoked_at)
-    return { kind: "revoked", label: "REVOKED", color: "#FCA5A5" };
+    return { kind: "revoked", label: "REVOKED", color: "var(--destructive)" };
   if (s.expires_at && new Date(s.expires_at).getTime() <= Date.now()) {
-    return { kind: "expired", label: "EXPIRED", color: "#F59E0B" };
+    return { kind: "expired", label: "EXPIRED", color: "var(--warning-ink)" };
   }
-  return { kind: "active", label: "Active", color: "#86EFAC" };
+  return { kind: "active", label: "Active", color: "var(--mint-ink)" };
 }
 
 function formatShareMeta(s: AlbumShareToken): string {

@@ -27,7 +27,7 @@ export function RoomQr({ code }: { code: string }) {
     QRCode.toCanvas(canvas, url, {
       width: 220,
       margin: 1,
-      color: { dark: "#0B100D", light: "#ECEFEA" },
+      color: { dark: "var(--primary-foreground)", light: "var(--foreground)" },
     }).catch(() => {
       // ignore render failure — code text is still shown
     });
@@ -94,7 +94,7 @@ export function RoomQr({ code }: { code: string }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="rounded-xl p-3" style={{ backgroundColor: "#ECEFEA" }}>
+      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--primary)" }}>
         <canvas ref={canvasRef} aria-label={`QR code for trip ${code}`} />
       </div>
 
@@ -103,8 +103,8 @@ export function RoomQr({ code }: { code: string }) {
           type="button"
           onClick={handleShare}
           disabled={!url || shareState === "sharing"}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5 disabled:opacity-60"
-          style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60"
+          style={{ color: "var(--foreground)", border: "1px solid var(--border)" }}
         >
           <Share2 className="size-3.5" />
           {shareState === "copied" ? "Link copied!" : "Share"}
@@ -112,8 +112,8 @@ export function RoomQr({ code }: { code: string }) {
         <button
           type="button"
           onClick={handleDownload}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-white/5"
-          style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted"
+          style={{ color: "var(--foreground)", border: "1px solid var(--border)" }}
         >
           <Download className="size-3.5" />
           Download

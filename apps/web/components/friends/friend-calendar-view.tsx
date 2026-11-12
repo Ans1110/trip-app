@@ -60,13 +60,13 @@ export function FriendCalendarView({ friendId }: { friendId: string }) {
           <h1
             className="text-3xl tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             {displayName}&rsquo;s calendar
           </h1>
-          <p className="text-sm mt-1" style={{ color: "#8B9A8E" }}>
+          <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
             Your private &amp; friends events, alongside events {displayName}{" "}
             has shared with friends.
           </p>
@@ -106,7 +106,7 @@ function VisibilityToggle({
       role="group"
       aria-label="Filter events"
       className="inline-flex items-center gap-0.5 p-0.5 rounded-full shrink-0"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <ToggleBtn
         active={showAll}
@@ -141,7 +141,7 @@ function ToggleBtn({
         backgroundColor: active
           ? "color-mix(in srgb, var(--season-button) 22%, transparent)"
           : "transparent",
-        color: active ? "#ECEFEA" : "#8B9A8E",
+        color: active ? "var(--foreground)" : "var(--muted-foreground)",
       }}
     >
       {label}

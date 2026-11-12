@@ -47,13 +47,13 @@ export function CalendarView() {
           <h1
             className="text-3xl tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             Calendar
           </h1>
-          <p className="text-sm mt-1" style={{ color: "#8B9A8E" }}>
+          <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
             Your events, plus every trip on your schedule.
           </p>
         </div>
@@ -61,7 +61,7 @@ export function CalendarView() {
           type="button"
           onClick={() => openCreateAt()}
           className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full"
-          style={{ backgroundColor: "var(--season-button)", color: "#0B100D" }}
+          style={{ backgroundColor: "var(--mint-ink)", color: "var(--primary-foreground)" }}
         >
           <Plus className="size-4" />
           New event

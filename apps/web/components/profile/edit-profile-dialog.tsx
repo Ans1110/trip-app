@@ -11,11 +11,11 @@ export function EditProfileDialog({ onClose }: { onClose: () => void }) {
         <ProfileSettingsForm onSaved={onClose} />
         <div
           className="pt-6"
-          style={{ borderTop: "1px solid #1F2A24" }}
+          style={{ borderTop: "1px solid var(--border)" }}
         >
           <h2
             className="text-xs tracking-[0.2em] uppercase mb-3"
-            style={{ color: "#8B9A8E" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             Security
           </h2>

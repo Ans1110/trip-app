@@ -166,6 +166,17 @@ export class LocationClient {
     return mapData(res, (rows) => rows.map(toPlaceSummaryView));
   }
 
+  async placePhoto(
+    name: string,
+    width: number,
+    auth: AuthCtx,
+  ): Promise<ApiResult<{ url: string }>> {
+    const qs = new URLSearchParams({ name, w: String(width) }).toString();
+    return this.callProtected<{ url: string }>(auth, (opts) =>
+      this.http.get<{ url: string }>(`/location/places/photo?${qs}`, opts),
+    );
+  }
+
   async placeDetails(
     placeID: string,
     lang: string | undefined,

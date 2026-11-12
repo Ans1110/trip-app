@@ -53,9 +53,9 @@ function ControlledTextarea<T extends FieldValues>({
               onChange={(e) => field.onChange(e.target.value)}
             />
             {error ? (
-              <p className="text-[11px] text-[#FCA5A5]">{error.message}</p>
+              <p className="text-[11px] text-destructive">{error.message}</p>
             ) : hint ? (
-              <p className="text-[11px] text-[#6B7A6F]">{hint}</p>
+              <p className="text-[11px] text-subtle-foreground">{hint}</p>
             ) : null}
           </>
         )}

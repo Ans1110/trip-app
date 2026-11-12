@@ -49,7 +49,7 @@ export function MFASettings() {
     return (
       <div
         className="flex items-center gap-2 text-sm"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <Loader2 className="size-4 animate-spin" />
         Loading security settings
@@ -92,15 +92,15 @@ export function MFASettings() {
     <div className="flex flex-col gap-3">
       <div className="flex items-start gap-3">
         {mfaEnabled ? (
-          <Shield className="size-5 mt-0.5" style={{ color: "var(--season-button)" }} />
+          <Shield className="size-5 mt-0.5" style={{ color: "var(--mint-ink)" }} />
         ) : (
-          <ShieldOff className="size-5 mt-0.5" style={{ color: "#8B9A8E" }} />
+          <ShieldOff className="size-5 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
         )}
         <div className="flex-1">
-          <h3 className="text-sm font-medium" style={{ color: "#ECEFEA" }}>
+          <h3 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
             Email two-factor
           </h3>
-          <p className="text-xs mt-0.5" style={{ color: "#8B9A8E" }}>
+          <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {mfaEnabled
               ? "You'll receive a 6-digit code by email on sign-in."
               : "Add a second step at sign-in by receiving a code by email."}
@@ -112,7 +112,7 @@ export function MFASettings() {
         <p
           className="text-sm rounded-lg px-3 py-2"
           style={{
-            color: "#FCA5A5",
+            color: "var(--destructive)",
             backgroundColor: "rgba(220,38,38,0.08)",
             border: "1px solid rgba(220,38,38,0.25)",
           }}
@@ -133,13 +133,13 @@ export function MFASettings() {
           style={
             mfaEnabled
               ? {
-                  color: "#FCA5A5",
+                  color: "var(--destructive)",
                   border: "1px solid rgba(220,38,38,0.35)",
                   backgroundColor: "transparent",
                 }
               : {
                   backgroundColor: "var(--season-button)",
-                  color: "#0B100D",
+                  color: "var(--primary-foreground)",
                   boxShadow: "0 6px 18px var(--season-button-shadow)",
                 }
           }
@@ -199,21 +199,21 @@ function MFACodeForm({
         <div
           className="flex items-start gap-3 rounded-lg px-3 py-2"
           style={{
-            backgroundColor: "rgba(127,182,138,0.08)",
-            border: "1px solid rgba(127,182,138,0.25)",
+            backgroundColor: "color-mix(in oklch, var(--mint) 16%, transparent)",
+            border: "1px solid color-mix(in oklch, var(--mint) 50%, transparent)",
           }}
         >
           <Mail
             className="size-5 mt-0.5"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           />
           <div>
-            <h3 className="text-sm font-medium" style={{ color: "#ECEFEA" }}>
+            <h3 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
               Code sent to your email
             </h3>
-            <p className="text-xs" style={{ color: "#8B9A8E" }}>
+            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
               We sent a 6-digit code to{" "}
-              <span style={{ color: "#ECEFEA" }}>{email}</span> to{" "}
+              <span style={{ color: "var(--foreground)" }}>{email}</span> to{" "}
               {mode === "enable" ? "enable" : "disable"} two-factor. It expires in a few minutes.
             </p>
           </div>
@@ -235,7 +235,7 @@ function MFACodeForm({
           <p
             className="text-sm rounded-lg px-3 py-2"
             style={{
-              color: "#FCA5A5",
+              color: "var(--destructive)",
               backgroundColor: "rgba(220,38,38,0.08)",
               border: "1px solid rgba(220,38,38,0.25)",
             }}
@@ -252,7 +252,7 @@ function MFACodeForm({
             className="season-transition inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium disabled:opacity-60"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
               boxShadow: "0 6px 18px var(--season-button-shadow)",
             }}
           >
@@ -273,14 +273,14 @@ function MFACodeForm({
               type="button"
               onClick={handleResend}
               className="text-xs hover:underline"
-              style={{ color: "var(--season-button)" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               Resend code
             </button>
           ) : (
             <span
               className="inline-flex items-center gap-1 text-xs"
-              style={{ color: "#7FB68A" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               <Check className="size-3" />
               Sent · resend in {cooldownLeft}s
@@ -290,7 +290,7 @@ function MFACodeForm({
             type="button"
             onClick={onCancel}
             className="ml-auto text-xs hover:underline"
-            style={{ color: "#8B9A8E" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             Cancel
           </button>

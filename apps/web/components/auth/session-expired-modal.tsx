@@ -30,29 +30,29 @@ export function SessionExpiredModal() {
       aria-modal="true"
       aria-labelledby="session-expired-title"
       className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-      style={{ backgroundColor: "rgba(11,16,13,0.72)" }}
+      style={{ backgroundColor: "var(--overlay)" }}
     >
       <div
         className="w-full max-w-sm rounded-2xl p-6 shadow-2xl"
         style={{
-          backgroundColor: "#161E19",
-          border: "1px solid #1F2A24",
-          color: "#ECEFEA",
+          backgroundColor: "var(--muted)",
+          border: "1px solid var(--border)",
+          color: "var(--foreground)",
         }}
       >
         <h2
           id="session-expired-title"
           className="text-xl tracking-tight mb-2"
           style={{
-            fontFamily: "var(--font-display, Georgia, serif)",
-            color: "var(--season-heading)",
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            color: "var(--foreground)",
           }}
         >
           Session expired
         </h2>
         <p
           className="text-sm leading-relaxed mb-6"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           For your security, you&rsquo;ve been signed out. Sign in again to keep
           planning.
@@ -63,7 +63,7 @@ export function SessionExpiredModal() {
           className="season-transition inline-flex w-full items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0"
           style={{
             backgroundColor: "var(--season-button)",
-            color: "#0B100D",
+            color: "var(--primary-foreground)",
             boxShadow: "0 8px 24px var(--season-button-shadow)",
           }}
         >

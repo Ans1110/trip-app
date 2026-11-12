@@ -27,19 +27,19 @@ export function AlbumDeleteConfirmModal({
   return (
     <Modal title="Delete photo?" onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           This photo will be removed from the album for everyone on this trip.
           This action can&apos;t be undone.
         </p>
 
-        {submitError && <p className="text-sm text-[#FCA5A5]">{submitError}</p>}
+        {submitError && <p className="text-sm text-destructive">{submitError}</p>}
 
         <div className="flex items-center justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
             disabled={del.isPending}
-            className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+            className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
           >
             Cancel
           </button>
@@ -48,7 +48,7 @@ export function AlbumDeleteConfirmModal({
             onClick={onConfirm}
             disabled={del.isPending}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
-            style={{ backgroundColor: "#7F1D1D", color: "#FEE2E2" }}
+            style={{ backgroundColor: "var(--destructive)", color: "var(--destructive)" }}
           >
             {del.isPending && <Loader2 className="size-3.5 animate-spin" />}
             Delete

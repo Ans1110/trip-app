@@ -37,26 +37,26 @@ export function Modal({
         aria-label="Close"
         onClick={onClose}
         className="absolute inset-0 cursor-default"
-        style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+        style={{ backgroundColor: "var(--overlay)" }}
       />
       <div className="absolute inset-0 flex items-center justify-center px-4 py-8 overflow-y-auto">
         <div
           className={`w-full ${SIZE_CLASSES[size]} rounded-2xl overflow-hidden my-auto`}
           style={{
-            backgroundColor: "#0B100D",
-            border: "1px solid #1F2A24",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow-soft-lg)",
           }}
         >
           <div
             className="flex items-center justify-between px-6 py-4 border-b"
-            style={{ borderColor: "#1F2A24" }}
+            style={{ borderColor: "var(--border)" }}
           >
             <h2
               className="text-lg tracking-tight"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
-                color: "#ECEFEA",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
+                color: "var(--foreground)",
               }}
             >
               {title}
@@ -65,8 +65,8 @@ export function Modal({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="inline-flex items-center justify-center size-8 rounded-full hover:bg-white/5"
-              style={{ color: "#8B9A8E" }}
+              className="inline-flex items-center justify-center size-8 rounded-full hover:bg-muted"
+              style={{ color: "var(--muted-foreground)" }}
             >
               <X className="size-4" />
             </button>

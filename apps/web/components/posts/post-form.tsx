@@ -133,7 +133,7 @@ export function PostForm(props: Props) {
         />
 
         {submitError && (
-          <p className="text-sm" style={{ color: "#FCA5A5" }}>
+          <p className="text-sm" style={{ color: "var(--destructive)" }}>
             {submitError}
           </p>
         )}
@@ -143,8 +143,8 @@ export function PostForm(props: Props) {
             type="button"
             onClick={() => router.back()}
             disabled={pending}
-            className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60"
-            style={{ color: "#8B9A8E" }}
+            className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60"
+            style={{ color: "var(--muted-foreground)" }}
           >
             Cancel
           </button>
@@ -154,7 +154,7 @@ export function PostForm(props: Props) {
             className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
             }}
           >
             {pending && <Loader2 className="size-3.5 animate-spin" />}
@@ -188,7 +188,7 @@ function StatusPicker({
   }
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium" style={{ color: "#ECEFEA" }}>
+      <label className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
         Visibility
       </label>
       <div className="flex flex-wrap gap-1.5">
@@ -205,8 +205,8 @@ function StatusPicker({
                 backgroundColor: active
                   ? "color-mix(in srgb, var(--season-accent) 18%, transparent)"
                   : "transparent",
-                color: active ? "var(--season-accent)" : "#8B9A8E",
-                border: `1px solid ${active ? "var(--season-accent)" : "#1F2A24"}`,
+                color: active ? "var(--pink-ink)" : "var(--muted-foreground)",
+                border: `1px solid ${active ? "var(--season-accent)" : "var(--border)"}`,
               }}
             >
               {opt.label}
@@ -214,7 +214,7 @@ function StatusPicker({
           );
         })}
       </div>
-      <p className="text-[11px]" style={{ color: "#6B7A6F" }}>
+      <p className="text-[11px]" style={{ color: "var(--subtle-foreground)" }}>
         {options.find((o) => o.key === value)?.hint ?? ""}
       </p>
     </div>
@@ -250,7 +250,7 @@ function TagsEditor({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium" style={{ color: "#ECEFEA" }}>
+      <label className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
         Tags
       </label>
       <ul className="flex flex-wrap gap-1.5 items-center">
@@ -261,7 +261,7 @@ function TagsEditor({
             style={{
               backgroundColor:
                 "color-mix(in srgb, var(--season-accent) 14%, transparent)",
-              color: "var(--season-accent)",
+              color: "var(--pink-ink)",
             }}
           >
             <span>{tag}</span>
@@ -269,7 +269,7 @@ function TagsEditor({
               type="button"
               onClick={() => remove(tag)}
               aria-label={`Remove ${tag}`}
-              className="inline-flex items-center justify-center size-4 rounded-full hover:bg-white/10"
+              className="inline-flex items-center justify-center size-4 rounded-full hover:bg-muted"
             >
               <X className="size-3" />
             </button>
@@ -298,9 +298,9 @@ function TagsEditor({
                 placeholder="new tag"
                 className="text-xs px-2.5 py-1 rounded-full outline-none"
                 style={{
-                  backgroundColor: "#121814",
-                  color: "#ECEFEA",
-                  border: "1px dashed #1F2A24",
+                  backgroundColor: "var(--card)",
+                  color: "var(--foreground)",
+                  border: "1px dashed var(--border)",
                   minWidth: "6rem",
                 }}
               />
@@ -310,8 +310,8 @@ function TagsEditor({
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full hover:bg-white/5"
-                style={{ color: "#8B9A8E", border: "1px dashed #1F2A24" }}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full hover:bg-muted"
+                style={{ color: "var(--muted-foreground)", border: "1px dashed var(--border)" }}
               >
                 <Plus className="size-3" />
                 Add tag
@@ -359,23 +359,23 @@ function CoverImageField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium" style={{ color: "#ECEFEA" }}>
+      <label className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
         Cover image (optional)
       </label>
       <div
         className="relative rounded-2xl overflow-hidden"
         style={{
-          border: "1px solid #1F2A24",
+          border: "1px solid var(--border)",
           aspectRatio: "16 / 6",
           background: value
             ? `url(${value}) center/cover no-repeat`
-            : "linear-gradient(135deg, #1E2A2E 0%, #0A1014 100%)",
+            : "linear-gradient(135deg, var(--muted) 0%, var(--surface-sunken) 100%)",
         }}
       >
         {!value && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-            style={{ color: "#6B7A6F" }}
+            style={{ color: "var(--subtle-foreground)" }}
           >
             <ImagePlus className="size-6" />
             <p className="text-xs">No cover yet</p>
@@ -388,9 +388,9 @@ function CoverImageField({
               onClick={() => onChange("")}
               disabled={busy}
               aria-label="Remove cover"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-white/10 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-muted disabled:opacity-60"
               style={{
-                color: "#FCA5A5",
+                color: "var(--destructive)",
                 border: "1px solid rgba(255,255,255,0.15)",
                 backgroundColor: "rgba(0,0,0,0.4)",
               }}
@@ -403,9 +403,9 @@ function CoverImageField({
             type="button"
             onClick={openPicker}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-white/10 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-muted disabled:opacity-60"
             style={{
-              color: "#ECEFEA",
+              color: "var(--foreground)",
               border: "1px solid rgba(255,255,255,0.15)",
               backgroundColor: "rgba(0,0,0,0.4)",
             }}
@@ -436,11 +436,11 @@ function CoverImageField({
         }}
       />
       {error ? (
-        <p className="text-[11px]" style={{ color: "#FCA5A5" }}>
+        <p className="text-[11px]" style={{ color: "var(--destructive)" }}>
           {error}
         </p>
       ) : (
-        <p className="text-[11px]" style={{ color: "#6B7A6F" }}>
+        <p className="text-[11px]" style={{ color: "var(--subtle-foreground)" }}>
           JPEG, PNG, WebP, or GIF. Max 8 MB.
         </p>
       )}

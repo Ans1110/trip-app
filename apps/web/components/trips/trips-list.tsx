@@ -33,13 +33,13 @@ export function TripsList() {
           <h1
             className="text-3xl tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             Your trips
           </h1>
-          <p className="text-sm mt-1" style={{ color: "#8B9A8E" }}>
+          <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
             Plan, collaborate, and travel.
           </p>
         </div>
@@ -47,11 +47,11 @@ export function TripsList() {
           <button
             type="button"
             onClick={() => setOpenJoin(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-full hover:bg-white/5"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-full hover:bg-muted"
             style={{
-              color: "#ECEFEA",
-              border: "1px solid #1F2A24",
-              backgroundColor: "#161E19",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--muted)",
             }}
           >
             <UserPlus2 className="size-4" />
@@ -63,7 +63,7 @@ export function TripsList() {
             className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
             }}
           >
             <Plus className="size-4" />
@@ -84,11 +84,11 @@ export function TripsList() {
               style={{
                 backgroundColor: active
                   ? "color-mix(in srgb, var(--season-button) 22%, transparent)"
-                  : "#161E19",
-                color: active ? "#ECEFEA" : "#8B9A8E",
+                  : "var(--muted)",
+                color: active ? "var(--foreground)" : "var(--muted-foreground)",
                 border: active
                   ? "1px solid color-mix(in srgb, var(--season-button) 32%, transparent)"
-                  : "1px solid #1F2A24",
+                  : "1px solid var(--muted)",
               }}
             >
               {f.label}
@@ -98,12 +98,12 @@ export function TripsList() {
       </div>
 
       {query.isLoading && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Loading…
         </p>
       )}
       {query.isError && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(query.error)}
         </p>
       )}
@@ -141,8 +141,8 @@ function TripCard({ trip }: { trip: Trip }) {
       href={`/trips/${trip.id}`}
       className="group block rounded-2xl overflow-hidden transition-transform hover:-translate-y-0.5"
       style={{
-        backgroundColor: isCompleted ? "#0E1411" : "#161E19",
-        border: `1px solid ${isCompleted ? "#161E19" : "#1F2A24"}`,
+        backgroundColor: isCompleted ? "var(--surface-sunken)" : "var(--muted)",
+        border: `1px solid ${isCompleted ? "var(--border)" : "var(--border)"}`,
         opacity: isCompleted ? 0.65 : 1,
       }}
     >
@@ -151,7 +151,7 @@ function TripCard({ trip }: { trip: Trip }) {
         style={{
           background: trip.cover_image
             ? `url(${trip.cover_image}) center / cover`
-            : "linear-gradient(135deg, #1F2A24 0%, #0B100D 100%)",
+            : "linear-gradient(135deg, var(--muted) 0%, var(--background) 100%)",
           filter: isCompleted ? "grayscale(0.6) brightness(0.7)" : undefined,
         }}
         aria-hidden
@@ -161,8 +161,8 @@ function TripCard({ trip }: { trip: Trip }) {
           <h3
             className="text-lg leading-snug line-clamp-2"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             {trip.title}
@@ -170,13 +170,13 @@ function TripCard({ trip }: { trip: Trip }) {
           <StatusBadge status={trip.status} />
         </div>
         {trip.description && (
-          <p className="text-sm line-clamp-2" style={{ color: "#8B9A8E" }}>
+          <p className="text-sm line-clamp-2" style={{ color: "var(--muted-foreground)" }}>
             {trip.description}
           </p>
         )}
         <div
           className="flex items-center justify-between text-xs mt-1"
-          style={{ color: "#6B7A6F" }}
+          style={{ color: "var(--subtle-foreground)" }}
         >
           <span>{range}</span>
           <span className="inline-flex items-center gap-1">
@@ -191,9 +191,9 @@ function TripCard({ trip }: { trip: Trip }) {
 
 function StatusBadge({ status }: { status: TripStatus }) {
   const palette: Record<TripStatus, { bg: string; fg: string }> = {
-    planning: { bg: "rgba(168, 224, 180, 0.14)", fg: "#A8E0B4" },
-    ongoing: { bg: "rgba(232, 215, 184, 0.14)", fg: "#E8D7B8" },
-    completed: { bg: "rgba(139, 154, 142, 0.18)", fg: "#8B9A8E" },
+    planning: { bg: "rgba(168, 224, 180, 0.14)", fg: "var(--mint-ink)" },
+    ongoing: { bg: "rgba(232, 215, 184, 0.14)", fg: "var(--pink-ink)" },
+    completed: { bg: "color-mix(in oklch, var(--muted-foreground) 18%, transparent)", fg: "var(--muted-foreground)" },
   };
   const colors = palette[status];
   return (
@@ -212,11 +212,11 @@ function FilteredEmpty({ filter }: { filter: Exclude<FilterValue, "all"> }) {
     <div
       className="rounded-2xl px-6 py-10 flex items-center justify-center text-center"
       style={{
-        backgroundColor: "#121814",
-        border: "1px dashed #1F2A24",
+        backgroundColor: "var(--card)",
+        border: "1px dashed var(--border)",
       }}
     >
-      <p className="text-sm" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
         No {label} trips
       </p>
     </div>
@@ -228,20 +228,20 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
     <div
       className="rounded-2xl px-6 py-12 flex flex-col items-center text-center"
       style={{
-        backgroundColor: "#121814",
-        border: "1px dashed #1F2A24",
+        backgroundColor: "var(--card)",
+        border: "1px dashed var(--border)",
       }}
     >
       <h3
         className="text-xl"
         style={{
-          fontFamily: "var(--font-display, Georgia, serif)",
-          color: "#ECEFEA",
+          fontFamily: "var(--font-display), system-ui, sans-serif",
+          color: "var(--foreground)",
         }}
       >
         No trips yet
       </h3>
-      <p className="text-sm mt-2 max-w-sm" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm mt-2 max-w-sm" style={{ color: "var(--muted-foreground)" }}>
         Start by creating a trip, then invite your travel companions to plan
         together.
       </p>
@@ -251,7 +251,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
         className="season-transition mt-5 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full"
         style={{
           backgroundColor: "var(--season-button)",
-          color: "#0B100D",
+          color: "var(--primary-foreground)",
         }}
       >
         <Plus className="size-4" />

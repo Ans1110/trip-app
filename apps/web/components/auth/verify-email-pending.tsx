@@ -22,21 +22,21 @@ export function VerifyEmailPending({ email }: { email: string }) {
       <div className="flex items-center gap-2">
         <MailCheck
           className="season-transition size-4"
-          style={{ color: "var(--season-accent)" }}
+          style={{ color: "var(--pink-ink)" }}
         />
         <p
           className="season-transition text-[11px] tracking-[0.2em] uppercase font-medium"
-          style={{ color: "var(--season-accent)" }}
+          style={{ color: "var(--pink-ink)" }}
         >
           Check your email
         </p>
       </div>
 
-      <p className="text-sm leading-relaxed" style={{ color: "#ECEFEA" }}>
+      <p className="text-sm leading-relaxed" style={{ color: "var(--foreground)" }}>
         We sent a verification link to{" "}
         <span
           className="season-transition"
-          style={{ color: "var(--season-accent)" }}
+          style={{ color: "var(--pink-ink)" }}
         >
           {email}
         </span>
@@ -44,7 +44,7 @@ export function VerifyEmailPending({ email }: { email: string }) {
         automatically.
       </p>
 
-      <p className="text-xs" style={{ color: "#8B9A8E" }}>
+      <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
         Didn&apos;t get it? Check spam, or resend below.
       </p>
 
@@ -55,7 +55,7 @@ export function VerifyEmailPending({ email }: { email: string }) {
         className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide disabled:opacity-60"
         style={{
           backgroundColor: "transparent",
-          color: "var(--season-accent)",
+          color: "var(--pink-ink)",
           border:
             "1px solid color-mix(in srgb, var(--season-accent) 38%, transparent)",
         }}
@@ -79,7 +79,7 @@ export function VerifyEmailPending({ email }: { email: string }) {
         <p
           className="text-xs rounded-lg px-3 py-2"
           style={{
-            color: "#FCA5A5",
+            color: "var(--destructive)",
             backgroundColor: "rgba(220,38,38,0.08)",
             border: "1px solid rgba(220,38,38,0.25)",
           }}

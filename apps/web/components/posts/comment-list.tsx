@@ -35,8 +35,8 @@ export function CommentList({
       <h2
         className="text-lg font-semibold mb-4"
         style={{
-          fontFamily: "var(--font-display, Georgia, serif)",
-          color: "#ECEFEA",
+          fontFamily: "var(--font-display), system-ui, sans-serif",
+          color: "var(--foreground)",
         }}
       >
         Comments
@@ -47,17 +47,17 @@ export function CommentList({
       {isLoading ? (
         <div
           className="mt-6 flex items-center gap-2 text-sm"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <Loader2 className="size-4 animate-spin" />
           Loading comments
         </div>
       ) : error ? (
-        <p className="mt-6 text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="mt-6 text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(error) ?? "Failed to load comments"}
         </p>
       ) : !data || data.comments.length === 0 ? (
-        <p className="mt-6 text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="mt-6 text-sm" style={{ color: "var(--muted-foreground)" }}>
           Be the first to comment.
         </p>
       ) : (
@@ -77,8 +77,8 @@ export function CommentList({
               <button
                 type="button"
                 onClick={() => setCursor(data.next_cursor)}
-                className="px-4 py-2 text-sm rounded-full border hover:bg-white/5"
-                style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+                className="px-4 py-2 text-sm rounded-full border hover:bg-muted"
+                style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
               >
                 Load more
               </button>
@@ -139,7 +139,7 @@ function CommentComposer({
           autoFocus={autoFocus}
         />
         {submitError && (
-          <p className="text-xs" style={{ color: "#FCA5A5" }}>
+          <p className="text-xs" style={{ color: "var(--destructive)" }}>
             {submitError}
           </p>
         )}
@@ -148,8 +148,8 @@ function CommentComposer({
             <button
               type="button"
               onClick={onDone}
-              className="px-3 py-1.5 text-xs rounded-full border hover:bg-white/5"
-              style={{ borderColor: "#1F2A24", color: "#8B9A8E" }}
+              className="px-3 py-1.5 text-xs rounded-full border hover:bg-muted"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
             >
               Cancel
             </button>
@@ -160,7 +160,7 @@ function CommentComposer({
             className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
             }}
           >
             {create.isPending && <Loader2 className="size-3.5 animate-spin" />}
@@ -195,7 +195,7 @@ function CommentRow({
   return (
     <li
       className="flex flex-col gap-2 p-3 rounded-xl border"
-      style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
       <CommentBody
         comment={comment}
@@ -218,7 +218,7 @@ function CommentRow({
             type="button"
             onClick={() => setReplyOpen((v) => !v)}
             className="inline-flex items-center gap-1 hover:underline"
-            style={{ color: "#8B9A8E" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <CornerDownRight className="size-3.5" />
             Reply
@@ -228,7 +228,7 @@ function CommentRow({
               type="button"
               onClick={() => setThreadOpen((v) => !v)}
               className="inline-flex items-center gap-1 hover:underline"
-              style={{ color: "var(--season-accent)" }}
+              style={{ color: "var(--pink-ink)" }}
             >
               <MessageSquare className="size-3.5" />
               {threadOpen ? "Hide" : "View"} {comment.reply_count}{" "}
@@ -296,8 +296,8 @@ function CommentBody({
         style={{
           backgroundColor: author.avatar_url
             ? "transparent"
-            : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
-          color: "#ECEFEA",
+            : "color-mix(in oklch, var(--pink) 55%, var(--card))",
+          color: "var(--foreground)",
           opacity: comment.is_deleted ? 0.5 : 1,
         }}
       >
@@ -318,18 +318,18 @@ function CommentBody({
             href={authorHref}
             className="text-sm font-semibold hover:underline truncate"
             style={{
-              color: "#ECEFEA",
+              color: "var(--foreground)",
               opacity: comment.is_deleted ? 0.5 : 1,
             }}
           >
             {displayName}
           </Link>
-          <span className="text-[11px] shrink-0" style={{ color: "#6B7A6F" }}>
+          <span className="text-[11px] shrink-0" style={{ color: "var(--subtle-foreground)" }}>
             {formatWhen(comment.created_at)}
           </span>
         </div>
         {comment.is_deleted ? (
-          <p className="mt-1 text-sm italic" style={{ color: "#6B7A6F" }}>
+          <p className="mt-1 text-sm italic" style={{ color: "var(--subtle-foreground)" }}>
             [deleted]
           </p>
         ) : (
@@ -337,14 +337,14 @@ function CommentBody({
             {replyTargetName && (
               <p
                 className="mt-1 text-[11px]"
-                style={{ color: "var(--season-accent)" }}
+                style={{ color: "var(--pink-ink)" }}
               >
                 Replying to {replyTargetName}
               </p>
             )}
             <p
               className="mt-1 text-sm whitespace-pre-wrap"
-              style={{ color: "#ECEFEA" }}
+              style={{ color: "var(--foreground)" }}
             >
               {comment.content}
             </p>
@@ -357,8 +357,8 @@ function CommentBody({
           onClick={onDelete}
           disabled={deleting}
           aria-label="Delete comment"
-          className="self-start inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60"
-          style={{ color: "#8B9A8E" }}
+          className="self-start inline-flex items-center justify-center size-7 rounded-full hover:bg-muted disabled:opacity-60"
+          style={{ color: "var(--muted-foreground)" }}
         >
           {deleting ? (
             <Loader2 className="size-3.5 animate-spin" />
@@ -387,7 +387,7 @@ function ReplyThread({
     return (
       <div
         className="pl-11 flex items-center gap-2 text-xs"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <Loader2 className="size-3.5 animate-spin" />
         Loading replies
@@ -396,7 +396,7 @@ function ReplyThread({
   }
   if (error) {
     return (
-      <p className="pl-11 text-xs" style={{ color: "#FCA5A5" }}>
+      <p className="pl-11 text-xs" style={{ color: "var(--destructive)" }}>
         {errorMessage(error) ?? "Failed to load replies"}
       </p>
     );
@@ -412,7 +412,7 @@ function ReplyThread({
     <div className="pl-11 flex flex-col gap-2">
       <ul
         className="flex flex-col gap-2 border-l pl-3"
-        style={{ borderColor: "#1F2A24" }}
+        style={{ borderColor: "var(--border)" }}
       >
         {forest.map((node) => (
           <ReplyBranch
@@ -431,7 +431,7 @@ function ReplyThread({
             type="button"
             onClick={() => setCursor(data.next_cursor)}
             className="text-xs hover:underline"
-            style={{ color: "var(--season-accent)" }}
+            style={{ color: "var(--pink-ink)" }}
           >
             Load more replies
           </button>
@@ -492,7 +492,7 @@ function ReplyBranch({
         node.children.length > 0 ? (
           <ul
             className="ml-4 mt-1 flex flex-col gap-2 border-l pl-3"
-            style={{ borderColor: "#1F2A24" }}
+            style={{ borderColor: "var(--border)" }}
           >
             {node.children.map((c) => (
               <ReplyBranch

@@ -107,7 +107,7 @@ export function SignInForm() {
             <Link
               href="/forgot-password"
               className="season-transition text-xs tracking-wide hover:underline"
-              style={{ color: "var(--season-button)" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               Forgot?
             </Link>
@@ -118,7 +118,7 @@ export function SignInForm() {
           <p
             className="text-sm rounded-lg px-3 py-2"
             style={{
-              color: "#FCA5A5",
+              color: "var(--destructive)",
               backgroundColor: "rgba(220,38,38,0.08)",
               border: "1px solid rgba(220,38,38,0.25)",
             }}
@@ -134,7 +134,7 @@ export function SignInForm() {
           className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
           style={{
             backgroundColor: "var(--season-button)",
-            color: "#0B100D",
+            color: "var(--primary-foreground)",
             boxShadow: "0 8px 24px var(--season-button-shadow)",
           }}
         >
@@ -193,17 +193,17 @@ function MFAChallengeForm({
         <div
           className="flex items-start gap-3 rounded-lg px-3 py-2"
           style={{
-            backgroundColor: "rgba(127,182,138,0.08)",
-            border: "1px solid rgba(127,182,138,0.25)",
+            backgroundColor: "color-mix(in oklch, var(--mint) 16%, transparent)",
+            border: "1px solid color-mix(in oklch, var(--mint) 50%, transparent)",
           }}
         >
-          <Mail className="size-5 mt-0.5" style={{ color: "var(--season-button)" }} />
+          <Mail className="size-5 mt-0.5" style={{ color: "var(--mint-ink)" }} />
           <div>
-            <h2 className="text-sm font-medium" style={{ color: "#ECEFEA" }}>
+            <h2 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
               Code sent to your email
             </h2>
-            <p className="text-xs" style={{ color: "#8B9A8E" }}>
-              We sent a 6-digit code to <span style={{ color: "#ECEFEA" }}>{email}</span>. It expires in a few minutes.
+            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+              We sent a 6-digit code to <span style={{ color: "var(--foreground)" }}>{email}</span>. It expires in a few minutes.
             </p>
           </div>
         </div>
@@ -224,7 +224,7 @@ function MFAChallengeForm({
           <p
             className="text-sm rounded-lg px-3 py-2"
             style={{
-              color: "#FCA5A5",
+              color: "var(--destructive)",
               backgroundColor: "rgba(220,38,38,0.08)",
               border: "1px solid rgba(220,38,38,0.25)",
             }}
@@ -240,7 +240,7 @@ function MFAChallengeForm({
           className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
           style={{
             backgroundColor: "var(--season-button)",
-            color: "#0B100D",
+            color: "var(--primary-foreground)",
             boxShadow: "0 8px 24px var(--season-button-shadow)",
           }}
         >
@@ -256,20 +256,20 @@ function MFAChallengeForm({
           )}
         </button>
 
-        <div className="flex items-center justify-between text-xs" style={{ color: "#8B9A8E" }}>
+        <div className="flex items-center justify-between text-xs" style={{ color: "var(--muted-foreground)" }}>
           {canResend ? (
             <button
               type="button"
               onClick={handleResend}
               className="hover:underline"
-              style={{ color: "var(--season-button)" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               Resend code
             </button>
           ) : (
             <span
               className="inline-flex items-center gap-1"
-              style={{ color: "#7FB68A" }}
+              style={{ color: "var(--mint-ink)" }}
             >
               <Check className="size-3" />
               Sent · resend in {cooldownLeft}s

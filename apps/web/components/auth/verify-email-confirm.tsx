@@ -30,14 +30,14 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
   if (!token) {
     return (
       <Card tone="error" eyebrow="Link incomplete">
-        <p className="text-sm" style={{ color: "#ECEFEA" }}>
+        <p className="text-sm" style={{ color: "var(--foreground)" }}>
           This page needs a verification token. Open the link from your email,
           or request a new one from your account.
         </p>
         <Link
           href="/"
           className="season-transition inline-flex items-center gap-2 mt-2 text-sm"
-          style={{ color: "var(--season-accent)" }}
+          style={{ color: "var(--pink-ink)" }}
         >
           Back to home <ArrowRight className="size-3.5" />
         </Link>
@@ -50,7 +50,7 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
       <Card tone="info" eyebrow="Working">
         <p
           className="text-sm flex items-center gap-2"
-          style={{ color: "#ECEFEA" }}
+          style={{ color: "var(--foreground)" }}
         >
           <Loader2 className="size-4 animate-spin" />
           Confirming your token…
@@ -62,15 +62,15 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
   if (verify.isSuccess) {
     return (
       <Card tone="success" eyebrow="Email verified">
-        <p className="text-sm" style={{ color: "#ECEFEA" }}>
+        <p className="text-sm" style={{ color: "var(--foreground)" }}>
           Your email is confirmed. Taking you to your trips…
         </p>
-        <p className="text-xs" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           Not redirecting?{" "}
           <Link
             href="/trips"
             className="season-transition underline-offset-4 hover:underline"
-            style={{ color: "var(--season-accent)" }}
+            style={{ color: "var(--pink-ink)" }}
           >
             Go to trips
           </Link>
@@ -85,13 +85,13 @@ export function VerifyEmailConfirm({ token }: { token: string | null }) {
 
   return (
     <Card tone="error" eyebrow="Verification failed">
-      <p className="text-sm" style={{ color: "#ECEFEA" }}>
+      <p className="text-sm" style={{ color: "var(--foreground)" }}>
         {message}
       </p>
       <Link
         href="/"
         className="season-transition inline-flex items-center gap-2 mt-2 text-sm"
-        style={{ color: "var(--season-accent)" }}
+        style={{ color: "var(--pink-ink)" }}
       >
         Back to home <ArrowRight className="size-3.5" />
       </Link>
@@ -115,7 +115,7 @@ function Card({
       ? {
           bg: "rgba(220,38,38,0.06)",
           border: "rgba(220,38,38,0.25)",
-          accent: "#FCA5A5",
+          accent: "var(--destructive)",
         }
       : tone === "success"
         ? {

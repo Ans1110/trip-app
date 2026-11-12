@@ -53,6 +53,15 @@ export type PlaceSummary = {
   types?: string[];
   price_level?: number;
   icon?: string;
+  photo?: string;
+  hours?: PlaceHours;
+};
+
+export type PlaceHoursPoint = { day: number; hour: number; minute: number };
+
+export type PlaceHours = {
+  utc_offset_minutes: number;
+  periods: { open: PlaceHoursPoint; close?: PlaceHoursPoint }[];
 };
 
 export type PlaceDetails = PlaceSummary & {

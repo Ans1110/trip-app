@@ -85,7 +85,7 @@ export function TripCalendar({ tripId }: { tripId: string }) {
 
   if (roomQuery.isLoading) {
     return (
-      <p className="text-sm" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
         Loading…
       </p>
     );
@@ -93,7 +93,7 @@ export function TripCalendar({ tripId }: { tripId: string }) {
 
   if (roomQuery.isError) {
     return (
-      <p className="text-sm" style={{ color: "#FCA5A5" }}>
+      <p className="text-sm" style={{ color: "var(--destructive)" }}>
         {errorMessage(roomQuery.error) ?? "Room not found."}
       </p>
     );
@@ -106,13 +106,13 @@ export function TripCalendar({ tripId }: { tripId: string }) {
           <h2
             className="text-xl tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             Shared calendar
           </h2>
-          <p className="text-xs mt-1" style={{ color: "#8B9A8E" }}>
+          <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
             Your private &amp; friends events, alongside every room
             member&rsquo;s friends-visible events.
           </p>
@@ -145,7 +145,7 @@ function VisibilityToggle({
       role="group"
       aria-label="Filter events"
       className="inline-flex items-center gap-0.5 p-0.5 rounded-full shrink-0"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <ToggleBtn
         active={showAll}
@@ -180,7 +180,7 @@ function ToggleBtn({
         backgroundColor: active
           ? "color-mix(in srgb, var(--season-button) 22%, transparent)"
           : "transparent",
-        color: active ? "#ECEFEA" : "#8B9A8E",
+        color: active ? "var(--foreground)" : "var(--muted-foreground)",
       }}
     >
       {label}

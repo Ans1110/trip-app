@@ -43,3 +43,9 @@ export const routeSchema = z
   );
 
 export type RouteFormInput = z.infer<typeof routeSchema>;
+
+export const addToTripSchema = z.object({
+  trip_id: z.string().uuid("Pick a trip"),
+  day: z.coerce.number().int().min(1, "Pick a day"),
+});
+export type AddToTripFormInput = z.infer<typeof addToTripSchema>;

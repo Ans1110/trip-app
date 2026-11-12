@@ -80,19 +80,19 @@ export function CreateTripDialog({ onClose }: { onClose: () => void }) {
               placeholder="Japan · Spring 2026"
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-[#8B9A8E]">
+              <label className="text-xs font-medium text-muted-foreground">
                 Location (optional)
               </label>
               {picked ? (
-                <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-[#0B100D] border border-[#1F2A24]">
-                  <MapPin className="size-4 text-[#8B9A8E] shrink-0" />
-                  <span className="text-sm text-[#ECEFEA] truncate flex-1">
+                <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-muted border border-border">
+                  <MapPin className="size-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-foreground truncate flex-1">
                     {picked.name}
                   </span>
                   <button
                     type="button"
                     onClick={clearPick}
-                    className="text-[#8B9A8E] hover:text-[#ECEFEA]"
+                    className="text-muted-foreground hover:text-foreground"
                     aria-label="Clear location"
                   >
                     <X className="size-4" />
@@ -127,7 +127,7 @@ export function CreateTripDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           {submitError && (
-            <p className="text-sm text-[#FCA5A5]">{submitError}</p>
+            <p className="text-sm text-destructive">{submitError}</p>
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
@@ -135,14 +135,14 @@ export function CreateTripDialog({ onClose }: { onClose: () => void }) {
               type="button"
               onClick={onClose}
               disabled={create.isPending}
-              className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+              className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={create.isPending}
-              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {create.isPending && (

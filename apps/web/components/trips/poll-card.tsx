@@ -140,12 +140,12 @@ export function PollCard({
   return (
     <article
       className="rounded-xl p-4 flex flex-col gap-3"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       <header className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-sm font-medium text-[#ECEFEA] truncate">
+            <h3 className="text-sm font-medium text-foreground truncate">
               {poll.title}
             </h3>
             <Badge>{typeBadge[poll.type]}</Badge>
@@ -162,7 +162,7 @@ export function PollCard({
             )}
           </div>
           {poll.description && (
-            <p className="text-xs text-[#8B9A8E]">{poll.description}</p>
+            <p className="text-xs text-muted-foreground">{poll.description}</p>
           )}
           <DeadlineLine deadline={poll.deadline_at} closed={isClosed} />
         </div>
@@ -173,7 +173,7 @@ export function PollCard({
                 aria-label="Close poll"
                 onClick={handleClose}
                 busy={closeMut.isPending}
-                color="#B5D086"
+                color="var(--mint-ink)"
               >
                 <Lock className="size-3.5" />
               </IconButton>
@@ -182,7 +182,7 @@ export function PollCard({
               aria-label="Delete poll"
               onClick={() => setConfirm({ kind: "delete-poll" })}
               busy={removeMut.isPending}
-              color="#FCA5A5"
+              color="var(--destructive)"
             >
               <Trash2 className="size-3.5" />
             </IconButton>
@@ -223,7 +223,7 @@ export function PollCard({
             type="button"
             disabled={cast.isPending || !draftChanged || draft.size === 0}
             onClick={() => submitVote([...draft])}
-            className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full disabled:opacity-50 text-[#0B100D]"
+            className="season-transition inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full disabled:opacity-50 text-primary-foreground"
             style={{ backgroundColor: "var(--season-button)" }}
           >
             {cast.isPending ? (
@@ -237,7 +237,7 @@ export function PollCard({
             <button
               type="button"
               onClick={() => setDraft(new Set(poll.my_choices))}
-              className="text-xs text-[#8B9A8E] hover:text-[#ECEFEA]"
+              className="text-xs text-muted-foreground hover:text-foreground"
             >
               Reset
             </button>
@@ -247,7 +247,7 @@ export function PollCard({
 
       {canAddOption && <AddOptionForm tripId={tripId} pollId={poll.id} />}
 
-      <footer className="flex items-center justify-between text-[11px] text-[#6B7A6F]">
+      <footer className="flex items-center justify-between text-[11px] text-subtle-foreground">
         <span className="inline-flex items-center gap-1">
           <Users className="size-3" />
           {poll.total_voters} voter{poll.total_voters === 1 ? "" : "s"}
@@ -256,10 +256,10 @@ export function PollCard({
       </footer>
 
       {cast.isError && (
-        <p className="text-[11px] text-[#FCA5A5]">{errorMessage(cast.error)}</p>
+        <p className="text-[11px] text-destructive">{errorMessage(cast.error)}</p>
       )}
       {delOption.isError && confirm.kind !== "delete-option" && (
-        <p className="text-[11px] text-[#FCA5A5]">
+        <p className="text-[11px] text-destructive">
           {errorMessage(delOption.error)}
         </p>
       )}
@@ -269,7 +269,7 @@ export function PollCard({
           title="Delete poll?"
           body={
             <>
-              <span className="text-[#ECEFEA] font-medium">
+              <span className="text-foreground font-medium">
                 &ldquo;{poll.title}&rdquo;
               </span>{" "}
               and every vote cast on it will be permanently removed. This
@@ -288,7 +288,7 @@ export function PollCard({
           title="Remove option?"
           body={
             <>
-              <span className="text-[#ECEFEA] font-medium">
+              <span className="text-foreground font-medium">
                 &ldquo;{confirm.optionText}&rdquo;
               </span>{" "}
               and any votes for it will be removed from this poll.
@@ -325,16 +325,16 @@ function ConfirmDeleteModal({
   return (
     <Modal title={title} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {body}
         </p>
-        {error && <p className="text-sm text-[#FCA5A5]">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex items-center justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
             disabled={pending}
-            className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+            className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
           >
             Cancel
           </button>
@@ -343,7 +343,7 @@ function ConfirmDeleteModal({
             onClick={onConfirm}
             disabled={pending}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60"
-            style={{ backgroundColor: "#7F1D1D", color: "#FEE2E2" }}
+            style={{ backgroundColor: "var(--destructive)", color: "var(--destructive)" }}
           >
             {pending && <Loader2 className="size-3.5 animate-spin" />}
             {confirmLabel}
@@ -393,15 +393,15 @@ function OptionRow({
               width: `${percent}%`,
               backgroundColor: picked
                 ? "color-mix(in srgb, var(--season-button) 25%, transparent)"
-                : "rgba(139,154,142,0.12)",
+                : "color-mix(in oklch, var(--muted-foreground) 12%, transparent)",
             }}
           />
         )}
         <div
           className="relative flex items-center gap-2.5 px-3 py-2"
           style={{
-            border: `1px solid ${picked ? "var(--season-button)" : "#1F2A24"}`,
-            borderRadius: 8,
+            border: `1px solid ${picked ? "var(--mint-ink)" : "var(--border)"}`,
+            borderRadius: "inherit",
           }}
         >
           <button
@@ -412,12 +412,12 @@ function OptionRow({
             className="flex items-center gap-2 flex-1 min-w-0 text-left disabled:cursor-not-allowed"
           >
             <PickIcon picked={picked} isMulti={isMulti} />
-            <span className="text-sm text-[#ECEFEA] truncate">
+            <span className="text-sm text-foreground truncate">
               {option.text}
             </span>
           </button>
           {poll.results_visible && (
-            <span className="text-xs tabular-nums text-[#8B9A8E]">
+            <span className="text-xs tabular-nums text-muted-foreground">
               {option.count}
               {percent != null ? ` · ${percent}%` : ""}
             </span>
@@ -427,8 +427,8 @@ function OptionRow({
               type="button"
               onClick={onDelete}
               aria-label="Remove option"
-              className="inline-flex items-center justify-center size-6 rounded-full hover:bg-white/5"
-              style={{ color: "#FCA5A5" }}
+              className="inline-flex items-center justify-center size-6 rounded-full hover:bg-muted"
+              style={{ color: "var(--destructive)" }}
             >
               <X className="size-3" />
             </button>
@@ -450,8 +450,8 @@ function OptionRow({
                   style={{
                     backgroundColor: mine
                       ? "color-mix(in srgb, var(--season-button) 20%, transparent)"
-                      : "#1F2A24",
-                    color: mine ? "#ECEFEA" : "#9CB0A3",
+                      : "var(--muted)",
+                    color: mine ? "var(--foreground)" : "var(--muted-foreground)",
                   }}
                 >
                   {mine ? "You" : name}
@@ -469,19 +469,19 @@ function PickIcon({ picked, isMulti }: { picked: boolean; isMulti: boolean }) {
     return picked ? (
       <SquareCheckBig
         className="size-4"
-        style={{ color: "var(--season-button)" }}
+        style={{ color: "var(--mint-ink)" }}
       />
     ) : (
-      <Square className="size-4 text-[#6B7A6F]" />
+      <Square className="size-4 text-subtle-foreground" />
     );
   }
   return picked ? (
     <CheckCircle2
       className="size-4"
-      style={{ color: "var(--season-button)" }}
+      style={{ color: "var(--mint-ink)" }}
     />
   ) : (
-    <Circle className="size-4 text-[#6B7A6F]" />
+    <Circle className="size-4 text-subtle-foreground" />
   );
 }
 
@@ -521,7 +521,7 @@ function AddOptionForm({ tripId, pollId }: { tripId: string; pollId: string }) {
         <button
           type="submit"
           disabled={add.isPending || !text.trim()}
-          className="season-transition inline-flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+          className="season-transition inline-flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-full disabled:opacity-60 text-primary-foreground"
           style={{ backgroundColor: "var(--season-button)" }}
         >
           {add.isPending ? (
@@ -532,12 +532,12 @@ function AddOptionForm({ tripId, pollId }: { tripId: string; pollId: string }) {
           Add
         </button>
         {errors.text && (
-          <span className="text-[11px] text-[#FCA5A5]">
+          <span className="text-[11px] text-destructive">
             {errors.text.message}
           </span>
         )}
         {add.isError && (
-          <span className="text-[11px] text-[#FCA5A5]">
+          <span className="text-[11px] text-destructive">
             {errorMessage(add.error)}
           </span>
         )}
@@ -565,7 +565,7 @@ function DeadlineLine({
   return (
     <span
       className="inline-flex items-center gap-1 text-[11px]"
-      style={{ color: past ? "#FCA5A5" : "#8B9A8E" }}
+      style={{ color: past ? "var(--destructive)" : "var(--muted-foreground)" }}
     >
       <Clock className="size-3" />
       {label}
@@ -592,7 +592,7 @@ function IconButton({
       onClick={onClick}
       aria-label={ariaLabel}
       disabled={busy}
-      className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60"
+      className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted disabled:opacity-60"
       style={{ color }}
     >
       {busy ? <Loader2 className="size-3.5 animate-spin" /> : children}
@@ -611,12 +611,12 @@ function Badge({
 }) {
   const style =
     tone === "closed"
-      ? { bg: "rgba(252,165,165,0.14)", fg: "#FCA5A5" }
+      ? { bg: "rgba(252,165,165,0.14)", fg: "var(--destructive)" }
       : muted
-        ? { bg: "#1F2A24", fg: "#9CB0A3" }
+        ? { bg: "var(--muted)", fg: "var(--muted-foreground)" }
         : {
             bg: "color-mix(in srgb, var(--season-button) 18%, transparent)",
-            fg: "#ECEFEA",
+            fg: "var(--primary-foreground)",
           };
   return (
     <span

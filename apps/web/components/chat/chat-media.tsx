@@ -43,7 +43,7 @@ export function ChatMediaAttachment({
 
   if (error) {
     return (
-      <div className="text-xs" style={{ color: "#FCA5A5" }}>
+      <div className="text-xs" style={{ color: "var(--destructive)" }}>
         Failed to load attachment
       </div>
     );
@@ -52,7 +52,7 @@ export function ChatMediaAttachment({
     return (
       <div
         className="inline-flex items-center gap-2 text-xs"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <Loader2 className="size-3.5 animate-spin" />
         Loading…
@@ -94,19 +94,19 @@ export function ChatMediaAttachment({
       rel="noreferrer noopener"
       className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
       style={{
-        backgroundColor: "#0B100D",
-        border: "1px solid #1F2A24",
-        color: "#ECEFEA",
+        backgroundColor: "var(--background)",
+        border: "1px solid var(--border)",
+        color: "var(--foreground)",
       }}
     >
-      <FileIcon className="size-3.5" style={{ color: "#8B9A8E" }} />
+      <FileIcon className="size-3.5" style={{ color: "var(--muted-foreground)" }} />
       <span className="truncate max-w-[180px]" title={label}>
         {label}
       </span>
       {typeof mediaBytes === "number" && (
-        <span style={{ color: "#8B9A8E" }}>{formatBytes(mediaBytes)}</span>
+        <span style={{ color: "var(--muted-foreground)" }}>{formatBytes(mediaBytes)}</span>
       )}
-      <Download className="size-3.5" style={{ color: "#8B9A8E" }} />
+      <Download className="size-3.5" style={{ color: "var(--muted-foreground)" }} />
     </a>
   );
 }

@@ -26,8 +26,9 @@ export type AlbumCompletePhotoInput = {
   caption?: string;
 };
 
-export type AlbumUpdatePhotoInput = {
-  caption?: string;
+export type AlbumDownloadOriginal = {
+  url: string;
+  expires_at: string;
 };
 
 export type AlbumPhoto = {
@@ -102,16 +103,11 @@ export const albumApi = {
       signal,
     }),
 
-  updatePhoto: (
-    photoId: string,
-    input: AlbumUpdatePhotoInput,
-    signal?: AbortSignal,
-  ) =>
-    request<AlbumPhoto>(path(["photos", encodeURIComponent(photoId)]), {
-      method: "PATCH",
-      json: input,
-      signal,
-    }),
+  downloadOriginal: (photoId: string, signal?: AbortSignal) =>
+    request<AlbumDownloadOriginal>(
+      path(["photos", encodeURIComponent(photoId), "download"]),
+      { method: "GET", signal },
+    ),
 
   deletePhoto: (photoId: string, signal?: AbortSignal) =>
     request<null>(path(["photos", encodeURIComponent(photoId)]), {

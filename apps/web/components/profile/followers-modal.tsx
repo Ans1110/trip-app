@@ -37,7 +37,7 @@ export function FollowersModal({
       <div className="flex flex-col gap-4">
         <div
           className="flex gap-1 p-1 rounded-full text-sm self-start"
-          style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+          style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
         >
           <TabButton
             active={tab === "followers"}
@@ -78,7 +78,7 @@ function TabButton({
       className="season-transition px-3 py-1.5 rounded-full text-xs font-medium"
       style={{
         backgroundColor: active ? "var(--season-button)" : "transparent",
-        color: active ? "#0B100D" : "#ECEFEA",
+        color: active ? "var(--primary-foreground)" : "var(--foreground)",
       }}
     >
       {children}
@@ -141,7 +141,7 @@ function UserList({
     return (
       <div
         className="flex items-center gap-2 text-sm py-8 justify-center"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <Loader2 className="size-4 animate-spin" />
         Loading
@@ -150,14 +150,14 @@ function UserList({
   }
   if (error) {
     return (
-      <p className="text-sm py-8 text-center" style={{ color: "#FCA5A5" }}>
+      <p className="text-sm py-8 text-center" style={{ color: "var(--destructive)" }}>
         {errorMessage(error) ?? "Failed to load"}
       </p>
     );
   }
   if (!users || users.length === 0) {
     return (
-      <p className="text-sm py-8 text-center" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm py-8 text-center" style={{ color: "var(--muted-foreground)" }}>
         {emptyText}
       </p>
     );
@@ -169,15 +169,15 @@ function UserList({
           <Link
             href={`/profile/${u.username}`}
             onClick={onClose}
-            className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5"
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted"
           >
             <div
               className="size-10 rounded-full overflow-hidden inline-flex items-center justify-center text-sm font-semibold shrink-0"
               style={{
                 backgroundColor: u.avatar_url
                   ? "transparent"
-                  : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
-                color: "#ECEFEA",
+                  : "color-mix(in oklch, var(--pink) 55%, var(--card))",
+                color: "var(--foreground)",
               }}
             >
               {u.avatar_url ? (
@@ -196,11 +196,11 @@ function UserList({
             <div className="min-w-0 flex-1">
               <p
                 className="text-sm font-medium truncate"
-                style={{ color: "#ECEFEA" }}
+                style={{ color: "var(--foreground)" }}
               >
                 {u.name || u.username}
               </p>
-              <p className="text-xs truncate" style={{ color: "#8B9A8E" }}>
+              <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
                 @{u.username}
               </p>
             </div>

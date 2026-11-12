@@ -50,7 +50,7 @@ export function ProfileView({ username }: { username: string }) {
     return (
       <div
         className="flex items-center gap-2 text-sm"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <Loader2 className="size-4 animate-spin" />
         Loading profile
@@ -59,7 +59,7 @@ export function ProfileView({ username }: { username: string }) {
   }
   if (error || !profile) {
     return (
-      <p className="text-sm" style={{ color: "#FCA5A5" }}>
+      <p className="text-sm" style={{ color: "var(--destructive)" }}>
         {errorMessage(error) ?? "Profile not found"}
       </p>
     );
@@ -78,8 +78,8 @@ export function ProfileView({ username }: { username: string }) {
         style={{
           background: profile.cover_image
             ? `url(${profile.cover_image}) center/cover no-repeat`
-            : "linear-gradient(135deg, #1E2A2E 0%, #0A1014 100%)",
-          border: "1px solid #1F2A24",
+            : "linear-gradient(135deg, var(--muted) 0%, var(--surface-sunken) 100%)",
+          border: "1px solid var(--border)",
         }}
         aria-hidden={!profile.cover_image}
       />
@@ -91,9 +91,9 @@ export function ProfileView({ username }: { username: string }) {
             style={{
               backgroundColor: profile.avatar_url
                 ? "transparent"
-                : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
-              color: "#ECEFEA",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                : "color-mix(in oklch, var(--pink) 55%, var(--card))",
+              color: "var(--foreground)",
+              boxShadow: "var(--shadow-soft)",
             }}
           >
             {profile.avatar_url ? (
@@ -120,13 +120,13 @@ export function ProfileView({ username }: { username: string }) {
             <h1
               className="text-2xl font-semibold truncate"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
-                color: "#ECEFEA",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
+                color: "var(--foreground)",
               }}
             >
               {profile.name || profile.username}
             </h1>
-            <p className="text-sm mt-0.5" style={{ color: "#8B9A8E" }}>
+            <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
               @{profile.username}
             </p>
             <TravelTags tags={profile.travel_tags} editable={profile.is_self} />
@@ -136,17 +136,17 @@ export function ProfileView({ username }: { username: string }) {
               <button
                 type="button"
                 onClick={() => setFollowersTab("followers")}
-                className="text-right rounded-lg px-2 py-1 hover:bg-white/5"
+                className="text-right rounded-lg px-2 py-1 hover:bg-muted"
               >
                 <span
-                  style={{ color: "#8B9A8E" }}
+                  style={{ color: "var(--muted-foreground)" }}
                   className="block text-2xs tracking-wide"
                 >
                   Followers
                 </span>
                 <span
                   className="block mt-1 text-lg font-semibold"
-                  style={{ color: "#ECEFEA" }}
+                  style={{ color: "var(--foreground)" }}
                 >
                   {profile.followers_count}
                 </span>
@@ -154,17 +154,17 @@ export function ProfileView({ username }: { username: string }) {
               <button
                 type="button"
                 onClick={() => setFollowersTab("following")}
-                className="text-right rounded-lg px-2 py-1 hover:bg-white/5"
+                className="text-right rounded-lg px-2 py-1 hover:bg-muted"
               >
                 <span
-                  style={{ color: "#8B9A8E" }}
+                  style={{ color: "var(--muted-foreground)" }}
                   className="block text-2xs tracking-wide"
                 >
                   Following
                 </span>
                 <span
                   className="block mt-1 text-lg font-semibold"
-                  style={{ color: "#ECEFEA" }}
+                  style={{ color: "var(--foreground)" }}
                 >
                   {profile.following_count}
                 </span>
@@ -175,8 +175,8 @@ export function ProfileView({ username }: { username: string }) {
                 <button
                   type="button"
                   onClick={() => setEditOpen(true)}
-                  className="flex-1 basis-0 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm border hover:bg-white/5"
-                  style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+                  className="flex-1 basis-0 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm border hover:bg-muted"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
                 >
                   <Settings className="size-4" />
                   Edit
@@ -195,8 +195,8 @@ export function ProfileView({ username }: { username: string }) {
                     backgroundColor: isFollowing
                       ? "transparent"
                       : "var(--season-button)",
-                    color: isFollowing ? "#ECEFEA" : "#0B100D",
-                    border: isFollowing ? "1px solid #1F2A24" : "none",
+                    color: isFollowing ? "var(--foreground)" : "var(--primary-foreground)",
+                    border: isFollowing ? "1px solid var(--border)" : "none",
                   }}
                 >
                   {pending ? (
@@ -218,8 +218,8 @@ export function ProfileView({ username }: { username: string }) {
                 type="button"
                 onClick={shareProfile}
                 aria-label={copied ? "Profile link copied" : "Share profile"}
-                className="flex-1 basis-0 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm border hover:bg-white/5"
-                style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+                className="flex-1 basis-0 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm border hover:bg-muted"
+                style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
               >
                 {copied ? (
                   <>
@@ -277,7 +277,7 @@ function Bio({ text }: { text: string }) {
     <div className="mt-6 max-w-2xl">
       <p
         className="text-[15px] leading-relaxed whitespace-pre-wrap"
-        style={{ color: "#ECEFEA" }}
+        style={{ color: "var(--foreground)" }}
       >
         {expanded || !isLong ? text : preview}
       </p>
@@ -286,7 +286,7 @@ function Bio({ text }: { text: string }) {
           type="button"
           onClick={() => setExpanded((v) => !v)}
           className="mt-1 text-xs font-medium hover:underline"
-          style={{ color: "var(--season-accent)" }}
+          style={{ color: "var(--pink-ink)" }}
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -390,7 +390,7 @@ function TravelTags({ tags, editable }: { tags: string[]; editable: boolean }) {
           style={{
             backgroundColor:
               "color-mix(in srgb, var(--season-accent) 14%, transparent)",
-            color: "var(--season-accent)",
+            color: "var(--pink-ink)",
           }}
         >
           <span>{tag}</span>
@@ -400,7 +400,7 @@ function TravelTags({ tags, editable }: { tags: string[]; editable: boolean }) {
               onClick={() => remove(tag)}
               disabled={update.isPending}
               aria-label={`Remove ${tag}`}
-              className="inline-flex items-center justify-center size-4 rounded-full hover:bg-white/10 disabled:opacity-60"
+              className="inline-flex items-center justify-center size-4 rounded-full hover:bg-muted disabled:opacity-60"
             >
               <X className="size-3" />
             </button>
@@ -430,9 +430,9 @@ function TravelTags({ tags, editable }: { tags: string[]; editable: boolean }) {
               placeholder="new tag"
               className="text-xs px-2.5 py-1 rounded-full outline-none"
               style={{
-                backgroundColor: "#121814",
-                color: "#ECEFEA",
-                border: "1px dashed #1F2A24",
+                backgroundColor: "var(--card)",
+                color: "var(--foreground)",
+                border: "1px dashed var(--border)",
                 minWidth: "6rem",
               }}
             />
@@ -443,8 +443,8 @@ function TravelTags({ tags, editable }: { tags: string[]; editable: boolean }) {
               type="button"
               onClick={() => setAdding(true)}
               disabled={update.isPending}
-              className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full hover:bg-white/5 disabled:opacity-60"
-              style={{ color: "#8B9A8E", border: "1px dashed #1F2A24" }}
+              className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full hover:bg-muted disabled:opacity-60"
+              style={{ color: "var(--muted-foreground)", border: "1px dashed var(--border)" }}
             >
               {update.isPending ? (
                 <Loader2 className="size-3 animate-spin" />

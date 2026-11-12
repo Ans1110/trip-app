@@ -15,7 +15,7 @@ export function BookmarksView() {
     return (
       <div
         className="flex items-center gap-2 text-sm"
-        style={{ color: "#8B9A8E" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <Loader2 className="size-4 animate-spin" />
         Loading bookmarks
@@ -24,14 +24,14 @@ export function BookmarksView() {
   }
   if (error) {
     return (
-      <p className="text-sm" style={{ color: "#FCA5A5" }}>
+      <p className="text-sm" style={{ color: "var(--destructive)" }}>
         {errorMessage(error) ?? "Failed to load bookmarks"}
       </p>
     );
   }
   if (!data || data.posts.length === 0) {
     return (
-      <p className="text-sm" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
         No bookmarks yet — tap Save on any post to keep it here.
       </p>
     );
@@ -50,8 +50,8 @@ export function BookmarksView() {
             type="button"
             onClick={() => setCursor(data.next_cursor)}
             disabled={isFetching}
-            className="px-4 py-2 text-sm rounded-full border hover:bg-white/5 disabled:opacity-60"
-            style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+            className="px-4 py-2 text-sm rounded-full border hover:bg-muted disabled:opacity-60"
+            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
           >
             {isFetching ? "Loading…" : "Load more"}
           </button>
@@ -69,7 +69,7 @@ function BookmarkRow({ post }: { post: Post }) {
   return (
     <li
       className="flex gap-4 p-4 rounded-xl border"
-      style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
       {post.cover_image && (
         <Link
@@ -89,11 +89,11 @@ function BookmarkRow({ post }: { post: Post }) {
         <Link
           href={`/posts/${post.id}`}
           className="block font-medium hover:underline truncate"
-          style={{ color: "#ECEFEA" }}
+          style={{ color: "var(--foreground)" }}
         >
           {post.title}
         </Link>
-        <p className="mt-0.5 text-xs truncate" style={{ color: "#8B9A8E" }}>
+        <p className="mt-0.5 text-xs truncate" style={{ color: "var(--muted-foreground)" }}>
           by{" "}
           <Link href={authorHref} className="hover:underline">
             {author.name || (author.username ? `@${author.username}` : "user")}
@@ -101,7 +101,7 @@ function BookmarkRow({ post }: { post: Post }) {
         </p>
         <div
           className="mt-2 flex items-center gap-4 text-xs"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <span className="inline-flex items-center gap-1">
             <Heart className="size-3.5" /> {post.like_count}

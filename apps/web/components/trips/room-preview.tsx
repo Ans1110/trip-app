@@ -16,7 +16,7 @@ export function RoomPreview({ code }: { code: string }) {
 
   if (preview.isLoading) {
     return (
-      <p className="text-sm" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
         Loading…
       </p>
     );
@@ -26,9 +26,9 @@ export function RoomPreview({ code }: { code: string }) {
     return (
       <div
         className="rounded-2xl p-6"
-        style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+        style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
       >
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(preview.error) ??
             "We couldn't find a trip with that code."}
         </p>
@@ -49,14 +49,14 @@ export function RoomPreview({ code }: { code: string }) {
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: "#161E19", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--muted)", border: "1px solid var(--border)" }}
     >
       <div
         className="h-40 w-full"
         style={{
           background: room.cover_image
             ? `url(${room.cover_image}) center / cover`
-            : "linear-gradient(135deg, #1F2A24 0%, #0B100D 100%)",
+            : "linear-gradient(135deg, var(--muted) 0%, var(--background) 100%)",
         }}
         aria-hidden
       />
@@ -64,15 +64,15 @@ export function RoomPreview({ code }: { code: string }) {
         <div>
           <p
             className="text-[11px] font-medium tracking-[0.2em] uppercase mb-2"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           >
             {room.status}
           </p>
           <h1
             className="text-3xl tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
-              color: "#ECEFEA",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
+              color: "var(--foreground)",
             }}
           >
             {room.title}
@@ -80,14 +80,14 @@ export function RoomPreview({ code }: { code: string }) {
           {room.description && (
             <p
               className="text-sm mt-2 whitespace-pre-wrap"
-              style={{ color: "#8B9A8E" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               {room.description}
             </p>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs" style={{ color: "#8B9A8E" }}>
+        <div className="flex flex-wrap items-center gap-4 text-xs" style={{ color: "var(--muted-foreground)" }}>
           <span>{formatRange(room.start_date, room.end_date)}</span>
           <span className="inline-flex items-center gap-1">
             <Users className="size-3.5" />
@@ -105,7 +105,7 @@ export function RoomPreview({ code }: { code: string }) {
             className="season-transition inline-flex items-center justify-center px-5 py-3 text-sm font-medium rounded-full self-start"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
             }}
           >
             Open trip
@@ -118,7 +118,7 @@ export function RoomPreview({ code }: { code: string }) {
             className="season-transition inline-flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-full self-start disabled:opacity-60"
             style={{
               backgroundColor: "var(--season-button)",
-              color: "#0B100D",
+              color: "var(--primary-foreground)",
             }}
           >
             {join.isPending && <Loader2 className="size-3.5 animate-spin" />}
@@ -126,7 +126,7 @@ export function RoomPreview({ code }: { code: string }) {
           </button>
         )}
         {join.isError && (
-          <p className="text-xs" style={{ color: "#FCA5A5" }}>
+          <p className="text-xs" style={{ color: "var(--destructive)" }}>
             {errorMessage(join.error)}
           </p>
         )}

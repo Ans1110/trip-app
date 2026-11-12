@@ -49,9 +49,9 @@ import {
 const PRIORITIES: TodoPriority[] = ["low", "normal", "high"];
 
 const priorityColor: Record<TodoPriority, { bg: string; fg: string }> = {
-  low: { bg: "rgba(139,154,142,0.18)", fg: "#9CB0A3" },
-  normal: { bg: "rgba(181,208,134,0.18)", fg: "#B5D086" },
-  high: { bg: "rgba(252,165,165,0.18)", fg: "#FCA5A5" },
+  low: { bg: "color-mix(in oklch, var(--muted-foreground) 18%, transparent)", fg: "var(--muted-foreground)" },
+  normal: { bg: "color-mix(in oklch, var(--mint) 36%, transparent)", fg: "var(--mint-ink)" },
+  high: { bg: "rgba(252,165,165,0.18)", fg: "var(--destructive)" },
 };
 
 const normalizeTag = (raw: string) => raw.trim().toLowerCase();
@@ -179,7 +179,7 @@ export function TripTodos({ tripId }: { tripId: string }) {
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
-          className="flex flex-col gap-2.5 p-4 rounded-xl bg-[#121814] border border-[#1F2A24]"
+          className="flex flex-col gap-2.5 p-4 rounded-xl bg-card border border-border"
         >
           <div className="flex items-end gap-2">
             <ControlledInput<CreateTodoFormInput>
@@ -196,7 +196,7 @@ export function TripTodos({ tripId }: { tripId: string }) {
             <button
               type="submit"
               disabled={create.isPending || !titleValue.trim()}
-              className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {create.isPending ? (
@@ -212,25 +212,25 @@ export function TripTodos({ tripId }: { tripId: string }) {
               <TagChip key={t} tag={t} onRemove={() => handleRemoveTag(t)} />
             ))}
             <div className="flex items-center gap-1">
-              <Tag className="size-3 text-[#8B9A8E]" />
+              <Tag className="size-3 text-muted-foreground" />
               <input
                 value={tagDraft}
                 onChange={(e) => setTagDraft(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 onBlur={handleAddTag}
                 placeholder="add tag"
-                className="text-xs bg-transparent outline-none text-[#ECEFEA]"
+                className="text-xs bg-transparent outline-none text-foreground"
                 style={{ width: 90 }}
               />
             </div>
           </div>
           {errors.tags && (
-            <span className="text-[11px] text-[#FCA5A5]">
+            <span className="text-[11px] text-destructive">
               {errors.tags.message}
             </span>
           )}
           {create.isError && (
-            <p className="text-xs text-[#FCA5A5]">
+            <p className="text-xs text-destructive">
               {errorMessage(create.error)}
             </p>
           )}
@@ -239,7 +239,7 @@ export function TripTodos({ tripId }: { tripId: string }) {
 
       {(tagOptions.length > 0 || todos.length > 0) && (
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs" style={{ color: "#6B7A6F" }}>
+          <span className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
             Filter:
           </span>
           {PRIORITIES.map((p) => (
@@ -266,8 +266,8 @@ export function TripTodos({ tripId }: { tripId: string }) {
                 setFilterPriority(null);
                 setFilterTag(null);
               }}
-              className="text-xs px-2 py-1 rounded-full hover:bg-white/5"
-              style={{ color: "#8B9A8E" }}
+              className="text-xs px-2 py-1 rounded-full hover:bg-muted"
+              style={{ color: "var(--muted-foreground)" }}
             >
               Clear
             </button>
@@ -276,17 +276,17 @@ export function TripTodos({ tripId }: { tripId: string }) {
       )}
 
       {query.isLoading && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Loading…
         </p>
       )}
       {query.isError && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(query.error)}
         </p>
       )}
       {!query.isLoading && !query.isError && visible.length === 0 && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {todos.length === 0
             ? "Nothing on the list yet."
             : "No tasks match the filters."}
@@ -294,7 +294,7 @@ export function TripTodos({ tripId }: { tripId: string }) {
       )}
 
       {reorder.isPending && (
-        <p className="text-xs" style={{ color: "#8B9A8E" }}>
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           Reordering…
         </p>
       )}
@@ -323,14 +323,14 @@ function TagChip({ tag, onRemove }: { tag: string; onRemove: () => void }) {
   return (
     <span
       className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-      style={{ backgroundColor: "#1F2A24", color: "#9CB0A3" }}
+      style={{ backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}
     >
       #{tag}
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${tag}`}
-        className="hover:text-white"
+        className="hover:text-foreground"
       >
         <X className="size-3" />
       </button>
@@ -356,10 +356,10 @@ function FilterChip({
       className="text-xs px-2 py-1 rounded-full season-transition"
       style={{
         backgroundColor: active
-          ? (accent?.bg ?? "rgba(181,208,134,0.18)")
+          ? (accent?.bg ?? "color-mix(in oklch, var(--mint) 36%, transparent)")
           : "transparent",
-        color: active ? (accent?.fg ?? "#B5D086") : "#8B9A8E",
-        border: `1px solid ${active ? (accent?.fg ?? "#B5D086") : "#1F2A24"}`,
+        color: active ? (accent?.fg ?? "var(--mint-ink)") : "var(--muted-foreground)",
+        border: `1px solid ${active ? (accent?.fg ?? "var(--mint)") : "var(--border)"}`,
       }}
     >
       {label}
@@ -390,8 +390,8 @@ function SortableTodoRow({ tripId, todo }: { tripId: string; todo: Todo }) {
           <button
             type="button"
             aria-label="Reorder"
-            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 cursor-grab active:cursor-grabbing touch-none"
-            style={{ color: "#8B9A8E" }}
+            className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted cursor-grab active:cursor-grabbing touch-none"
+            style={{ color: "var(--muted-foreground)" }}
             {...attributes}
             {...listeners}
           >
@@ -419,7 +419,7 @@ function TodoRow({
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-lg"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       {dragHandle}
       <Checkbox
@@ -436,7 +436,7 @@ function TodoRow({
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <p
           className={`text-sm ${todo.is_completed ? "line-through" : ""}`}
-          style={{ color: todo.is_completed ? "#6B7A6F" : "#ECEFEA" }}
+          style={{ color: todo.is_completed ? "var(--subtle-foreground)" : "var(--foreground)" }}
         >
           {todo.title}
         </p>
@@ -446,7 +446,7 @@ function TodoRow({
               <span
                 key={t}
                 className="text-[10px] px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: "#1F2A24", color: "#9CB0A3" }}
+                style={{ backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}
               >
                 #{t}
               </span>
@@ -488,8 +488,8 @@ function TodoRow({
         onClick={() => remove.mutate({ id: tripId, todoId: todo.id })}
         disabled={remove.isPending}
         aria-label="Delete"
-        className="inline-flex items-center justify-center size-7 rounded-full hover:bg-white/5 disabled:opacity-60"
-        style={{ color: "#FCA5A5" }}
+        className="inline-flex items-center justify-center size-7 rounded-full hover:bg-muted disabled:opacity-60"
+        style={{ color: "var(--destructive)" }}
       >
         {remove.isPending ? (
           <Loader2 className="size-3.5 animate-spin" />

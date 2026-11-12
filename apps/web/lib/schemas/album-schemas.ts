@@ -54,21 +54,6 @@ export function formatBytes(n: number): string {
   return `${mb % 1 === 0 ? mb : mb.toFixed(1)} MB`;
 }
 
-// Matches backend album.ErrCaptionTooLong.
-export const ALBUM_CAPTION_MAX = 500;
-
-export const albumCaptionSchema = z.object({
-  caption: z
-    .string()
-    .trim()
-    .max(
-      ALBUM_CAPTION_MAX,
-      `Caption must be ${ALBUM_CAPTION_MAX} characters or fewer`,
-    ),
-});
-
-export type AlbumCaptionFormInput = z.infer<typeof albumCaptionSchema>;
-
 export const albumShareCreateSchema = z
   .object({
     expires_at: z.string().trim().optional(),

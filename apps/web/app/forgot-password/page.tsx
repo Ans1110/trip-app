@@ -11,23 +11,20 @@ export const metadata: Metadata = {
 export default function ForgotPasswordPage() {
   return (
     <main
-      className="season-transition relative min-h-screen flex flex-col"
+      className="bg-wash season-transition relative min-h-screen flex flex-col"
       style={{
-        backgroundColor: "#0B100D",
-        color: "#ECEFEA",
-        backgroundImage:
-          "radial-gradient(circle 600px at 80% -10%, color-mix(in srgb, var(--season-button) 22%, transparent), transparent 70%), radial-gradient(circle 500px at 10% 110%, color-mix(in srgb, var(--season-accent) 14%, transparent), transparent 70%)",
+        color: "var(--foreground)",
       }}
     >
       <header className="px-6 md:px-12 h-16 flex items-center">
         <Link href="/" className="flex items-center gap-2 select-none">
           <Compass
             className="season-transition size-5"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           />
           <span
             className="text-xl tracking-tight"
-            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+            style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
           >
             TripCraft
           </span>
@@ -40,26 +37,26 @@ export default function ForgotPasswordPage() {
             <h1
               className="season-transition leading-[1.05] tracking-tight mb-3"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
                 fontSize: "clamp(2rem, 4vw, 2.75rem)",
-                color: "var(--season-heading)",
+                color: "var(--foreground)",
               }}
             >
               Forgot your password?
             </h1>
-            <p className="text-sm" style={{ color: "#8B9A8E" }}>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
               Enter the email on your account and we&apos;ll send a reset link.
             </p>
           </div>
 
           <ForgotPasswordForm />
 
-          <p className="mt-8 text-sm" style={{ color: "#8B9A8E" }}>
+          <p className="mt-8 text-sm" style={{ color: "var(--muted-foreground)" }}>
             Remembered it?{" "}
             <Link
               href="/sign-in"
               className="season-transition underline-offset-4 hover:underline"
-              style={{ color: "var(--season-accent)" }}
+              style={{ color: "var(--pink-ink)" }}
             >
               Back to sign in
             </Link>

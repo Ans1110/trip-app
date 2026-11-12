@@ -13,13 +13,13 @@ import { Label } from "./label";
 
 export const CALENDAR_COLORS = [
   { value: "", label: "None" },
-  { value: "#8B9A8E", label: "Sage" },
-  { value: "#A8E0B4", label: "Mint" },
-  { value: "#7FB3D5", label: "Sky" },
-  { value: "#E8D7B8", label: "Sand" },
-  { value: "#C3A6E0", label: "Lilac" },
-  { value: "#F5A6A6", label: "Rose" },
-  { value: "#F5C89F", label: "Peach" },
+  { value: "var(--muted-foreground)", label: "Sage" },
+  { value: "var(--mint)", label: "Mint" },
+  { value: "var(--sky)", label: "Sky" },
+  { value: "var(--pink)", label: "Sand" },
+  { value: "var(--pink)", label: "Lilac" },
+  { value: "var(--pink)", label: "Rose" },
+  { value: "var(--pink)", label: "Peach" },
 ];
 
 type ControlledColorPaletteProps<T extends FieldValues> = {
@@ -72,11 +72,11 @@ function ControlledColorPalette<T extends FieldValues>({
                         "opacity-50 cursor-not-allowed hover:scale-100",
                     )}
                     style={{
-                      backgroundColor: isNone ? "#0B100D" : c.value,
+                      backgroundColor: isNone ? "var(--background)" : c.value,
                       borderColor: active
                         ? "var(--season-button)"
                         : isNone
-                          ? "#1F2A24"
+                          ? "var(--muted)"
                           : "transparent",
                       boxShadow: active
                         ? "0 0 0 2px color-mix(in srgb, var(--season-button) 45%, transparent)"
@@ -84,11 +84,11 @@ function ControlledColorPalette<T extends FieldValues>({
                     }}
                   >
                     {isNone ? (
-                      <Ban className="size-3" style={{ color: "#8B9A8E" }} />
+                      <Ban className="size-3" style={{ color: "var(--muted-foreground)" }} />
                     ) : active ? (
                       <Check
                         className="size-3.5"
-                        style={{ color: "#0B100D" }}
+                        style={{ color: "var(--primary-foreground)" }}
                       />
                     ) : null}
                   </button>
@@ -96,9 +96,9 @@ function ControlledColorPalette<T extends FieldValues>({
               })}
             </div>
             {error ? (
-              <p className="text-[11px] text-[#FCA5A5]">{error.message}</p>
+              <p className="text-[11px] text-destructive">{error.message}</p>
             ) : hint ? (
-              <p className="text-[11px] text-[#6B7A6F]">{hint}</p>
+              <p className="text-[11px] text-subtle-foreground">{hint}</p>
             ) : null}
           </>
         )}

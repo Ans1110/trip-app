@@ -13,23 +13,20 @@ export function PageShell({
 }) {
   return (
     <main
-      className="season-transition relative min-h-screen flex flex-col"
+      className="bg-wash season-transition relative min-h-screen flex flex-col"
       style={{
-        backgroundColor: "#0B100D",
-        color: "#ECEFEA",
-        backgroundImage:
-          "radial-gradient(circle 600px at 80% -10%, color-mix(in srgb, var(--season-button) 18%, transparent), transparent 70%), radial-gradient(circle 500px at 10% 110%, color-mix(in srgb, var(--season-accent) 12%, transparent), transparent 70%)",
+        color: "var(--foreground)",
       }}
     >
       <header className="px-6 md:px-12 h-16 flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2 select-none">
           <Compass
             className="season-transition size-5"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           />
           <span
             className="text-xl tracking-tight"
-            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+            style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
           >
             TripCraft
           </span>
@@ -37,36 +34,36 @@ export function PageShell({
         <nav className="ml-4 hidden md:flex items-center gap-1 text-sm">
           <Link
             href="/trips"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
-            style={{ color: "#ECEFEA" }}
+            className="px-3 py-1.5 rounded-lg hover:bg-muted"
+            style={{ color: "var(--foreground)" }}
           >
             Trips
           </Link>
           <Link
             href="/calendar"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
-            style={{ color: "#ECEFEA" }}
+            className="px-3 py-1.5 rounded-lg hover:bg-muted"
+            style={{ color: "var(--foreground)" }}
           >
             Calendar
           </Link>
           <Link
             href="/location"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
-            style={{ color: "#ECEFEA" }}
+            className="px-3 py-1.5 rounded-lg hover:bg-muted"
+            style={{ color: "var(--foreground)" }}
           >
             Places
           </Link>
           <Link
             href="/weather"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
-            style={{ color: "#ECEFEA" }}
+            className="px-3 py-1.5 rounded-lg hover:bg-muted"
+            style={{ color: "var(--foreground)" }}
           >
             Weather
           </Link>
           <Link
             href="/feed"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/5"
-            style={{ color: "#ECEFEA" }}
+            className="px-3 py-1.5 rounded-lg hover:bg-muted"
+            style={{ color: "var(--foreground)" }}
           >
             Feed
           </Link>
@@ -75,8 +72,8 @@ export function PageShell({
           {back && (
             <Link
               href={back.href}
-              className="inline-flex items-center gap-1 text-sm hover:bg-white/5 rounded-lg px-2 py-1"
-              style={{ color: "#8B9A8E" }}
+              className="inline-flex items-center gap-1 text-sm hover:bg-muted rounded-lg px-2 py-1"
+              style={{ color: "var(--muted-foreground)" }}
             >
               <ChevronLeft className="size-4" />
               {back.label}

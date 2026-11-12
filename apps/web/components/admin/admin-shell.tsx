@@ -31,16 +31,16 @@ export function AdminShell({
         <div>
           <p
             className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-2"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           >
             Admin
           </p>
           <h1
             className="season-transition leading-tight tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
               fontSize: "clamp(1.5rem, 2.5vw, 2rem)",
-              color: "var(--season-heading)",
+              color: "var(--foreground)",
             }}
           >
             {title}
@@ -50,8 +50,8 @@ export function AdminShell({
           type="button"
           onClick={() => logout.mutate()}
           disabled={logout.isPending}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border hover:bg-white/5 disabled:opacity-60"
-          style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border hover:bg-muted disabled:opacity-60"
+          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
         >
           <LogOut className="size-4" />
           End admin
@@ -60,7 +60,7 @@ export function AdminShell({
 
       <nav
         className="mb-8 flex items-center gap-1 border-b"
-        style={{ borderColor: "#1F2A24" }}
+        style={{ borderColor: "var(--border)" }}
       >
         {TABS.map(({ href, label, Icon }) => {
           const active = pathname?.startsWith(href) ?? false;
@@ -71,11 +71,11 @@ export function AdminShell({
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 py-2 text-sm -mb-px border-b-2",
                 active
-                  ? "border-[var(--season-button)]"
-                  : "border-transparent hover:bg-white/5",
+                  ? "border-primary"
+                  : "border-transparent hover:bg-muted",
               )}
               style={{
-                color: active ? "var(--season-heading)" : "#8B9A8E",
+                color: active ? "var(--season-heading)" : "var(--muted-foreground)",
               }}
             >
               <Icon className="size-4" />

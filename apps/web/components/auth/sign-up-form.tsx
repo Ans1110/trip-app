@@ -81,7 +81,7 @@ export function SignUpForm() {
           <p
             className="text-sm rounded-lg px-3 py-2"
             style={{
-              color: "#FCA5A5",
+              color: "var(--destructive)",
               backgroundColor: "rgba(220,38,38,0.08)",
               border: "1px solid rgba(220,38,38,0.25)",
             }}
@@ -97,7 +97,7 @@ export function SignUpForm() {
           className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
           style={{
             backgroundColor: "var(--season-button)",
-            color: "#0B100D",
+            color: "var(--primary-foreground)",
             boxShadow: "0 8px 24px var(--season-button-shadow)",
           }}
         >

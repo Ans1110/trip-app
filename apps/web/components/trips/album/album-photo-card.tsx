@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ImageOff, Pencil, Trash2 } from "lucide-react";
+import { Download, ImageOff, Loader2, Trash2 } from "lucide-react";
+
+import { useSaveAlbumPhoto } from "@/hooks/album-hooks";
 
 import type { AlbumPhoto } from "@/lib/apis/album-api";
 import type { UserSummary } from "@/lib/apis/friend-api";
@@ -9,7 +11,7 @@ import type { UserSummary } from "@/lib/apis/friend-api";
 export type AlbumPhotoCardProps = {
   photo: AlbumPhoto;
   uploader?: UserSummary;
-  onEdit?: (photo: AlbumPhoto) => void;
+  onOpen?: () => void;
   onDelete?: (photo: AlbumPhoto) => void;
 };
 
@@ -19,25 +21,20 @@ export type AlbumPhotoCardProps = {
 export function AlbumPhotoCard({
   photo,
   uploader,
-  onEdit,
+  onOpen,
   onDelete,
 }: AlbumPhotoCardProps) {
   const [failed, setFailed] = useState(false);
   const thumb = photo.thumb_small_url;
-  const canManage = !!onEdit || !!onDelete;
+  const save = useSaveAlbumPhoto();
 
   if (!thumb || failed) {
     return (
       <div
         className="aspect-square flex flex-col items-center justify-center gap-1 rounded-lg"
-        style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+        style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
       >
-        <ImageOff size={20} style={{ color: "#4A5A50" }} />
-        {photo.caption && (
-          <p className="text-[10px] px-2 truncate" style={{ color: "#8B9A8E" }}>
-            {photo.caption}
-          </p>
-        )}
+        <ImageOff size={20} style={{ color: "var(--subtle-foreground)" }} />
       </div>
     );
   }
@@ -45,32 +42,26 @@ export function AlbumPhotoCard({
   return (
     <div
       className="group relative aspect-square overflow-hidden rounded-lg"
-      style={{ backgroundColor: "#121814", border: "1px solid #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
     >
       {/* Native <img> because the presigned S3 URL host isn't in next/image's
           domain allowlist and rotates per config. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={thumb}
-        alt={photo.caption || "Album photo"}
-        loading="lazy"
-        decoding="async"
-        onError={() => setFailed(true)}
-        className="h-full w-full object-cover"
-      />
-
-      {photo.caption && (
-        <div
-          className="absolute inset-x-0 bottom-0 px-2 py-1.5 text-[11px] leading-snug"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(0,0,0,0.72), transparent)",
-            color: "#ECEFEA",
-          }}
-        >
-          <span className="line-clamp-2">{photo.caption}</span>
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label="Open photo"
+        className="block size-full cursor-zoom-in outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={thumb}
+          alt="Album photo"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+        />
+      </button>
 
       {uploader && (
         <div className="pointer-events-none absolute top-1.5 left-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
@@ -78,27 +69,25 @@ export function AlbumPhotoCard({
         </div>
       )}
 
-      {canManage && (
-        <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-          <div className="pointer-events-auto flex items-center gap-1">
-            {onEdit && (
-              <IconButton
-                label="Edit caption"
-                onClick={() => onEdit(photo)}
-                icon={<Pencil size={12} />}
-              />
-            )}
-            {onDelete && (
-              <IconButton
-                label="Delete photo"
-                onClick={() => onDelete(photo)}
-                icon={<Trash2 size={12} />}
-                tone="danger"
-              />
-            )}
-          </div>
+      <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+        <div className="pointer-events-auto flex items-center gap-1">
+          <IconButton
+            label={save.isError ? "Couldn't save, try again" : "Save photo"}
+            onClick={() => save.mutate(photo)}
+            busy={save.isPending}
+            tone={save.isError ? "danger" : undefined}
+            icon={save.isPending ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+          />
+          {onDelete && (
+            <IconButton
+              label="Delete photo"
+              onClick={() => onDelete(photo)}
+              icon={<Trash2 size={12} />}
+              tone="danger"
+            />
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -111,9 +100,9 @@ function UploaderAvatar({ user }: { user: UserSummary }) {
       aria-label={`Uploaded by ${user.name}`}
       className="inline-flex items-center justify-center size-6 rounded-full text-[10px] font-semibold backdrop-blur overflow-hidden"
       style={{
-        backgroundColor: "rgba(11,16,13,0.72)",
-        color: "#ECEFEA",
-        border: "1px solid #1F2A24",
+        backgroundColor: "color-mix(in oklch, var(--card) 88%, transparent)",
+        color: "var(--foreground)",
+        border: "1px solid var(--border)",
       }}
     >
       {user.avatar_url ? (
@@ -131,23 +120,27 @@ function IconButton({
   label,
   onClick,
   tone,
+  busy,
 }: {
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
   tone?: "danger";
+  busy?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={busy}
+      aria-busy={busy || undefined}
       aria-label={label}
       title={label}
-      className="inline-flex items-center justify-center size-6 rounded-full backdrop-blur"
+      className="inline-flex items-center justify-center size-7 rounded-full backdrop-blur outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait"
       style={{
-        backgroundColor: "rgba(11,16,13,0.72)",
-        color: tone === "danger" ? "#FCA5A5" : "#ECEFEA",
-        border: "1px solid #1F2A24",
+        backgroundColor: "color-mix(in oklch, var(--card) 88%, transparent)",
+        color: tone === "danger" ? "var(--destructive)" : "var(--foreground)",
+        border: "1px solid var(--border)",
       }}
     >
       {icon}

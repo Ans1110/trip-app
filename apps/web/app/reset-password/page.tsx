@@ -17,23 +17,20 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
 
   return (
     <main
-      className="season-transition relative min-h-screen flex flex-col"
+      className="bg-wash season-transition relative min-h-screen flex flex-col"
       style={{
-        backgroundColor: "#0B100D",
-        color: "#ECEFEA",
-        backgroundImage:
-          "radial-gradient(circle 600px at 80% -10%, color-mix(in srgb, var(--season-button) 22%, transparent), transparent 70%), radial-gradient(circle 500px at 10% 110%, color-mix(in srgb, var(--season-accent) 14%, transparent), transparent 70%)",
+        color: "var(--foreground)",
       }}
     >
       <header className="px-6 md:px-12 h-16 flex items-center">
         <Link href="/" className="flex items-center gap-2 select-none">
           <Compass
             className="season-transition size-5"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           />
           <span
             className="text-xl tracking-tight"
-            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+            style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
           >
             TripCraft
           </span>
@@ -46,14 +43,14 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
             <h1
               className="season-transition leading-[1.05] tracking-tight mb-3"
               style={{
-                fontFamily: "var(--font-display, Georgia, serif)",
+                fontFamily: "var(--font-display), system-ui, sans-serif",
                 fontSize: "clamp(2rem, 4vw, 2.75rem)",
-                color: "var(--season-heading)",
+                color: "var(--foreground)",
               }}
             >
               Choose a new password.
             </h1>
-            <p className="text-sm" style={{ color: "#8B9A8E" }}>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
               {token
                 ? "Pick something you'll remember. Min 8 characters."
                 : "This link is missing its token. Request a new email."}
@@ -68,19 +65,19 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
               className="season-transition inline-flex items-center px-4 py-2 rounded-full text-sm font-medium"
               style={{
                 backgroundColor: "var(--season-button)",
-                color: "#0B100D",
+                color: "var(--primary-foreground)",
               }}
             >
               Request a new link
             </Link>
           )}
 
-          <p className="mt-8 text-sm" style={{ color: "#8B9A8E" }}>
+          <p className="mt-8 text-sm" style={{ color: "var(--muted-foreground)" }}>
             Back to{" "}
             <Link
               href="/sign-in"
               className="season-transition underline-offset-4 hover:underline"
-              style={{ color: "var(--season-accent)" }}
+              style={{ color: "var(--pink-ink)" }}
             >
               sign in
             </Link>

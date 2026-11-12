@@ -48,7 +48,7 @@ export function PlaceSearchPicker({
   return (
     <div ref={wrapRef} className="relative flex flex-col gap-1.5">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B9A8E]" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -59,25 +59,25 @@ export function PlaceSearchPicker({
             if (e.key === "Escape") setOpen(false);
           }}
           placeholder={placeholder}
-          className="w-full h-9 pl-9 pr-9 rounded-lg bg-[#0B100D] text-sm text-[#ECEFEA] border border-[#1F2A24] focus:outline-none focus:border-white/20"
+          className="w-full h-9 pl-9 pr-9 rounded-lg bg-muted text-sm text-foreground border border-border focus:outline-none focus:border-border"
         />
         {search.isFetching && debounced && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-[#8B9A8E]" />
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-muted-foreground" />
         )}
       </div>
 
       {open && debounced && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-30 rounded-lg bg-[#121814] border border-[#1F2A24] shadow-lg max-h-64 overflow-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 z-30 rounded-lg bg-card border border-border shadow-lg max-h-64 overflow-auto">
           {search.isLoading && (
-            <p className="text-xs px-3 py-2 text-[#8B9A8E]">Searching…</p>
+            <p className="text-xs px-3 py-2 text-muted-foreground">Searching…</p>
           )}
           {search.isError && (
-            <p className="text-xs px-3 py-2 text-[#FCA5A5]">Search failed.</p>
+            <p className="text-xs px-3 py-2 text-destructive">Search failed.</p>
           )}
           {!search.isLoading &&
             !search.isError &&
             (search.data?.length ?? 0) === 0 && (
-              <p className="text-xs px-3 py-2 text-[#8B9A8E]">No matches.</p>
+              <p className="text-xs px-3 py-2 text-muted-foreground">No matches.</p>
             )}
           {search.data?.map((p) => (
             <button
@@ -95,11 +95,11 @@ export function PlaceSearchPicker({
                 setDebounced("");
                 setOpen(false);
               }}
-              className="w-full text-left px-3 py-2 hover:bg-white/5 border-b border-[#1F2A24] last:border-b-0"
+              className="w-full text-left px-3 py-2 hover:bg-muted border-b border-border last:border-b-0"
             >
-              <p className="text-sm text-[#ECEFEA] truncate">{p.name}</p>
+              <p className="text-sm text-foreground truncate">{p.name}</p>
               {p.address && (
-                <p className="text-xs text-[#8B9A8E] truncate">{p.address}</p>
+                <p className="text-xs text-muted-foreground truncate">{p.address}</p>
               )}
             </button>
           ))}

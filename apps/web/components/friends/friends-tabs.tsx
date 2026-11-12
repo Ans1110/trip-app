@@ -22,15 +22,15 @@ export function FriendsTabs({ onClose }: { onClose?: () => void }) {
     <div className="flex flex-col h-full">
       <header
         className="flex items-center gap-2 px-6 py-4 border-b shrink-0"
-        style={{ borderColor: "#1F2A24" }}
+        style={{ borderColor: "var(--border)" }}
       >
         {view !== "friends" && (
           <button
             type="button"
             onClick={() => setView("friends")}
             aria-label="Back to friends"
-            className="inline-flex items-center justify-center size-8 rounded-full hover:bg-white/5"
-            style={{ color: "#8B9A8E" }}
+            className="inline-flex items-center justify-center size-8 rounded-full hover:bg-muted"
+            style={{ color: "var(--muted-foreground)" }}
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -38,8 +38,8 @@ export function FriendsTabs({ onClose }: { onClose?: () => void }) {
         <h2
           className="flex-1 text-xl tracking-tight"
           style={{
-            fontFamily: "var(--font-display, Georgia, serif)",
-            color: "#ECEFEA",
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            color: "var(--foreground)",
           }}
         >
           {TITLES[view]}
@@ -63,8 +63,8 @@ export function FriendsTabs({ onClose }: { onClose?: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="inline-flex items-center justify-center size-8 rounded-full hover:bg-white/5"
-            style={{ color: "#8B9A8E" }}
+            className="inline-flex items-center justify-center size-8 rounded-full hover:bg-muted"
+            style={{ color: "var(--muted-foreground)" }}
           >
             <X className="size-4" />
           </button>
@@ -95,8 +95,8 @@ function IconBtn({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="inline-flex items-center justify-center size-8 rounded-full hover:bg-white/5"
-      style={{ color: "#ECEFEA" }}
+      className="inline-flex items-center justify-center size-8 rounded-full hover:bg-muted"
+      style={{ color: "var(--foreground)" }}
     >
       <Icon className="size-4" />
     </button>

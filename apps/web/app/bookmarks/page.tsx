@@ -14,21 +14,21 @@ export default function BookmarksPage() {
         <header className="mb-8">
           <p
             className="season-transition text-[11px] font-medium tracking-[0.25em] uppercase mb-2"
-            style={{ color: "var(--season-button)" }}
+            style={{ color: "var(--mint-ink)" }}
           >
             Saved
           </p>
           <h1
             className="season-transition leading-tight tracking-tight"
             style={{
-              fontFamily: "var(--font-display, Georgia, serif)",
+              fontFamily: "var(--font-display), system-ui, sans-serif",
               fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-              color: "var(--season-heading)",
+              color: "var(--foreground)",
             }}
           >
             Bookmarks
           </h1>
-          <p className="mt-2 text-sm" style={{ color: "#8B9A8E" }}>
+          <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
             Posts you&rsquo;ve saved. Only you can see this list.
           </p>
         </header>

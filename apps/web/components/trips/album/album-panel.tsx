@@ -12,15 +12,14 @@ import { useRoom } from "@/hooks/trip-hooks";
 import type { AlbumPhoto } from "@/lib/apis/album-api";
 import type { UserSummary } from "@/lib/apis/friend-api";
 
-import { AlbumCaptionModal } from "./album-caption-modal";
 import { AlbumDeleteConfirmModal } from "./album-delete-confirm-modal";
+import { AlbumLightbox } from "./album-lightbox";
 import { AlbumPhotoCard } from "./album-photo-card";
 import { AlbumShareManagerModal } from "./album-share-manager";
 import { AlbumUploader } from "./album-uploader";
 
 type ActiveModal =
   | { kind: "none" }
-  | { kind: "caption"; photo: AlbumPhoto }
   | { kind: "delete"; photo: AlbumPhoto }
   | { kind: "share" };
 
@@ -29,6 +28,7 @@ export function AlbumPanel({ tripId }: { tripId: string }) {
   const upload = useAlbumUpload(tripId);
   const room = useRoom(tripId);
   const [modal, setModal] = useState<ActiveModal>({ kind: "none" });
+  const [viewing, setViewing] = useState<number | null>(null);
 
   const memberById = useMemo(() => {
     const map = new Map<string, UserSummary>();
@@ -51,8 +51,8 @@ export function AlbumPanel({ tripId }: { tripId: string }) {
           style={{
             backgroundColor:
               "color-mix(in srgb, var(--season-button) 22%, transparent)",
-            color: "#ECEFEA",
-            border: "1px solid #1F2A24",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
           }}
         >
           <Share2 size={14} /> Share album
@@ -60,13 +60,13 @@ export function AlbumPanel({ tripId }: { tripId: string }) {
       </div>
 
       {photos.isLoading && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Loading photos…
         </p>
       )}
 
       {photos.isError && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(photos.error) ?? "Failed to load photos."}
         </p>
       )}
@@ -75,12 +75,12 @@ export function AlbumPanel({ tripId }: { tripId: string }) {
         <div
           className="flex flex-col items-center gap-2 rounded-lg py-10"
           style={{
-            backgroundColor: "#121814",
-            border: "1px dashed #1F2A24",
+            backgroundColor: "var(--card)",
+            border: "1px dashed var(--border)",
           }}
         >
-          <ImageIcon size={22} style={{ color: "#4A5A50" }} />
-          <p className="text-xs" style={{ color: "#8B9A8E" }}>
+          <ImageIcon size={22} style={{ color: "var(--subtle-foreground)" }} />
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
             No photos yet — upload from your phone or camera roll.
           </p>
         </div>
@@ -88,20 +88,25 @@ export function AlbumPanel({ tripId }: { tripId: string }) {
 
       {photos.data && photos.data.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-          {photos.data.map((p) => (
+          {photos.data.map((p, i) => (
             <AlbumPhotoCard
               key={p.id}
               photo={p}
+              onOpen={() => setViewing(i)}
               uploader={memberById.get(p.added_by)}
-              onEdit={(photo) => setModal({ kind: "caption", photo })}
               onDelete={(photo) => setModal({ kind: "delete", photo })}
             />
           ))}
         </div>
       )}
 
-      {modal.kind === "caption" && (
-        <AlbumCaptionModal photo={modal.photo} onClose={close} />
+      {viewing !== null && photos.data && photos.data[viewing] && (
+        <AlbumLightbox
+          photos={photos.data}
+          index={viewing}
+          onIndexChange={setViewing}
+          onClose={() => setViewing(null)}
+        />
       )}
       {modal.kind === "delete" && (
         <AlbumDeleteConfirmModal photo={modal.photo} onClose={close} />

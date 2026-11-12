@@ -88,7 +88,7 @@ export function OAuthButtons({ next, onSession }: OAuthButtonsProps) {
         <p
           className="text-xs rounded-lg px-3 py-2 self-stretch"
           style={{
-            color: "#FCA5A5",
+            color: "var(--destructive)",
             backgroundColor: "rgba(220,38,38,0.08)",
             border: "1px solid rgba(220,38,38,0.25)",
           }}
@@ -165,7 +165,7 @@ function GoogleButton({
           aria-hidden="true"
           className="season-transition absolute inset-0 rounded-full flex items-center justify-center pointer-events-none"
           style={{
-            backgroundColor: "#ECEFEA",
+            backgroundColor: "var(--primary)",
             border:
               "1px solid color-mix(in srgb, var(--season-accent) 32%, transparent)",
           }}
@@ -173,7 +173,7 @@ function GoogleButton({
           {pending ? (
             <Loader2
               className="size-4 animate-spin"
-              style={{ color: "#0B100D" }}
+              style={{ color: "var(--primary-foreground)" }}
             />
           ) : (
             <GoogleMark />
@@ -243,8 +243,8 @@ function GithubButton({
       style={{
         width: CIRCLE_SIZE,
         height: CIRCLE_SIZE,
-        backgroundColor: "#0B100D",
-        color: "#ECEFEA",
+        backgroundColor: "var(--background)",
+        color: "var(--foreground)",
         border:
           "1px solid color-mix(in srgb, var(--season-accent) 32%, transparent)",
       }}

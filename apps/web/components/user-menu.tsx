@@ -64,15 +64,15 @@ export function UserMenu({
           href={username ? `/profile/${username}` : "/"}
           aria-label="Open user menu"
           className={cn(
-            "season-transition rounded-full overflow-hidden inline-flex items-center justify-center font-semibold select-none outline-none focus:ring-2 focus:ring-[var(--season-accent)]/60",
+            "season-transition rounded-full overflow-hidden inline-flex items-center justify-center font-semibold select-none outline-none focus:ring-2 focus:ring-ring/60",
             SIZE_CLASSES[size],
             className,
           )}
           style={{
             backgroundColor: avatarUrl
               ? "transparent"
-              : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
-            color: "#ECEFEA",
+              : "color-mix(in oklch, var(--pink) 55%, var(--card))",
+            color: "var(--foreground)",
           }}
         >
           {avatarUrl ? (
@@ -99,9 +99,9 @@ export function UserMenu({
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
           style={{
-            backgroundColor: "#121814",
-            borderColor: "#1F2A24",
-            color: "#ECEFEA",
+            backgroundColor: "var(--card)",
+            borderColor: "var(--border)",
+            color: "var(--foreground)",
           }}
         >
           <div className="px-3 py-2.5 flex items-center gap-3">
@@ -110,7 +110,7 @@ export function UserMenu({
               style={{
                 backgroundColor: avatarUrl
                   ? "transparent"
-                  : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
+                  : "color-mix(in oklch, var(--pink) 55%, var(--card))",
               }}
             >
               {avatarUrl ? (
@@ -127,11 +127,11 @@ export function UserMenu({
             <div className="min-w-0">
               <p
                 className="text-sm font-semibold truncate"
-                style={{ color: "#ECEFEA" }}
+                style={{ color: "var(--foreground)" }}
               >
                 {displayName}
               </p>
-              <p className="text-[11px] truncate" style={{ color: "#8B9A8E" }}>
+              <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
                 {username ? `@${username}` : user.email}
               </p>
             </div>
@@ -139,7 +139,7 @@ export function UserMenu({
 
           <div
             className="my-1 h-px"
-            style={{ backgroundColor: "#1F2A24" }}
+            style={{ backgroundColor: "var(--muted)" }}
             aria-hidden
           />
 
@@ -163,8 +163,8 @@ export function UserMenu({
             type="button"
             onClick={signOut}
             disabled={signingOut}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left hover:bg-white/5 transition-colors disabled:opacity-60"
-            style={{ color: "#ECEFEA" }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left hover:bg-muted transition-colors disabled:opacity-60"
+            style={{ color: "var(--foreground)" }}
           >
             {signingOut ? (
               <Loader2 className="size-4 animate-spin" />
@@ -191,8 +191,8 @@ function MenuLink({
   return (
     <Link
       href={href}
-      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-white/5 transition-colors"
-      style={{ color: "#ECEFEA" }}
+      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors"
+      style={{ color: "var(--foreground)" }}
     >
       {icon}
       <span>{children}</span>

@@ -42,10 +42,10 @@ export function FriendsFab() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={ariaLabel}
-        className="season-transition fixed bottom-6 right-6 z-40 inline-flex items-center justify-center size-14 rounded-full hover:-translate-y-0.5 active:translate-y-0"
+        className="app-fab fixed right-6 z-40 inline-flex items-center justify-center size-14 rounded-full hover:-translate-y-0.5 active:translate-y-0"
         style={{
           backgroundColor: "var(--season-button)",
-          color: "#0B100D",
+          color: "var(--primary-foreground)",
           boxShadow: "0 12px 32px var(--season-button-shadow)",
         }}
       >
@@ -55,9 +55,9 @@ export function FriendsFab() {
             aria-hidden
             className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold leading-none"
             style={{
-              backgroundColor: "#E5484D",
+              backgroundColor: "var(--destructive)",
               color: "#FFFFFF",
-              border: "2px solid #0B100D",
+              border: "2px solid var(--border)",
             }}
           >
             {badgeLabel}
@@ -72,14 +72,14 @@ export function FriendsFab() {
             aria-label="Close friends"
             onClick={() => setOpen(false)}
             className="absolute inset-0 cursor-default"
-            style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+            style={{ backgroundColor: "var(--overlay)" }}
           />
           <aside
             className="absolute top-0 right-0 h-full w-full sm:w-[440px]"
             style={{
-              backgroundColor: "#0B100D",
-              borderLeft: "1px solid #1F2A24",
-              boxShadow: "-24px 0 64px rgba(0,0,0,0.5)",
+              backgroundColor: "var(--card)",
+              borderLeft: "1px solid var(--border)",
+              boxShadow: "-24px 0 48px -12px oklch(0.55 0.09 245 / 0.22)",
             }}
             aria-label="Friends panel"
           >

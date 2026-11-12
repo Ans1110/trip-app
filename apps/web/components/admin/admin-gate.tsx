@@ -60,7 +60,7 @@ function Checking() {
   return (
     <div
       className="flex items-center gap-2 text-sm px-6 py-12"
-      style={{ color: "#8B9A8E" }}
+      style={{ color: "var(--muted-foreground)" }}
     >
       <Loader2 className="size-4 animate-spin" />
       Checking admin access
@@ -73,13 +73,13 @@ function DeniedState() {
     <div className="max-w-md mx-auto mt-16 px-6">
       <div
         className="flex flex-col items-center text-center gap-3 p-8 rounded-2xl border"
-        style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
+        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
       >
-        <ShieldAlert className="size-10" style={{ color: "#FCA5A5" }} />
-        <h2 className="text-lg font-semibold" style={{ color: "#ECEFEA" }}>
+        <ShieldAlert className="size-10" style={{ color: "var(--destructive)" }} />
+        <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
           Not authorized
         </h2>
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Your account can&rsquo;t access the admin console.
         </p>
       </div>
@@ -105,18 +105,18 @@ function ElevateCard({
     <div className="max-w-md mx-auto mt-16 px-6">
       <div
         className="p-8 rounded-2xl border"
-        style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
+        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
       >
         <div className="flex items-center gap-3 mb-6">
-          <Lock className="size-5" style={{ color: "var(--season-button)" }} />
+          <Lock className="size-5" style={{ color: "var(--mint-ink)" }} />
           <div>
             <h2
               className="text-lg font-semibold"
-              style={{ color: "#ECEFEA" }}
+              style={{ color: "var(--foreground)" }}
             >
               Admin sign-in
             </h2>
-            <p className="text-xs" style={{ color: "#8B9A8E" }}>
+            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
               Enter the admin password to unlock this session.
             </p>
           </div>
@@ -139,7 +139,7 @@ function ElevateCard({
               <p
                 className="text-sm rounded-lg px-3 py-2"
                 style={{
-                  color: "#FCA5A5",
+                  color: "var(--destructive)",
                   backgroundColor: "rgba(220,38,38,0.08)",
                   border: "1px solid rgba(220,38,38,0.25)",
                 }}
@@ -155,7 +155,7 @@ function ElevateCard({
               className="season-transition inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium tracking-wide hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:translate-y-0"
               style={{
                 backgroundColor: "var(--season-button)",
-                color: "#0B100D",
+                color: "var(--primary-foreground)",
                 boxShadow: "0 8px 24px var(--season-button-shadow)",
               }}
             >

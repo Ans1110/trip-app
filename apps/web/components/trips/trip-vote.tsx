@@ -64,7 +64,7 @@ export function TripVote({ tripId }: { tripId: string }) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {polls.length === 0
             ? "No polls yet — start one to gather the group's picks."
             : `${openPolls.length} open · ${closedPolls.length} closed`}
@@ -72,7 +72,7 @@ export function TripVote({ tripId }: { tripId: string }) {
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full text-[#0B100D]"
+          className="season-transition inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full text-primary-foreground"
           style={{ backgroundColor: "var(--season-button)" }}
         >
           <Plus className="size-4" />
@@ -81,12 +81,12 @@ export function TripVote({ tripId }: { tripId: string }) {
       </div>
 
       {pollsQuery.isLoading && (
-        <p className="text-sm" style={{ color: "#8B9A8E" }}>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           Loading…
         </p>
       )}
       {pollsQuery.isError && (
-        <p className="text-sm" style={{ color: "#FCA5A5" }}>
+        <p className="text-sm" style={{ color: "var(--destructive)" }}>
           {errorMessage(pollsQuery.error)}
         </p>
       )}
@@ -111,7 +111,7 @@ export function TripVote({ tripId }: { tripId: string }) {
 
       {closedPolls.length > 0 && (
         <div className="flex flex-col gap-3">
-          <h3 className="text-xs uppercase tracking-wider" style={{ color: "#6B7A6F" }}>
+          <h3 className="text-xs uppercase tracking-wider" style={{ color: "var(--subtle-foreground)" }}>
             Closed
           </h3>
           {closedPolls.map((p) => (
@@ -137,7 +137,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div
       className="flex flex-col items-center gap-3 py-10 rounded-xl"
-      style={{ backgroundColor: "#121814", border: "1px dashed #1F2A24" }}
+      style={{ backgroundColor: "var(--card)", border: "1px dashed var(--border)" }}
     >
       <div
         className="size-12 rounded-full flex items-center justify-center"
@@ -146,16 +146,16 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
             "color-mix(in srgb, var(--season-button) 18%, transparent)",
         }}
       >
-        <Vote className="size-5" style={{ color: "#ECEFEA" }} />
+        <Vote className="size-5" style={{ color: "var(--foreground)" }} />
       </div>
-      <p className="text-sm" style={{ color: "#ECEFEA" }}>
+      <p className="text-sm" style={{ color: "var(--foreground)" }}>
         Nothing to vote on yet
       </p>
       <button
         type="button"
         onClick={onCreate}
-        className="text-xs px-3 py-1.5 rounded-full hover:bg-white/5"
-        style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+        className="text-xs px-3 py-1.5 rounded-full hover:bg-muted"
+        style={{ color: "var(--foreground)", border: "1px solid var(--border)" }}
       >
         Create the first poll
       </button>
@@ -268,9 +268,9 @@ function CreatePollDialog({
           />
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm text-[#ECEFEA]">
+            <span className="text-sm text-foreground">
               Deadline{" "}
-              <span className="text-xs" style={{ color: "#6B7A6F" }}>
+              <span className="text-xs" style={{ color: "var(--subtle-foreground)" }}>
                 (optional)
               </span>
             </span>
@@ -299,12 +299,12 @@ function CreatePollDialog({
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#ECEFEA]">Options</span>
+              <span className="text-sm text-foreground">Options</span>
               <button
                 type="button"
                 onClick={() => append({ text: "" })}
-                className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/5"
-                style={{ color: "#ECEFEA", border: "1px solid #1F2A24" }}
+                className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full hover:bg-muted"
+                style={{ color: "var(--foreground)", border: "1px solid var(--border)" }}
               >
                 <Plus className="size-3" />
                 Add option
@@ -323,8 +323,8 @@ function CreatePollDialog({
                     onClick={() => remove(i)}
                     disabled={fields.length <= 1}
                     aria-label="Remove option"
-                    className="inline-flex items-center justify-center size-9 rounded-full hover:bg-white/5 disabled:opacity-40"
-                    style={{ color: "#FCA5A5" }}
+                    className="inline-flex items-center justify-center size-9 rounded-full hover:bg-muted disabled:opacity-40"
+                    style={{ color: "var(--destructive)" }}
                   >
                     <Trash2 className="size-3.5" />
                   </button>
@@ -332,14 +332,14 @@ function CreatePollDialog({
               ))}
             </div>
             {errors.options?.message && (
-              <p className="text-[11px] text-[#FCA5A5]">
+              <p className="text-[11px] text-destructive">
                 {errors.options.message}
               </p>
             )}
           </div>
 
           {submitError && (
-            <p className="text-sm text-[#FCA5A5]">{submitError}</p>
+            <p className="text-sm text-destructive">{submitError}</p>
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
@@ -347,14 +347,14 @@ function CreatePollDialog({
               type="button"
               onClick={onClose}
               disabled={create.isPending}
-              className="px-4 py-2 text-sm rounded-full hover:bg-white/5 disabled:opacity-60 text-[#8B9A8E]"
+              className="px-4 py-2 text-sm rounded-full hover:bg-muted disabled:opacity-60 text-muted-foreground"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={create.isPending}
-              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-[#0B100D]"
+              className="season-transition inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full disabled:opacity-60 text-primary-foreground"
               style={{ backgroundColor: "var(--season-button)" }}
             >
               {create.isPending && (

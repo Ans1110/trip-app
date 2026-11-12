@@ -114,7 +114,7 @@ function PostFeedList({
 }) {
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm" style={{ color: "#8B9A8E" }}>
+      <div className="flex items-center gap-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
         <Loader2 className="size-4 animate-spin" />
         {loadingLabel}
       </div>
@@ -122,14 +122,14 @@ function PostFeedList({
   }
   if (error) {
     return (
-      <p className="text-sm" style={{ color: "#FCA5A5" }}>
+      <p className="text-sm" style={{ color: "var(--destructive)" }}>
         {errorMessage(error) ?? "Failed to load"}
       </p>
     );
   }
   if (posts.length === 0) {
     return (
-      <p className="text-sm" style={{ color: "#8B9A8E" }}>
+      <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
         {emptyMessage}
       </p>
     );
@@ -183,7 +183,7 @@ function InfiniteSentinel({
     <div
       ref={ref}
       className="mt-6 flex items-center justify-center gap-2 py-4 text-xs"
-      style={{ color: "#8B9A8E" }}
+      style={{ color: "var(--muted-foreground)" }}
       aria-hidden={!isFetchingNextPage}
     >
       {isFetchingNextPage && (
@@ -210,7 +210,7 @@ function FeedRow({ post }: { post: Post }) {
   return (
     <li
       className="flex gap-4 p-4 rounded-xl border"
-      style={{ backgroundColor: "#121814", borderColor: "#1F2A24" }}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
       <Link
         href={authorHref}
@@ -218,8 +218,8 @@ function FeedRow({ post }: { post: Post }) {
         style={{
           backgroundColor: author.avatar_url
             ? "transparent"
-            : "color-mix(in srgb, var(--season-accent) 24%, #1F2A24)",
-          color: "#ECEFEA",
+            : "color-mix(in oklch, var(--pink) 55%, var(--card))",
+          color: "var(--foreground)",
         }}
       >
         {author.avatar_url ? (
@@ -234,16 +234,16 @@ function FeedRow({ post }: { post: Post }) {
         )}
       </Link>
       <div className="flex-1 min-w-0">
-        <p className="text-sm truncate" style={{ color: "#ECEFEA" }}>
+        <p className="text-sm truncate" style={{ color: "var(--foreground)" }}>
           <Link href={authorHref} className="font-semibold hover:underline">
             {author.name || (author.username ? `@${author.username}` : "user")}
           </Link>{" "}
-          <span style={{ color: "#8B9A8E" }}>published a post</span>
+          <span style={{ color: "var(--muted-foreground)" }}>published a post</span>
         </p>
         <Link
           href={`/posts/${post.id}`}
           className="mt-1 block font-medium hover:underline"
-          style={{ color: "#ECEFEA" }}
+          style={{ color: "var(--foreground)" }}
         >
           {post.title}
         </Link>
@@ -256,7 +256,7 @@ function FeedRow({ post }: { post: Post }) {
                 style={{
                   backgroundColor:
                     "color-mix(in srgb, var(--season-accent) 14%, transparent)",
-                  color: "var(--season-accent)",
+                  color: "var(--pink-ink)",
                 }}
               >
                 {tag}
@@ -266,7 +266,7 @@ function FeedRow({ post }: { post: Post }) {
         )}
         <div
           className="mt-2 flex items-center gap-4 text-xs"
-          style={{ color: "#8B9A8E" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <span className="inline-flex items-center gap-1">
             <Heart className="size-3.5" /> {post.like_count}
@@ -274,15 +274,15 @@ function FeedRow({ post }: { post: Post }) {
           <span className="inline-flex items-center gap-1">
             <MessageCircle className="size-3.5" /> {post.comment_count}
           </span>
-          <span style={{ color: "#6B7A6F" }}>
+          <span style={{ color: "var(--subtle-foreground)" }}>
             {formatWhen(post.published_at)}
           </span>
         </div>
       </div>
       <Link
         href={`/posts/${post.id}`}
-        className="self-center inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-white/5"
-        style={{ borderColor: "#1F2A24", color: "#ECEFEA" }}
+        className="self-center inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border hover:bg-muted"
+        style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
       >
         View
         <ChevronRight className="size-3.5" />
