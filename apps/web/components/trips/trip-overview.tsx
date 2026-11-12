@@ -150,6 +150,7 @@ export function TripOverview({
 
   return (
     <div className="flex flex-col gap-6">
+      {trip.cover_image && <CoverBanner key={trip.cover_image} src={trip.cover_image} title={trip.title} />}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p
@@ -173,7 +174,7 @@ export function TripOverview({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted text-foreground border border-border"
             >
               <ImagePlus className="size-3.5" />
-              Cover
+              {trip.cover_image ? "Change cover" : "Add cover"}
             </button>
             <button
               type="button"
@@ -285,4 +286,21 @@ function formatRange(start: string, end: string): string {
     return `${start} – ${end}`;
   }
   return `${fmt.format(startDate)} – ${fmt.format(endDate)}`;
+}
+
+function CoverBanner({ src, title }: { src: string; title: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <div className="relative overflow-hidden rounded-[20px] bg-muted shadow-soft aspect-[16/9] sm:aspect-[21/8] max-h-80">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={`Cover photo for ${title}`}
+        decoding="async"
+        onError={() => setFailed(true)}
+        className="absolute inset-0 size-full object-cover"
+      />
+    </div>
+  );
 }
