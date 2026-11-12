@@ -59,3 +59,4 @@ services/api/docs/docs.go
 tmp/
 
 .claude/
+.archify/
