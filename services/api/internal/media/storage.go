@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Ans1110/trip-app/pkg/config"
@@ -44,11 +45,11 @@ var (
 )
 
 type minioStorage struct {
-	client         *minio.Client
-	bucket         string
-	presignBaseURL *url.URL // used to rewrite Endpoint→PublicEndpoint on presigned URLs
-	publicHost     string
-	publicScheme   string
+	client *minio.Client
+	bucket string
+	// presigner signs browser-facing URLs against PublicEndpoint; SigV4 covers
+	// the Host header, so a URL signed for the internal host can't be rewritten.
+	presigner *minio.Client
 }
 
 func NewStorage(cfg config.MediaConfig) (Storage, error) {
@@ -64,14 +65,26 @@ func NewStorage(cfg config.MediaConfig) (Storage, error) {
 		return nil, fmt.Errorf("media: minio.New: %w", err)
 	}
 
-	s := &minioStorage{client: client, bucket: cfg.Bucket}
+	s := &minioStorage{client: client, bucket: cfg.Bucket, presigner: client}
 	if cfg.PublicEndpoint != "" {
 		u, err := parseEndpoint(cfg.PublicEndpoint, cfg.UseSSL)
 		if err != nil {
 			return nil, fmt.Errorf("media: parse public_endpoint: %w", err)
 		}
-		s.publicHost = u.Host
-		s.publicScheme = u.Scheme
+		region := cfg.Region
+		if region == "" {
+			region = "us-east-1"
+		}
+		// A fixed region keeps presigning offline; otherwise minio-go looks up the
+		// bucket location through the public host, which the API can't reach.
+		s.presigner, err = minio.New(u.Host, &minio.Options{
+			Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+			Secure: u.Scheme == "https",
+			Region: region,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("media: minio.New public: %w", err)
+		}
 	}
 	return s, nil
 }
@@ -90,15 +103,7 @@ func parseEndpoint(raw string, useSSL bool) (*url.URL, error) {
 }
 
 func hasScheme(raw string) bool {
-	for i, r := range raw {
-		if r == ':' && i > 0 {
-			return true
-		}
-		if r == '/' || r == '?' || r == '#' {
-			return false
-		}
-	}
-	return false
+	return strings.Contains(raw, "://")
 }
 
 func (s *minioStorage) Bucket() string { return s.bucket }
@@ -120,19 +125,19 @@ func (s *minioStorage) EnsureBucket(ctx context.Context) error {
 
 func (s *minioStorage) PresignPut(ctx context.Context, key, mime string, ttl time.Duration) (*url.URL, error) {
 	// Presign a plain PUT. The client must send Content-Type matching `mime` when uploading
-	u, err := s.client.PresignedPutObject(ctx, s.bucket, key, ttl)
+	u, err := s.presigner.PresignedPutObject(ctx, s.bucket, key, ttl)
 	if err != nil {
 		return nil, fmt.Errorf("media: presign put: %w", err)
 	}
-	return s.rewriteHost(u), nil
+	return u, nil
 }
 
 func (s *minioStorage) PresignGet(ctx context.Context, key string, ttl time.Duration) (*url.URL, error) {
-	u, err := s.client.PresignedGetObject(ctx, s.bucket, key, ttl, url.Values{})
+	u, err := s.presigner.PresignedGetObject(ctx, s.bucket, key, ttl, url.Values{})
 	if err != nil {
 		return nil, fmt.Errorf("media: presign get: %w", err)
 	}
-	return s.rewriteHost(u), nil
+	return u, nil
 }
 
 func (s *minioStorage) StatObject(ctx context.Context, key string) (*ObjectStat, error) {
@@ -192,21 +197,6 @@ func (s *minioStorage) GenerateKey(prefix, ext string) string {
 	now := time.Now().UTC()
 	return fmt.Sprintf("%s%04d/%02d/%s%s",
 		prefix, now.Year(), int(now.Month()), uuid.NewString(), ext)
-}
-
-// rewriteHost swaps the SDK's server host with the caller-visible host so
-// the presigned URL is usable from the browser. Signature stays valid because
-// the signature covers the path + params, not the authority.
-func (s *minioStorage) rewriteHost(u *url.URL) *url.URL {
-	if s.publicHost == "" {
-		return u
-	}
-	rewritten := *u
-	rewritten.Host = s.publicHost
-	if s.publicScheme != "" {
-		rewritten.Scheme = s.publicScheme
-	}
-	return &rewritten
 }
 
 func isNotExist(err error) bool {
