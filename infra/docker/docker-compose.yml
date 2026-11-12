@@ -16,9 +16,19 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    # Secrets and tunables come from the repo-root .env; the keys below override
+    # its host-local values (viper maps database.host -> DATABASE_HOST, etc.).
+    env_file:
+      - path: ../../.env
+        required: false
     environment:
       # Config file path — the yml (not yaml) shipped in services/api/config.
       CONFIG_PATH: /app/config/config.yml
+
+      JWT_PRIVATE_KEY_PATH: /app/keys/private.pem
+      JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+      NOTIFICATION_FCM_CREDENTIALS_PATH: /app/keys/fcm.json
+      SERVER_ALLOWED_ORIGINS: http://localhost,http://localhost:3002,http://localhost:3000
 
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
@@ -79,8 +89,18 @@ services:
         NEXT_PUBLIC_WS_URL: ws://localhost:8080
     ports:
       - "3002:3002"
+    # BFF secrets (Cloudinary signing etc.) live in apps/web/.env.local; the
+    # keys below override its host-local values.
+    env_file:
+      - path: ../../apps/web/.env.local
+        required: false
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://api:8080/api/v1
+      AUTH_COOKIE_SECURE: "false"
     depends_on:
-      - bff
+      api:
+        condition: service_healthy
 
   # apps/mobile (React Native / Expo) runs natively in dev — not containerized.
 
