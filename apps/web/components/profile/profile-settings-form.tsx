@@ -271,12 +271,7 @@ function CoverImageField({
               onClick={() => onChange("")}
               disabled={busy}
               aria-label="Remove cover"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-muted disabled:opacity-60"
-              style={{
-                color: "var(--destructive)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                backgroundColor: "rgba(0,0,0,0.4)",
-              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm bg-card/90 hover:bg-pink-soft text-destructive border border-border shadow-soft disabled:opacity-60"
             >
               <Trash2 className="size-3.5" />
               Remove
@@ -286,12 +281,7 @@ function CoverImageField({
             type="button"
             onClick={openPicker}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm hover:bg-muted disabled:opacity-60"
-            style={{
-              color: "var(--foreground)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              backgroundColor: "rgba(0,0,0,0.4)",
-            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full backdrop-blur-sm bg-card/90 hover:bg-card text-foreground border border-border shadow-soft disabled:opacity-60"
           >
             {busy ? (
               <>

@@ -89,8 +89,8 @@ export function OAuthButtons({ next, onSession }: OAuthButtonsProps) {
           className="text-xs rounded-lg px-3 py-2 self-stretch"
           style={{
             color: "var(--destructive)",
-            backgroundColor: "rgba(220,38,38,0.08)",
-            border: "1px solid rgba(220,38,38,0.25)",
+            backgroundColor: "var(--pink-soft)",
+            border: "1px solid color-mix(in oklch, var(--destructive) 25%, transparent)",
           }}
           role="alert"
         >
@@ -154,7 +154,7 @@ function GoogleButton({
         onLoad={render}
       />
       <div
-        className="relative"
+        className="oauth-wrap relative"
         style={{
           width: CIRCLE_SIZE,
           height: CIRCLE_SIZE,
@@ -163,17 +163,12 @@ function GoogleButton({
       >
         <div
           aria-hidden="true"
-          className="season-transition absolute inset-0 rounded-full flex items-center justify-center pointer-events-none"
-          style={{
-            backgroundColor: "var(--primary)",
-            border:
-              "1px solid color-mix(in srgb, var(--season-accent) 32%, transparent)",
-          }}
+          className="oauth-circle absolute inset-0 rounded-full flex items-center justify-center pointer-events-none"
         >
           {pending ? (
             <Loader2
               className="size-4 animate-spin"
-              style={{ color: "var(--primary-foreground)" }}
+              style={{ color: "var(--muted-foreground)" }}
             />
           ) : (
             <GoogleMark />
@@ -239,14 +234,10 @@ function GithubButton({
       disabled={disabled}
       aria-label="Continue with GitHub"
       title="Continue with GitHub"
-      className="season-transition inline-flex items-center justify-center rounded-full disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+      className="oauth-circle inline-flex items-center justify-center rounded-full disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{
         width: CIRCLE_SIZE,
         height: CIRCLE_SIZE,
-        backgroundColor: "var(--background)",
-        color: "var(--foreground)",
-        border:
-          "1px solid color-mix(in srgb, var(--season-accent) 32%, transparent)",
       }}
     >
       {pending ? <Loader2 className="size-4 animate-spin" /> : <GithubMark />}

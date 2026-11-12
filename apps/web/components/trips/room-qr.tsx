@@ -27,7 +27,8 @@ export function RoomQr({ code }: { code: string }) {
     QRCode.toCanvas(canvas, url, {
       width: 220,
       margin: 1,
-      color: { dark: "var(--primary-foreground)", light: "var(--foreground)" },
+      // Canvas needs literal colors (no CSS vars); dark-on-light keeps it scannable.
+      color: { dark: "#0f3d37", light: "#ffffff" },
     }).catch(() => {
       // ignore render failure — code text is still shown
     });
@@ -94,7 +95,7 @@ export function RoomQr({ code }: { code: string }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--primary)" }}>
+      <div className="rounded-2xl p-3 bg-white border border-border shadow-soft">
         <canvas ref={canvasRef} aria-label={`QR code for trip ${code}`} />
       </div>
 

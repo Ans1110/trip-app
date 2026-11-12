@@ -188,6 +188,20 @@
       background-color 300ms ease,
       box-shadow 300ms ease;
   }
+  /* Google's brand rules want the "G" on white/neutral, so OAuth buttons stay off the mint primary. */
+  .oauth-circle {
+    background-color: #ffffff;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft);
+    transition:
+      background-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+  .oauth-circle:hover,
+  .oauth-wrap:hover .oauth-circle {
+    background-color: var(--muted);
+  }
   .album-lightbox {
     background-color: oklch(0.17 0.02 230 / 0.97);
     backdrop-filter: blur(8px);
