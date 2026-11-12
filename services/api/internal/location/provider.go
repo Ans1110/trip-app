@@ -49,6 +49,26 @@ type PlaceSummary struct {
 	Types            []string `json:"types,omitempty"`
 	PriceLevel       int      `json:"price_level,omitempty"`
 	Icon             string   `json:"icon,omitempty"`
+	Photo            string   `json:"photo,omitempty"`
+	Hours            *Hours   `json:"hours,omitempty"`
+}
+
+// Hours carries raw weekly periods so clients compute "open now" at render
+// time; a cached boolean would go stale within the cache TTL.
+type Hours struct {
+	UTCOffsetMinutes int           `json:"utc_offset_minutes"`
+	Periods          []HoursPeriod `json:"periods"`
+}
+
+type HoursPeriod struct {
+	Open  HoursPoint  `json:"open"`
+	Close *HoursPoint `json:"close,omitempty"`
+}
+
+type HoursPoint struct {
+	Day    int `json:"day"`
+	Hour   int `json:"hour"`
+	Minute int `json:"minute"`
 }
 
 type PlaceDetails struct {
@@ -63,6 +83,7 @@ type PlaceDetails struct {
 	PhoneNumber      string   `json:"phone_number,omitempty"`
 	Website          string   `json:"website,omitempty"`
 	OpeningHours     []string `json:"opening_hours,omitempty"`
+	Hours            *Hours   `json:"hours,omitempty"`
 	Photos           []string `json:"photos,omitempty"`
 }
 
@@ -70,6 +91,7 @@ type PlacesProvider interface {
 	SearchText(ctx context.Context, req PlaceSearchRequest) ([]PlaceSummary, error)
 	Nearby(ctx context.Context, req NearbySearchRequest) ([]PlaceSummary, error)
 	Details(ctx context.Context, placeID, lang string) (*PlaceDetails, error)
+	PhotoURL(ctx context.Context, name string, maxWidth int) (string, error)
 }
 
 // ---- Routes ----

@@ -109,3 +109,7 @@ type TripMemberPositionResponse struct {
 	AccuracyM float64   `json:"accuracy_m,omitempty"`
 	SharedAt  time.Time `json:"shared_at"`
 }
+
+type PlacePhotoResponse struct {
+	URL string `json:"url"`
+}

@@ -20,8 +20,8 @@ const (
 	googleTimeout    = 8 * time.Second
 	googleUserAgent  = "trip-app/1.0"
 
-	placesSearchMask = "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.priceLevel,places.iconMaskBaseUri"
-	placesDetailMask = "id,displayName,formattedAddress,location,rating,userRatingCount,types,priceLevel,iconMaskBaseUri,internationalPhoneNumber,nationalPhoneNumber,websiteUri,regularOpeningHours,photos"
+	placesSearchMask = "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.priceLevel,places.iconMaskBaseUri,places.photos,places.regularOpeningHours.periods,places.utcOffsetMinutes"
+	placesDetailMask = "id,displayName,formattedAddress,location,rating,userRatingCount,types,priceLevel,iconMaskBaseUri,internationalPhoneNumber,nationalPhoneNumber,websiteUri,regularOpeningHours,utcOffsetMinutes,photos"
 	routesMask       = "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.description,routes.legs"
 )
 
@@ -71,10 +71,21 @@ type googlePlaceNew struct {
 	WebsiteURI               string              `json:"websiteUri,omitempty"`
 	RegularOpeningHours      *struct {
 		WeekdayDescriptions []string `json:"weekdayDescriptions"`
+		Periods             []struct {
+			Open  *googleHoursPoint `json:"open"`
+			Close *googleHoursPoint `json:"close"`
+		} `json:"periods"`
 	} `json:"regularOpeningHours,omitempty"`
-	Photos []struct {
+	UTCOffsetMinutes *int `json:"utcOffsetMinutes,omitempty"`
+	Photos           []struct {
 		Name string `json:"name"`
 	} `json:"photos,omitempty"`
+}
+
+type googleHoursPoint struct {
+	Day    int `json:"day"`
+	Hour   int `json:"hour"`
+	Minute int `json:"minute"`
 }
 
 type googleSearchResp struct {
@@ -205,12 +216,32 @@ func (g *GoogleMapsProvider) Details(ctx context.Context, placeID, lang string) 
 	if p.RegularOpeningHours != nil {
 		pd.OpeningHours = p.RegularOpeningHours.WeekdayDescriptions
 	}
+	pd.Hours = mapHours(p)
 	for _, ph := range p.Photos {
 		if ph.Name != "" {
 			pd.Photos = append(pd.Photos, ph.Name)
 		}
 	}
 	return pd, nil
+}
+
+// PhotoURL resolves a Places photo resource name to a short-lived image URL
+// so the API key never reaches the browser.
+func (g *GoogleMapsProvider) PhotoURL(ctx context.Context, name string, maxWidth int) (string, error) {
+	if !g.available() {
+		return "", ErrProviderUnavailable
+	}
+	url := fmt.Sprintf("%s/%s/media?maxWidthPx=%d&skipHttpRedirect=true", googlePlacesBase, name, maxWidth)
+	var out struct {
+		PhotoURI string `json:"photoUri"`
+	}
+	if err := g.doJSON(ctx, http.MethodGet, url, "", nil, &out); err != nil {
+		return "", err
+	}
+	if out.PhotoURI == "" {
+		return "", ErrProviderNoResult
+	}
+	return out.PhotoURI, nil
 }
 
 // ---- Routes (New) ----
@@ -353,7 +384,9 @@ func (g *GoogleMapsProvider) doJSON(ctx context.Context, method, url, fieldMask 
 	}
 	req.Header.Set("User-Agent", googleUserAgent)
 	req.Header.Set("X-Goog-Api-Key", g.apiKey)
-	req.Header.Set("X-Goog-FieldMask", fieldMask)
+	if fieldMask != "" {
+		req.Header.Set("X-Goog-FieldMask", fieldMask)
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -410,9 +443,39 @@ func mapNewPlaces(in []googlePlaceNew) []PlaceSummary {
 			Types:            p.Types,
 			PriceLevel:       mapPriceLevel(p.PriceLevel),
 			Icon:             p.IconMaskBaseURI,
+			Photo:            firstPhoto(p),
+			Hours:            mapHours(p),
 		})
 	}
 	return out
+}
+
+func firstPhoto(p googlePlaceNew) string {
+	for _, ph := range p.Photos {
+		if ph.Name != "" {
+			return ph.Name
+		}
+	}
+	return ""
+}
+
+func mapHours(p googlePlaceNew) *Hours {
+	if p.RegularOpeningHours == nil || len(p.RegularOpeningHours.Periods) == 0 || p.UTCOffsetMinutes == nil {
+		return nil
+	}
+	h := &Hours{UTCOffsetMinutes: *p.UTCOffsetMinutes}
+	for _, per := range p.RegularOpeningHours.Periods {
+		if per.Open == nil {
+			continue
+		}
+		hp := HoursPeriod{Open: HoursPoint(*per.Open)}
+		if per.Close != nil {
+			c := HoursPoint(*per.Close)
+			hp.Close = &c
+		}
+		h.Periods = append(h.Periods, hp)
+	}
+	return h
 }
 
 func trimSummaries(rows []PlaceSummary, limit int) []PlaceSummary {

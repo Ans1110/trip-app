@@ -84,9 +84,10 @@ func (a *authMock) IsRoomMember(c context.Context, tid, uid uuid.UUID) (bool, er
 // ---- provider mocks ----
 
 type placesMock struct {
-	search  func(context.Context, location.PlaceSearchRequest) ([]location.PlaceSummary, error)
-	nearby  func(context.Context, location.NearbySearchRequest) ([]location.PlaceSummary, error)
-	details func(context.Context, string, string) (*location.PlaceDetails, error)
+	search   func(context.Context, location.PlaceSearchRequest) ([]location.PlaceSummary, error)
+	nearby   func(context.Context, location.NearbySearchRequest) ([]location.PlaceSummary, error)
+	details  func(context.Context, string, string) (*location.PlaceDetails, error)
+	photoURL func(context.Context, string, int) (string, error)
 }
 
 func (p *placesMock) SearchText(c context.Context, req location.PlaceSearchRequest) ([]location.PlaceSummary, error) {
@@ -106,6 +107,13 @@ func (p *placesMock) Details(c context.Context, id, lang string) (*location.Plac
 		return p.details(c, id, lang)
 	}
 	return nil, nil
+}
+
+func (p *placesMock) PhotoURL(c context.Context, name string, w int) (string, error) {
+	if p.photoURL != nil {
+		return p.photoURL(c, name, w)
+	}
+	return "", nil
 }
 
 type routesMock struct {
@@ -464,6 +472,36 @@ func TestPlaceDetails_HappyPath(t *testing.T) {
 	d, err := svc.PlaceDetails(ctx, "abc", "en")
 	require.NoError(t, err)
 	assert.Equal(t, "abc", d.PlaceID)
+}
+
+// ---- PlacePhotoURL ----
+
+func TestPlacePhotoURL_RejectsMalformedName(t *testing.T) {
+	called := false
+	places := &placesMock{photoURL: func(_ context.Context, _ string, _ int) (string, error) {
+		called = true
+		return "x", nil
+	}}
+	svc := newSvc(svcOpts{repo: &repoMock{}, places: places})
+	for _, name := range []string{"", "places/abc", "places/abc/photos/../../v1/x", "https://evil/x", "places/a/photos/b?key=1"} {
+		_, err := svc.PlacePhotoURL(ctx, name, 400)
+		assert.ErrorIs(t, err, location.ErrInvalidPayload, name)
+	}
+	assert.False(t, called)
+}
+
+func TestPlacePhotoURL_ClampsWidthAndReturnsURL(t *testing.T) {
+	var gotW int
+	places := &placesMock{photoURL: func(_ context.Context, name string, w int) (string, error) {
+		assert.Equal(t, "places/ChIJ_1/photos/AbC-9", name)
+		gotW = w
+		return "https://lh3.googleusercontent.com/p/x", nil
+	}}
+	svc := newSvc(svcOpts{repo: &repoMock{}, places: places})
+	url, err := svc.PlacePhotoURL(ctx, "places/ChIJ_1/photos/AbC-9", 5000)
+	require.NoError(t, err)
+	assert.Equal(t, 1200, gotW)
+	assert.Equal(t, "https://lh3.googleusercontent.com/p/x", url)
 }
 
 // ---- ComputeRoute ----

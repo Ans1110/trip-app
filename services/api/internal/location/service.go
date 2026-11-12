@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ var (
 const (
 	cacheTTLPlacesSearch = 6 * time.Hour
 	cacheTTLPlaceDetails = 24 * time.Hour
+	cacheTTLPlacePhoto   = 50 * time.Minute
 	cacheTTLRoute        = 12 * time.Hour
 	cacheTTLWeather      = 3 * time.Hour
 )
@@ -45,6 +47,7 @@ type IService interface {
 	SearchPlaces(ctx context.Context, q SearchPlacesQuery) ([]PlaceSummary, error)
 	NearbyPlaces(ctx context.Context, q NearbyPlacesQuery) ([]PlaceSummary, error)
 	PlaceDetails(ctx context.Context, placeID, lang string) (*PlaceDetails, error)
+	PlacePhotoURL(ctx context.Context, name string, maxWidth int) (string, error)
 	ComputeRoute(ctx context.Context, p ComputeRoutePayload) (*Route, error)
 
 	// Weather
@@ -309,7 +312,7 @@ func (s *service) SearchPlaces(ctx context.Context, q SearchPlacesQuery) ([]Plac
 		req.Near = &LatLng{Lat: *q.Lat, Lng: *q.Lng}
 	}
 
-	key := "search:" + hashKey(req.Query, formatOptionalLatLng(req.Near), fmt.Sprint(req.Radius), fmt.Sprint(req.Limit), req.Lang)
+	key := "search:v2:" + hashKey(req.Query, formatOptionalLatLng(req.Near), fmt.Sprint(req.Radius), fmt.Sprint(req.Limit), req.Lang)
 	var cached []PlaceSummary
 	if hit, _ := s.cache.Get(ctx, key, &cached); hit {
 		return cached, nil
@@ -334,7 +337,7 @@ func (s *service) NearbyPlaces(ctx context.Context, q NearbyPlacesQuery) ([]Plac
 		Limit:  q.Limit,
 		Lang:   q.Lang,
 	}
-	key := "nearby:" + hashKey(fmt.Sprintf("%f,%f", req.Center.Lat, req.Center.Lng), fmt.Sprint(req.Radius), req.Type, fmt.Sprint(req.Limit), req.Lang)
+	key := "nearby:v2:" + hashKey(fmt.Sprintf("%f,%f", req.Center.Lat, req.Center.Lng), fmt.Sprint(req.Radius), req.Type, fmt.Sprint(req.Limit), req.Lang)
 	var cached []PlaceSummary
 	if hit, _ := s.cache.Get(ctx, key, &cached); hit {
 		return cached, nil
@@ -356,7 +359,7 @@ func (s *service) PlaceDetails(ctx context.Context, placeID, lang string) (*Plac
 	if placeID == "" {
 		return nil, ErrInvalidPayload
 	}
-	key := "details:" + hashKey(placeID, lang)
+	key := "details:v2:" + hashKey(placeID, lang)
 	var cached PlaceDetails
 	if hit, _ := s.cache.Get(ctx, key, &cached); hit {
 		return &cached, nil
@@ -367,6 +370,34 @@ func (s *service) PlaceDetails(ctx context.Context, placeID, lang string) (*Plac
 	}
 	_ = s.cache.Set(ctx, key, out, cacheTTLPlaceDetails)
 	return out, nil
+}
+
+var photoNameRe = regexp.MustCompile(`^places/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+$`)
+
+func (s *service) PlacePhotoURL(ctx context.Context, name string, maxWidth int) (string, error) {
+	if s.places == nil {
+		return "", ErrProviderMissing
+	}
+	if !photoNameRe.MatchString(name) {
+		return "", ErrInvalidPayload
+	}
+	switch {
+	case maxWidth <= 0:
+		maxWidth = 480
+	case maxWidth > 1200:
+		maxWidth = 1200
+	}
+	key := "photo:" + hashKey(name, fmt.Sprint(maxWidth))
+	var cached string
+	if hit, _ := s.cache.Get(ctx, key, &cached); hit && cached != "" {
+		return cached, nil
+	}
+	url, err := s.places.PhotoURL(ctx, name, maxWidth)
+	if err != nil {
+		return "", mapProviderErr(err)
+	}
+	_ = s.cache.Set(ctx, key, url, cacheTTLPlacePhoto)
+	return url, nil
 }
 
 // ---- Routes ----

@@ -42,6 +42,7 @@ func (h *Handler) RegisterRoutes(protected *gin.RouterGroup) {
 		// Places (proxy)
 		g.GET("/places/search", h.SearchPlaces)
 		g.GET("/places/nearby", h.NearbyPlaces)
+		g.GET("/places/photo", h.PlacePhoto)
 		g.GET("/places/:place_id", h.PlaceDetails)
 
 		// Routes
@@ -284,6 +285,28 @@ func (h *Handler) PlaceDetails(c *gin.Context) {
 		return
 	}
 	response.OK(c, out)
+}
+
+// PlacePhoto godoc
+// @Summary  Resolve a Places photo reference to a short-lived image URL
+// @Tags     location
+// @Security BearerAuth
+// @Produce  json
+// @Param    name  query  string  true   "photo resource name (places/{id}/photos/{ref})"
+// @Param    w     query  int     false  "max width in px (default 480, max 1200)"
+// @Success  200  {object}  response.Response{data=PlacePhotoResponse}
+// @Router   /location/places/photo [get]
+func (h *Handler) PlacePhoto(c *gin.Context) {
+	if _, ok := requireUser(c); !ok {
+		return
+	}
+	w, _ := strconv.Atoi(c.Query("w"))
+	url, err := h.svc.PlacePhotoURL(c.Request.Context(), c.Query("name"), w)
+	if err != nil {
+		h.respondServiceError(c, err)
+		return
+	}
+	response.OK(c, PlacePhotoResponse{URL: url})
 }
 
 // ---- Routes ----
