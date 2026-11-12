@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, Compass } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { DesktopNav, MobileTabBar } from "@/components/app-nav";
 import { UserMenu } from "@/components/user-menu";
 
 export function PageShell({
@@ -18,7 +19,7 @@ export function PageShell({
         color: "var(--foreground)",
       }}
     >
-      <header className="px-6 md:px-12 h-16 flex items-center gap-4">
+      <header className="px-4 sm:px-6 md:px-12 h-16 flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2 select-none">
           <Compass
             className="season-transition size-5"
@@ -31,43 +32,7 @@ export function PageShell({
             TripCraft
           </span>
         </Link>
-        <nav className="ml-4 hidden md:flex items-center gap-1 text-sm">
-          <Link
-            href="/trips"
-            className="px-3 py-1.5 rounded-lg hover:bg-muted"
-            style={{ color: "var(--foreground)" }}
-          >
-            Trips
-          </Link>
-          <Link
-            href="/calendar"
-            className="px-3 py-1.5 rounded-lg hover:bg-muted"
-            style={{ color: "var(--foreground)" }}
-          >
-            Calendar
-          </Link>
-          <Link
-            href="/location"
-            className="px-3 py-1.5 rounded-lg hover:bg-muted"
-            style={{ color: "var(--foreground)" }}
-          >
-            Places
-          </Link>
-          <Link
-            href="/weather"
-            className="px-3 py-1.5 rounded-lg hover:bg-muted"
-            style={{ color: "var(--foreground)" }}
-          >
-            Weather
-          </Link>
-          <Link
-            href="/feed"
-            className="px-3 py-1.5 rounded-lg hover:bg-muted"
-            style={{ color: "var(--foreground)" }}
-          >
-            Feed
-          </Link>
-        </nav>
+        <DesktopNav />
         <div className="ml-auto flex items-center gap-3">
           {back && (
             <Link
@@ -83,6 +48,7 @@ export function PageShell({
         </div>
       </header>
       {children}
+      <MobileTabBar />
     </main>
   );
 }

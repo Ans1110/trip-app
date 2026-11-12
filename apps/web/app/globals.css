@@ -179,9 +179,57 @@
       box-shadow 600ms ease;
   }
 
+  /* Mobile bottom tab bar; pages reserve its height so content and FABs clear it. */
+  .mobile-tabbar {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 45;
+    height: 64px;
+    padding: 4px;
+    border-radius: 9999px;
+    background-color: color-mix(in oklch, var(--card) 92%, transparent);
+    backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft-lg);
+  }
+  @media (max-width: 767px) {
+    body:has(.mobile-tabbar) {
+      --tabbar-space: calc(84px + env(safe-area-inset-bottom));
+    }
+    body:has(.mobile-tabbar) main {
+      padding-bottom: var(--tabbar-space);
+    }
+  }
+
+  .trip-more-backdrop {
+    background-color: var(--overlay);
+    animation: trip-more-fade 200ms ease-out;
+  }
+  .trip-more-sheet {
+    animation: trip-more-rise 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes trip-more-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes trip-more-rise {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .trip-more-backdrop,
+    .trip-more-sheet {
+      animation: none;
+    }
+  }
+
   /* Pages with bottom-anchored UI (the Places sheet) set --fab-lift on <html>. */
   .app-fab {
-    bottom: calc(1.5rem + var(--fab-lift, 0px));
+    bottom: calc(1.5rem + var(--tabbar-space, 0px) + var(--fab-lift, 0px));
     transition:
       bottom 300ms cubic-bezier(0.22, 1, 0.36, 1),
       translate 150ms ease,

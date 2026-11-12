@@ -151,8 +151,8 @@ export function TripOverview({
   return (
     <div className="flex flex-col gap-6">
       {trip.cover_image && <CoverBanner key={trip.cover_image} src={trip.cover_image} title={trip.title} />}
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="min-w-0">
           <p
             className="text-[11px] font-medium tracking-[0.2em] uppercase mb-2"
             style={{ color: "var(--mint-ink)" }}
@@ -167,11 +167,11 @@ export function TripOverview({
           </h2>
         </div>
         {canManage && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => setCoverOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted text-foreground border border-border"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap rounded-full hover:bg-muted text-foreground border border-border"
             >
               <ImagePlus className="size-3.5" />
               {trip.cover_image ? "Change cover" : "Add cover"}
@@ -179,7 +179,7 @@ export function TripOverview({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted text-foreground border border-border"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap rounded-full hover:bg-muted text-foreground border border-border"
             >
               <Pencil className="size-3.5" />
               Edit
@@ -188,7 +188,7 @@ export function TripOverview({
               type="button"
               onClick={() => setDeleteOpen(true)}
               disabled={remove.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full hover:bg-muted disabled:opacity-60 text-destructive"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap rounded-full hover:bg-muted disabled:opacity-60 text-destructive"
             >
               {remove.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
